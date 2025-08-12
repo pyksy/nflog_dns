@@ -16,6 +16,21 @@ extern "C"{
 
 using namespace Tins;
 
+void print_help(char* prgname) {
+	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
+	std::cout << "" << std::endl;
+	std::cout << "Extract DNS replies from NFLOG group" << std::endl;
+	std::cout << "" << std::endl;
+	std::cout << "  -g, --group       NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
+	std::cout << "  -s, --syslog      log replies to syslog instead of stdout" << std::endl;
+	std::cout << "  -f, --facility    facility for syslog logging" << std::endl;
+	std::cout << "  -l, --level       log level for syslog logging" << std::endl;
+    std::cout << "  -h, --help        print this help and exit" << std::endl;
+    std::cout << "  -v, --version     show version and exit" << std::endl;
+	std::cout << "" << std::endl;
+	std::cout << "" << std::endl;
+}
+
 static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflog_data *ldata, void *data)
 {
 	uint32_t payload_len;
@@ -50,13 +65,17 @@ int main(int argc, char *argv[])
 	uint16_t group = DEFAULT_NFLOG_GROUP;
 
 	option longopts[] = {
+		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
 		{"help", no_argument, NULL, 'h'},
+		{"level", required_argument, NULL, 'l'},
+		{"syslog", no_argument, NULL, 's'},
+		{"version", no_argument, NULL, 'v'},
 		{0}
 	};
 
 		while (true) {
-		const int opt = getopt_long(argc, argv, "g:h", longopts, 0);
+		const int opt = getopt_long(argc, argv, "f:g:hl:sv", longopts, 0);
 
 		if (opt == -1) {
 			break;
@@ -68,7 +87,7 @@ int main(int argc, char *argv[])
 				break;
 
 			case 'h':
-				std::cout << "Print help" << std::endl;
+				print_help(argv[0]);
 				return 0;
 				break;
 

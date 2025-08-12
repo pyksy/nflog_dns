@@ -1,7 +1,12 @@
-#
-# Written by Andreas Jaggi <andreas.jaggi@waterwave.ch> in December 2015
-#
+/*
+ * Written by Andreas Jaggi <andreas.jaggi@waterwave.ch> in December 2015
+ *
+ * Updated by Antti Kultanen <pyksy at pyksy dot fi>
+ */
 
+#define DEFAULT_NFLOG_GROUP 123
+
+#include <getopt.h>
 #include <tins/tins.h>
 #include <iostream>
 
@@ -42,6 +47,35 @@ int main(int argc, char *argv[])
 	struct nflog_g_handle *qh;
 	ssize_t rv;
 	char buf[4096];
+	uint16_t group = DEFAULT_NFLOG_GROUP;
+
+	option longopts[] = {
+		{"group", required_argument, NULL, 'g'},
+		{"help", no_argument, NULL, 'h'},
+		{0}
+	};
+
+		while (true) {
+		const int opt = getopt_long(argc, argv, "g:h", longopts, 0);
+
+		if (opt == -1) {
+			break;
+		}
+
+		switch (opt) {
+			case 'g':
+				group = atoi(optarg);
+				break;
+
+			case 'h':
+				std::cout << "Print help" << std::endl;
+				return 0;
+				break;
+
+			default:
+				return 1;
+		}
+	}
 
 	h = nflog_open();
 	if (!h) {
@@ -56,9 +90,9 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "error during nflog_bind_pf()\n");
 		return 1;
 	}
-	qh = nflog_bind_group(h, 123);
+	qh = nflog_bind_group(h, group);
 	if (!qh) {
-		fprintf(stderr, "no handle for group 123\n");
+		fprintf(stderr, "no handle for group %d\n", group);
 		return 1;
 	}
 

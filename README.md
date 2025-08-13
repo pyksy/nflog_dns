@@ -3,11 +3,11 @@ DNS packet sniffing with NFLOG in C++.
 
 # requirements
 
-nflog_sniffer.cpp requires libtins and libnetfilter_log
+nflog_sniffer.cpp requires libtins, libnetfilter_log and spdlog libraries
 
 # compile
 
-1. apt-get install libtins-dev libnetfilter-log-dev
+1. apt-get install libtins-dev libnetfilter-log-dev spdlog-dev
 2. make
 
 # quickstart

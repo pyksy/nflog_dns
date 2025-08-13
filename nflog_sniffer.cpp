@@ -8,6 +8,7 @@
 #define PROGRAM_VERSION "0.0.0"
 #define DEFAULT_NFLOG_GROUP 123
 
+#define	SYSLOG_NAMES
 #include <getopt.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/syslog_sink.h>
@@ -22,7 +23,7 @@ extern "C"{
 using namespace Tins;
 
 bool use_syslog = false;
-static const spdlog::level::level_enum syslog_level = spdlog::level::info;
+spdlog::level::level_enum syslog_level = spdlog::level::info;
 
 void print_help(char* prgname) {
 	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
@@ -31,12 +32,31 @@ void print_help(char* prgname) {
 	std::cout << "" << std::endl;
 	std::cout << "  -g, --group       NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
 	std::cout << "  -s, --syslog      log replies to syslog instead of stdout" << std::endl;
-	std::cout << "  -f, --facility    facility for syslog logging (default: LOG_USER)" << std::endl;
-	std::cout << "  -l, --level       log level for syslog logging (default: LOG_INFO)" << std::endl;
+	std::cout << "  -f, --facility    facility for syslog logging (default: user)" << std::endl;
+	std::cout << "  -l, --level       log level for syslog logging (default: info)" << std::endl;
     std::cout << "  -h, --help        print this help and exit" << std::endl;
     std::cout << "  -v, --version     show version and exit" << std::endl;
 	std::cout << "" << std::endl;
 	std::cout << "" << std::endl;
+}
+
+int parse_syslog_code(const char& facility_arg, const CODE* syslog_code_table) {
+	// Check if number was given
+	char* temp;
+	unsigned long facility_ul = strtoul(optarg, &temp, 10);
+	if (optarg != temp && *temp == '\0' && facility_ul <= USHRT_MAX) {
+		return facility_ul;
+	}
+
+	// Try matching string to given syslog code table
+   for (int i=0; syslog_code_table[i].c_name != NULL; i++) {
+        if (strcasecmp(&facility_arg, syslog_code_table[i].c_name) == 0) {
+            return syslog_code_table[i].c_val;
+        }
+    }
+
+	// No match, return error
+	return -1;
 }
 
 static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflog_data *ldata, void *data)
@@ -103,6 +123,14 @@ int main(int argc, char *argv[])
 		}
 
 		switch (opt) {
+			case 'f':
+				syslog_facility = parse_syslog_code(*optarg, facilitynames);
+				if (syslog_facility == -1) {
+					std::cerr << "Error: Bad syslog facility name: " << optarg << std::endl;
+					return 1;
+				}
+				break;
+
 			case 'g':
 				group = atoi(optarg);
 				break;
@@ -110,6 +138,15 @@ int main(int argc, char *argv[])
 			case 'h':
 				print_help(argv[0]);
 				return 0;
+				break;
+
+			case 'l':
+				// std::cout << "testing: " << spdlog::level::from_str(optarg) << std::endl;
+				syslog_level = spdlog::level::from_str(optarg);
+				if (syslog_level == spdlog::level::off) {
+					std::cerr << "Error: Bad syslog level: " << optarg << std::endl;
+					return 1;
+				}
 				break;
 
 			case 's':

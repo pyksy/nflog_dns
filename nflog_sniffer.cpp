@@ -52,12 +52,22 @@ static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nf
 			auto dns_logger = spdlog::get(PROGRAM_NAME);
 
 			for(const auto &answer : dns.answers()) {
-				if ( answer.type() == DNS::A )
-					dns_logger->log(syslog_level, "answer(A)[{}]: {} -> {}", answer.ttl(), answer.dname(), answer.data());
-				if ( answer.type() == DNS::AAAA )
-					dns_logger->log(syslog_level, "answer(AAAA)[{}]: {} -> {}", answer.ttl(), answer.dname(), answer.data());
-				if ( answer.type() == DNS::CNAME )
-					dns_logger->log(syslog_level, "answer(CNAME)[{}]: {} -> {}", answer.ttl(), answer.dname(), answer.data());
+				switch (answer.type()) {
+					case DNS::A:
+						dns_logger->log(syslog_level, "A {} -> {}", answer.dname(), answer.data());
+						break;
+					case DNS::AAAA:
+						dns_logger->log(syslog_level, "AAAA {} -> {}", answer.dname(), answer.data());
+						break;
+					case DNS::CNAME:
+						dns_logger->log(syslog_level, "CNAME {} -> {}", answer.dname(), answer.data());
+						break;
+					case DNS::PTR:
+						dns_logger->log(syslog_level, "PTR {} -> {}", answer.dname(), answer.data());
+						break;
+					default:
+						break;
+				}
 			}
 		}
 	} catch (malformed_packet&) {

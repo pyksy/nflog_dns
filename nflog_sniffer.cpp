@@ -4,9 +4,14 @@
  * Updated by Antti Kultanen <pyksy at pyksy dot fi>
  */
 
+#define PROGRAM_NAME "nflog_sniffer"
+#define PROGRAM_VERSION "0.0.0"
 #define DEFAULT_NFLOG_GROUP 123
 
 #include <getopt.h>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/syslog_sink.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 #include <tins/tins.h>
 #include <iostream>
 
@@ -16,6 +21,9 @@ extern "C"{
 
 using namespace Tins;
 
+bool use_syslog = false;
+static const spdlog::level::level_enum syslog_level = spdlog::level::info;
+
 void print_help(char* prgname) {
 	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
 	std::cout << "" << std::endl;
@@ -23,8 +31,8 @@ void print_help(char* prgname) {
 	std::cout << "" << std::endl;
 	std::cout << "  -g, --group       NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
 	std::cout << "  -s, --syslog      log replies to syslog instead of stdout" << std::endl;
-	std::cout << "  -f, --facility    facility for syslog logging" << std::endl;
-	std::cout << "  -l, --level       log level for syslog logging" << std::endl;
+	std::cout << "  -f, --facility    facility for syslog logging (default: LOG_USER)" << std::endl;
+	std::cout << "  -l, --level       log level for syslog logging (default: LOG_INFO)" << std::endl;
     std::cout << "  -h, --help        print this help and exit" << std::endl;
     std::cout << "  -v, --version     show version and exit" << std::endl;
 	std::cout << "" << std::endl;
@@ -41,13 +49,15 @@ static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nf
 		DNS dns = rpdu.to<IP>().rfind_pdu<UDP>().rfind_pdu<RawPDU>().to<DNS>();
 	
 		if ( dns.type() == DNS::RESPONSE ) {
+			auto dns_logger = spdlog::get(PROGRAM_NAME);
+
 			for(const auto &answer : dns.answers()) {
 				if ( answer.type() == DNS::A )
-					std::cout << "answer(A)[" << answer.ttl() << "]: " << answer.dname() << " -> " << answer.data() << std::endl;
+					dns_logger->log(syslog_level, "answer(A)[{}]: {} -> {}", answer.ttl(), answer.dname(), answer.data());
 				if ( answer.type() == DNS::AAAA )
-					std::cout << "answer(AAAA)[" << answer.ttl() << "]: " << answer.dname() << " -> " << answer.data() << std::endl;
+					dns_logger->log(syslog_level, "answer(AAAA)[{}]: {} -> {}", answer.ttl(), answer.dname(), answer.data());
 				if ( answer.type() == DNS::CNAME )
-					std::cout << "answer(CNAME)[" << answer.ttl() << "]: " << answer.dname() << " -> " << answer.data() << std::endl;
+					dns_logger->log(syslog_level, "answer(CNAME)[{}]: {} -> {}", answer.ttl(), answer.dname(), answer.data());
 			}
 		}
 	} catch (malformed_packet&) {
@@ -63,6 +73,7 @@ int main(int argc, char *argv[])
 	ssize_t rv;
 	char buf[4096];
 	uint16_t group = DEFAULT_NFLOG_GROUP;
+	int syslog_facility = LOG_USER;
 
 	option longopts[] = {
 		{"facility", required_argument, NULL, 'f'},
@@ -88,6 +99,15 @@ int main(int argc, char *argv[])
 
 			case 'h':
 				print_help(argv[0]);
+				return 0;
+				break;
+
+			case 's':
+				use_syslog = true;
+				break;
+
+			case 'v':
+				std::cout << PROGRAM_NAME << " version " << PROGRAM_VERSION << std::endl;
 				return 0;
 				break;
 
@@ -119,6 +139,17 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "can't set packet copy mode\n");
 		return 1;
 	}
+
+	// Setup logging
+	std::shared_ptr<spdlog::sinks::sink> dns_logger_sink = NULL;
+	if (use_syslog) {
+		dns_logger_sink = std::make_shared<spdlog::sinks::syslog_sink_mt>(PROGRAM_NAME, LOG_PID, syslog_facility, false);
+	} else {
+		dns_logger_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	}
+	auto dns_logger = std::make_shared<spdlog::logger>(PROGRAM_NAME, dns_logger_sink);
+	spdlog::register_logger(dns_logger);
+	dns_logger->log(syslog_level, "DNS logging initialized");
 
 	nflog_callback_register(qh, &callback, NULL);
 

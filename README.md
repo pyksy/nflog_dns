@@ -3,7 +3,7 @@ DNS packet sniffing with NFLOG in C++.
 
 # requirements
 
-nflog_sniffer.cpp requires libtins, libnetfilter_log and spdlog libraries
+nflog_sniff.cpp requires libtins, libnetfilter_log and spdlog libraries
 
 # compile
 
@@ -13,6 +13,6 @@ nflog_sniffer.cpp requires libtins, libnetfilter_log and spdlog libraries
 # quickstart
 
 1. start.sh
-2. sudo ./nflog_sniffer
+2. sudo ./nflog_sniff
 3. make some DNS queries and observe the extracted names and IPs
 

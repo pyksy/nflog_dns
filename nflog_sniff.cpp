@@ -40,12 +40,16 @@ void print_help(char* prgname) {
 	std::cout << "" << std::endl;
 }
 
-int parse_syslog_code(const char& facility_arg, const CODE* syslog_code_table) {
+bool is_number(const char& facility_arg) {
 	// Check if number was given
 	char* temp;
-	unsigned long facility_ul = strtoul(optarg, &temp, 10);
-	if (optarg != temp && *temp == '\0' && facility_ul <= USHRT_MAX) {
-		return facility_ul;
+	unsigned long number = strtoul(optarg, &temp, 10);
+	return optarg != temp && *temp == '\0' && number <= USHRT_MAX;
+}
+
+int parse_syslog_code(const char& facility_arg, const CODE* syslog_code_table) {
+	if (is_number(*optarg)) {
+		return atoi(optarg);
 	}
 
 	// Try matching string to given syslog code table
@@ -143,7 +147,16 @@ int main(int argc, char *argv[])
 				break;
 
 			case 'g':
-				group = atoi(optarg);
+				if (strcmp(optarg, "0") != 0) {
+					if (is_number(*optarg)) {
+						group = atoi(optarg);
+					} else {
+						std::cerr << "Error: Bad group number: " << optarg << std::endl;
+						return 1;
+					}
+				} else {
+					group = 0;
+				}
 				break;
 
 			case 'h':
@@ -207,7 +220,7 @@ int main(int argc, char *argv[])
 	}
 	auto dns_logger = std::make_shared<spdlog::logger>(PROGRAM_NAME, dns_logger_sink);
 	spdlog::register_logger(dns_logger);
-	dns_logger->log(syslog_level, "DNS logging initialized");
+	dns_logger->log(syslog_level, "DNS logging initialized for NFLOG group {}", group);
 
 	nflog_callback_register(qh, &callback, NULL);
 

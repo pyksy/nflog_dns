@@ -165,7 +165,6 @@ int main(int argc, char *argv[])
 				break;
 
 			case 'l':
-				// std::cout << "testing: " << spdlog::level::from_str(optarg) << std::endl;
 				syslog_level = spdlog::level::from_str(optarg);
 				if (syslog_level == spdlog::level::off) {
 					std::cerr << "Error: Bad syslog level: " << optarg << std::endl;

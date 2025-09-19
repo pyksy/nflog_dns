@@ -23,7 +23,7 @@ Edit the PREFIX in Makefile if needed. The default is to install in /usr/local
 1. compile as above
 2. sudo make install
 
-# enable service
+# enable sysvinit service
 
 1. install as above
 2. edit options in /etc/default/nflog_dns as needed

@@ -1,5 +1,5 @@
 # nflog_dns
-DNS packet syslogging using NFLOG, written in C++.
+DNS packet syslogging using iptables NFLOG, written in C++.
 
 # requirements
 
@@ -7,7 +7,7 @@ nflog_dns.cpp requires libtins, libnetfilter_log and spdlog libraries
 
 # compile
 
-1. sudo apt-get install libtins-dev libnetfilter-log-dev spdlog-dev
+1. sudo apt-get install libtins-dev libnetfilter-log-dev libspdlog-dev
 2. make
 
 # quickstart

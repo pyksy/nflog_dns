@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ### BEGIN INIT INFO
-# Provides:          nflog_sniff
+# Provides:          nflog_dns
 # Required-Start:    $network $remote_fs $local_fs
 # Required-Stop:     $network $remote_fs $local_fs
 # Default-Start:     2 3 4 5
@@ -13,8 +13,8 @@
 # Author: Antti Kultanen <pyksy at pyksy dot fi>
 
 PATH="/sbin:/bin:/usr/sbin:/usr/bin"
-DAEMON="/usr/local/sbin/nflog_sniff"
-NAME="nflog_sniff"
+DAEMON="/usr/local/sbin/nflog_dns"
+NAME="nflog_dns"
 DESC="NFLOG-based userland DNS reply logger"
 DEFAULT="/etc/default/${NAME}"
 PIDFILE="/run/${NAME}.pid"
@@ -33,7 +33,7 @@ check_running() {
 	fi
 }
 
-start_nflog_sniff() {
+start_nflog_dns() {
 	log_daemon_msg "Starting ${DESC}" "$NAME"
 
 	check_running
@@ -51,7 +51,7 @@ start_nflog_sniff() {
 	fi
 }
 
-stop_nflog_sniff() {
+stop_nflog_dns() {
 	log_daemon_msg "Stopping ${DESC}" "$NAME"
 
 	if start-stop-daemon --stop \
@@ -70,14 +70,14 @@ stop_nflog_sniff() {
 
 case "${1}" in
 	start)
-		start_nflog_sniff
+		start_nflog_dns
 	;;
 	stop)
-		stop_nflog_sniff || exit ${?}
+		stop_nflog_dns || exit ${?}
 	;;
 	restart)
-		stop_nflog_sniff
-		start_nflog_sniff
+		stop_nflog_dns
+		start_nflog_dns
 	;;
 	status)
 		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 || exit ${?}

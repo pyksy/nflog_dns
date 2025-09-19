@@ -4,7 +4,7 @@
  * Updated by Antti Kultanen <pyksy at pyksy dot fi>
  */
 
-#define PROGRAM_NAME "nflog_sniff"
+#define PROGRAM_NAME "nflog_dns"
 #define PROGRAM_VERSION "0.0.0"
 #define DEFAULT_NFLOG_GROUP 123
 

@@ -1,5 +1,0 @@
-# Add/edit your nflog_sniff cmdline arguments here.
-# To get help with options, run nflog_sniff --help
-#
-
-OPTIONS="--syslog --facility user --level info"

@@ -1,0 +1,5 @@
+# Add/edit your nflog_dns cmdline arguments here.
+# To get help with options, run nflog_dns --help
+#
+
+OPTIONS="--syslog --facility user --level info"

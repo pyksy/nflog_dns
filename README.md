@@ -3,7 +3,7 @@ DNS packet syslogging using iptables NFLOG, written in C++.
 
 # requirements
 
-nflog_dns.cpp requires libtins, libnetfilter_log and spdlog libraries
+nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 
 # compile
 

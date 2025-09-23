@@ -10,10 +10,6 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 1. sudo apt-get install libtins-dev libnetfilter-log-dev libspdlog-dev
 2. make
 
-# optional: run tests
-
-1. sudo make test
-
 # quickstart
 
 1. sudo ./start.sh
@@ -32,3 +28,7 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 2. Edit options in /etc/default/nflog_dns to suit your needs
 3. sudo update-rc.d nflog_dns defaults
 4. sudo service nflog_dns start
+
+# run tests
+
+1. sudo make test

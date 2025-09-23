@@ -70,12 +70,20 @@ static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nf
 	payload_len = nflog_get_payload(ldata, (char **)(&payload));
 	RawPDU rpdu = RawPDU(payload, payload_len);
 	DNS dns;
+	IP ip;
+	IPv6 ipv6;
+	std::string source;
+
 	try {
-		dns = rpdu.to<IP>().rfind_pdu<RawPDU>().to<DNS>();
+		ip = rpdu.to<IP>();
+		dns = ip.rfind_pdu<RawPDU>().to<DNS>();
+		source = ip.src_addr().to_string();
 	} catch (malformed_packet&) {
 		// Packet was not IPv4, try IPv6
 		try {
-			dns = rpdu.to<IPv6>().rfind_pdu<RawPDU>().to<DNS>();
+			ipv6 = rpdu.to<IPv6>();
+			dns = ipv6.rfind_pdu<RawPDU>().to<DNS>();
+			source = ipv6.src_addr().to_string();
 		} catch (malformed_packet&) {
 			// Packet was not IPv6 either, ignore it
 			return true;
@@ -89,16 +97,16 @@ static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nf
 			for(const auto &answer : dns.answers()) {
 				switch (answer.query_type()) {
 					case DNS::A:
-						dns_logger->log(syslog_level, "A {} -> {}", answer.dname(), answer.data());
+						dns_logger->log(syslog_level, "{} reply A {} -> {}", source, answer.dname(), answer.data());
 						break;
 					case DNS::AAAA:
-						dns_logger->log(syslog_level, "AAAA {} -> {}", answer.dname(), answer.data());
+						dns_logger->log(syslog_level, "{} reply AAAA {} -> {}", source, answer.dname(), answer.data());
 						break;
 					case DNS::CNAME:
-						dns_logger->log(syslog_level, "CNAME {} -> {}", answer.dname(), answer.data());
+						dns_logger->log(syslog_level, "{} reply CNAME {} -> {}", source, answer.dname(), answer.data());
 						break;
 					case DNS::PTR:
-						dns_logger->log(syslog_level, "PTR {} -> {}", answer.dname(), answer.data());
+						dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
 						break;
 					default:
 						break;

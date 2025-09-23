@@ -1,7 +1,8 @@
 /*
  * Written by Andreas Jaggi <andreas.jaggi@waterwave.ch> in December 2015
+ * Written by Antti Kultanen <pyksy at pyksy dot fi>
  *
- * Updated by Antti Kultanen <pyksy at pyksy dot fi>
+ * nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
  */
 
 #define PROGRAM_NAME "nflog_dns"

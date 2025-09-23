@@ -1,3 +1,8 @@
+# Written by Andreas Jaggi <andreas.jaggi@waterwave.ch> in December 2015
+# Written by Antti Kultanen <pyksy at pyksy dot fi>
+#
+# nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
+
 PREFIX := /usr/local
 ETCDIR := /etc
 
@@ -15,7 +20,7 @@ run-tests:
 test: run-tests
 
 install-bin:
-	install -Dm755 "nflog_dns" "$(PREFIX)/sbin/nflog_dns"
+	install -s -Dm755 "nflog_dns" "$(PREFIX)/sbin/nflog_dns"
 
 install-init:
 	install -Dm755 "init.d/nflog_dns"  "$(ETCDIR)/init.d/nflog_dns"

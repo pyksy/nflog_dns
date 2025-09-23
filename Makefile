@@ -9,6 +9,11 @@ clean:
 
 distclean: clean
 
+run-tests:
+	bash ./test/run_tests.sh
+
+test: run-tests
+
 install-bin:
 	install -Dm755 "nflog_dns" "$(PREFIX)/sbin/nflog_dns"
 

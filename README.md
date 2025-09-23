@@ -10,22 +10,25 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 1. sudo apt-get install libtins-dev libnetfilter-log-dev libspdlog-dev
 2. make
 
+# optional: run tests
+
+1. sudo make test
+
 # quickstart
 
-1. ./start.sh
+1. sudo ./start.sh
 2. sudo ./nflog_dns
-3. make some DNS queries and observe the extracted names and IPs
+3. Make some DNS queries and observe the extracted names and IPs
 
 # install
 
-Edit the PREFIX in Makefile if needed. The default is to install in /usr/local
-
-1. compile as above
-2. sudo make install
+1. Compile nflog_dns as above
+2. Optional: Edit the PREFIX in Makefile. By default installs to /usr/local
+3. sudo make install
 
 # enable sysvinit service
 
-1. install as above
-2. edit options in /etc/default/nflog_dns as needed
+1. Install nflog_dns as above
+2. Edit options in /etc/default/nflog_dns to suit your needs
 3. sudo update-rc.d nflog_dns defaults
 4. sudo service nflog_dns start

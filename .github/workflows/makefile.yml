@@ -2,6 +2,8 @@ name: Build nflog_dns
 
 on:
   push:
+    branches:
+    - '**'
     tags:
     - 'v*.*.*'
 

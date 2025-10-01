@@ -33,7 +33,6 @@ jobs:
 
     - name: Run tests
       run: |
-        export VERSION
         sudo make test
 
     - name: Install binary

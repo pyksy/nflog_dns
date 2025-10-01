@@ -24,7 +24,7 @@ jobs:
         else
           export VERSION="$(git rev-parse --short HEAD)"
         fi
-        echo "VERSION=$VERSION" >> $GITHUB_ENV
+        echo "VERSION=${VERSION}" >>$GITHUB_ENV
         echo "#define PROGRAM_VERSION \"${VERSION}\"" >version.h
         cat version.h
 
@@ -32,7 +32,9 @@ jobs:
       run: make
 
     - name: Run tests
-      run: sudo make test
+      run: |
+        export VERSION
+        sudo make test
 
     - name: Install binary
       run: sudo make install

@@ -24,6 +24,7 @@ jobs:
         else
           export VERSION="$(git rev-parse --short HEAD)"
         fi
+        echo "VERSION=$VERSION" >> $GITHUB_ENV
         echo "#define PROGRAM_VERSION \"${VERSION}\"" >version.h
         cat version.h
 

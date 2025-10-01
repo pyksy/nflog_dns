@@ -20,9 +20,9 @@ jobs:
     - name: Update version.h
       run: |
         if [[ "${GITHUB_REF}" == refs/tags/v* ]]; then
-          VERSION="${GITHUB_REF#refs/tags/v}"
+          export VERSION="${GITHUB_REF#refs/tags/v}"
         else
-          VERSION="$(git rev-parse --short HEAD)"
+          export VERSION="$(git rev-parse --short HEAD)"
         fi
         echo "#define PROGRAM_VERSION \"${VERSION}\"" >version.h
         cat version.h
@@ -31,7 +31,7 @@ jobs:
       run: make
 
     - name: Run tests
-      run: sudo bash test/run_tests.sh
+      run: sudo make test
 
     - name: Install binary
       run: sudo make install

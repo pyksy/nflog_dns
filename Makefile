@@ -15,7 +15,8 @@ clean:
 distclean: clean
 
 run-tests:
-	bash ./test/run_tests.sh
+	bash ./test/verify_version.sh
+	bash ./test/packet_logging.sh
 
 test: run-tests
 

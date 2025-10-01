@@ -8,7 +8,6 @@ fi
 echo "=== Start ==="
 
 NFLOGIP="172.31.53.123"
-DIR="$(dirname $(realpath "${0}"))"
 
 echo -n "Setup dummy interface nflog0 ... "
 ip link add nflog0 type dummy
@@ -19,7 +18,7 @@ ip addr show dev nflog0
 echo " "
 
 echo -n "Start UDP receiver ... "
-exec 3< <(python3 "${DIR}/py/test_recv.py" "${NFLOGIP}")
+exec 3< <(python3 "test/py/test_recv.py" "${NFLOGIP}")
 LISTENPID="${!}"
 read LISTENPORT <&3
 echo "PID ${LISTENPID} UDP port ${LISTENPORT}"
@@ -35,12 +34,12 @@ echo " "
 
 echo -n "Start nflog_dns logging ... "
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"
-"${DIR}/../nflog_dns" >"${NFLOGTEMP}" &
+./nflog_dns >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 
 echo -n "Send DNS reply packet to listener ... "
-python3 "${DIR}/py/test_send.py" "${NFLOGIP}" "${LISTENPORT}"
+python3 "test/py/test_send.py" "${NFLOGIP}" "${LISTENPORT}"
 echo "done"
 
 sleep 2

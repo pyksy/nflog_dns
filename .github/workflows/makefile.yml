@@ -1,6 +1,9 @@
 name: Build nflog_dns
 
-on: [push]
+on:
+  push:
+    tags:
+    - 'v*.*.*'
 
 jobs:
   build:
@@ -10,9 +13,13 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install build and test dependencies
+      run: sudo apt-get -y install libtins-dev libnetfilter-log-dev libspdlog-dev python3
+
+    - name: Update version.h if tagged
+      if: startsWith(github.ref, 'refs/tags/v')
       run: |
-        sudo apt-get update
-        sudo apt-get -y install libtins-dev libnetfilter-log-dev libspdlog-dev python3
+        VERSION="${GITHUB_REF#refs/tags/v}"
+        echo "#define PROGRAM_VERSION \"$VERSION\""
 
     - name: Compile binary
       run: make

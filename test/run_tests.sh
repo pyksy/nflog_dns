@@ -16,7 +16,7 @@ ip addr add "${NFLOGIP}"/32 dev nflog0
 ip link set up dev nflog0
 echo "done"
 ip addr show dev nflog0
-echo
+echo " "
 
 echo -n "Start UDP receiver ... "
 exec 3< <(python3 "${DIR}/py/test_recv.py" "${NFLOGIP}")
@@ -31,7 +31,7 @@ iptables -I INPUT 1 -t filter -p udp -d "${NFLOGIP}" --sport 53 --dport "${LISTE
 echo  "done"
 iptables -L INPUT -nv
 iptables -L nflog_dns_logger -nv
-echo
+echo " "
 
 echo -n "Start nflog_dns logging ... "
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"

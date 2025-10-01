@@ -24,7 +24,7 @@ packet = bytes.fromhex(
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 # Bind to source port 53 (requires root)
-s.bind(('', 53))
+s.bind((DEST_IP, 53))
 
 # Send the packet
 s.sendto(packet, (DEST_IP, DEST_PORT))

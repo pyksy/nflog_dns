@@ -94,6 +94,7 @@ static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nf
 	try {
 		if (dns.type() == DNS::RESPONSE) {
 			auto dns_logger = spdlog::get(PROGRAM_NAME);
+			if (!dns_logger) return true;
 
 			for(const auto &answer : dns.answers()) {
 				switch (answer.query_type()) {
@@ -115,7 +116,7 @@ static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nf
 			}
 		}
 	} catch (...) {
-			// Ignore exceptions
+		// Ignore exceptions
 	}
 	return true;
 }

@@ -9,7 +9,7 @@ on:
 jobs:
   # Full integration testing, requires full VM
   ubuntu-full:
-    name: Ubuntu 24.04 build and test
+    name: Ubuntu 24.04 compile and test
     runs-on: ubuntu-24.04
 
     steps:
@@ -21,7 +21,7 @@ jobs:
       run: |
         sudo rm -f /var/lib/man-db/auto-update
         sudo apt-get update
-        sudo apt-get -y install libtins-dev libnetfilter-log-dev libspdlog-dev python3
+        sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat
 
     - name: Compile binary
       run: make
@@ -32,17 +32,42 @@ jobs:
     - name: Verify installation
       run: sudo make install
 
+    - name: Inject distribution name to deb package version
+      run: |
+        CODENAME="$(lsb_release -c -s)"
+        PACKAGE="$(dpkg-parsechangelog --show-field Source)"
+        FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
+        BASE_VERSION="$(echo "${FULL_VERSION}" | sed -E 's/(.*)-[^-]+$/\1-/')"
+        BASE_REVISION="$(echo "${FULL_VERSION}" | sed -E 's/^[^-]+-([0-9]+)$/\1/')"
+        NEW_VERSION="${BASE_VERSION}${CODENAME}${BASE_REVISION}"
+        echo "Package version: ${NEW_VERSION}"
+        sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${CODENAME}; urgency=medium/" debian/changelog
+
+#    - name: Build .deb package
+#      run: make deb
+
   # Build only, use containers
   build-matrix:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: Debian 13
             image: debian:13
-            install: apt-get update && apt-get install -y git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential
+            pkgtype: deb
+            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+          - name: Debian 12
+            image: debian:12
+            pkgtype: deb
+            install: apt-get update && apt-get -y --no-install-recommends  install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
           - name: Fedora 42
             image: fedora:42
-            install: dnf install -y git gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3
+            pkgtype: rpm
+            install: dnf install -y git gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
+          - name: Fedora 41
+            image: fedora:41
+            pkgtype: rpm
+            install: dnf install -y git gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
 
     runs-on: ubuntu-latest
     container:
@@ -61,3 +86,46 @@ jobs:
 
     - name: Verify installation
       run: make install
+
+    - name: Inject distribution into package version
+      run: |
+        case "${{ matrix.pkgtype }}" in
+        "deb")
+          CODENAME="$(lsb_release -c -s)"
+          FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
+          BASE_VERSION="$(echo "${FULL_VERSION}" | sed -E 's/(.*)-[^-]+$/\1-/')"
+          BASE_REVISION="$(echo "${FULL_VERSION}" | sed -E 's/^[^-]+-([0-9]+)$/\1/')"
+          ;;
+        "rpm")
+          CODENAME="$(cat /etc/redhat-release | sed -e 's/.*(\([^)]*\)).*/\1/g' -e 's/ //g' | tr '[:upper:]' '[:lower:]')"
+          BASE_VERSION="$(grep "PROGRAM_VERSION" "version.h" | cut -d '"' -f 2)"
+          BASE_REVISION="-1"
+          ;;
+        *)
+          echo "Error: unknown pkgtype" >&2
+          exit 1
+          ;;
+        esac
+        NEW_VERSION="${BASE_VERSION}${CODENAME}${BASE_REVISION}"
+        echo "Package version: ${NEW_VERSION}"
+        case "${{ matrix.pkgtype }}" in
+        "deb")
+          PACKAGE="$(dpkg-parsechangelog --show-field Source)"
+          sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${CODENAME}; urgency=medium/" debian/changelog
+          ;;
+        "rpm")
+          echo Not yet implemented
+          ;;
+        *)
+          echo "Error: unknown pkgtype" >&2
+          exit 1
+          ;;
+        esac
+
+    - name: Build package
+      run: |
+        if [ "${{ matrix.pkgtype }}" = "deb" ]; then
+          make deb
+        else
+          echo make rpm
+        fi

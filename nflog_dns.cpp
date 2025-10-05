@@ -41,21 +41,21 @@ void print_help(char* prgname) {
 	std::cout << "" << std::endl;
 }
 
-bool is_number(const char& facility_arg) {
+bool is_number(const char* facility_arg) {
 	// Check if number was given
 	char* temp;
 	unsigned long number = strtoul(optarg, &temp, 10);
 	return optarg != temp && *temp == '\0' && number <= USHRT_MAX;
 }
 
-int parse_syslog_code(const char& facility_arg, const CODE* syslog_code_table) {
-	if (is_number(*optarg)) {
+int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table) {
+	if (is_number(optarg)) {
 		return atoi(optarg);
 	}
 
 	// Try matching string to given syslog code table
    for (int i=0; syslog_code_table[i].c_name != NULL; i++) {
-        if (strcasecmp(&facility_arg, syslog_code_table[i].c_name) == 0) {
+        if (strcasecmp(facility_arg, syslog_code_table[i].c_name) == 0) {
             return syslog_code_table[i].c_val;
         }
     }
@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 
 		switch (opt) {
 			case 'f':
-				syslog_facility = parse_syslog_code(*optarg, facilitynames);
+				syslog_facility = parse_syslog_code(optarg, facilitynames);
 				if (syslog_facility == -1) {
 					std::cerr << "Error: Bad syslog facility name: " << optarg << std::endl;
 					return 1;
@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
 
 			case 'g':
 				if (strcmp(optarg, "0") != 0) {
-					if (is_number(*optarg)) {
+					if (is_number(optarg)) {
 						group = atoi(optarg);
 					} else {
 						std::cerr << "Error: Bad group number: " << optarg << std::endl;
@@ -198,25 +198,25 @@ int main(int argc, char *argv[])
 
 	h = nflog_open();
 	if (!h) {
-		fprintf(stderr, "error during nflog_open()\n");
+		std::cerr << "error during nflog_open()\n";
 		return 1;
 	}
 	if (nflog_unbind_pf(h, AF_INET) < 0) {
-		fprintf(stderr, "error nflog_unbind_pf()\n");
+		std::cerr << "error nflog_unbind_pf()\n";
 		return 1;
 	}
 	if (nflog_bind_pf(h, AF_INET) < 0) {
-		fprintf(stderr, "error during nflog_bind_pf()\n");
+		std::cerr << "error during nflog_bind_pf()\n";
 		return 1;
 	}
 	qh = nflog_bind_group(h, group);
 	if (!qh) {
-		fprintf(stderr, "no handle for group %d\n", group);
+		std::cerr << "no handle for group " << group << "\n";
 		return 1;
 	}
 
 	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, 0xffff) < 0) {
-		fprintf(stderr, "can't set packet copy mode\n");
+		std::cerr << "can't set packet copy mode\n";
 		return 1;
 	}
 

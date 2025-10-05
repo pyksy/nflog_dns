@@ -1,5 +1,6 @@
 # nflog_dns
-DNS packet syslogging using iptables NFLOG, written in C++.
+DNS packet syslogging using iptables NFLOG, written in C++. This program
+parses A, AAAA and PTR type DNS reply packets and logs the details to syslog or console.
 
 # requirements
 
@@ -7,7 +8,7 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 
 # compile
 
-1. sudo apt-get install libtins-dev libnetfilter-log-dev libspdlog-dev
+1. sudo apt-get install build-essential libtins-dev libnetfilter-log-dev libspdlog-dev
 2. make
 
 # quickstart

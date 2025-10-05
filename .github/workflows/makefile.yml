@@ -1,0 +1,63 @@
+name: Build nflog_dns
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - '**'
+
+jobs:
+  # Full integration testing, requires full VM
+  ubuntu-full:
+    name: Ubuntu 24.04 build and test
+    runs-on: ubuntu-24.04
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Install build and test dependencies
+      run: |
+        sudo rm -f /var/lib/man-db/auto-update
+        sudo apt-get update
+        sudo apt-get -y install libtins-dev libnetfilter-log-dev libspdlog-dev python3
+
+    - name: Compile binary
+      run: make
+
+    - name: Run tests
+      run: sudo make test
+
+    - name: Verify installation
+      run: sudo make install
+
+  # Build only, use containers
+  build-matrix:
+    strategy:
+      matrix:
+        include:
+          - name: Debian 13
+            image: debian:13
+            install: apt-get update && apt-get install -y git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential
+          - name: Fedora 42
+            image: fedora:42
+            install: dnf install -y git gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3
+
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.image }}
+
+    name: ${{ matrix.name }} build
+
+    steps:
+    - name: Install dependencies
+      run: ${{ matrix.install }}
+
+    - uses: actions/checkout@v4
+
+    - name: Compile binary
+      run: make
+
+    - name: Verify installation
+      run: make install

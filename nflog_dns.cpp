@@ -11,6 +11,8 @@
 
 #define	SYSLOG_NAMES
 #include <getopt.h>
+#include <errno.h>
+#include <string.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -196,27 +198,28 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	// Setup nflog
 	h = nflog_open();
 	if (!h) {
-		std::cerr << "error during nflog_open()\n";
+		std::cerr << "error during nflog_open()" << std::endl;
 		return 1;
 	}
 	if (nflog_unbind_pf(h, AF_INET) < 0) {
-		std::cerr << "error nflog_unbind_pf()\n";
+		std::cerr << "error nflog_unbind_pf()" << std::endl;
 		return 1;
 	}
 	if (nflog_bind_pf(h, AF_INET) < 0) {
-		std::cerr << "error during nflog_bind_pf()\n";
+		std::cerr << "error during nflog_bind_pf()" << std::endl;
 		return 1;
 	}
 	qh = nflog_bind_group(h, group);
 	if (!qh) {
-		std::cerr << "no handle for group " << group << "\n";
+		std::cerr << "no handle for group " << group << " -- is " << PROGRAM_NAME << " already running?" << std::endl;
 		return 1;
 	}
 
 	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, 0xffff) < 0) {
-		std::cerr << "can't set packet copy mode\n";
+		std::cerr << "can't set packet copy mode" << std::endl;
 		return 1;
 	}
 
@@ -232,10 +235,31 @@ int main(int argc, char *argv[])
 	dns_logger->log(syslog_level, "DNS logging initialized for NFLOG group {}", group);
 
 	nflog_callback_register(qh, &callback, NULL);
-
 	int fd = nflog_fd(h);
 
-	while ((rv = recv(fd, buf, sizeof(buf), 0)) && rv >= 0) {
-		nflog_handle_packet(h, buf, rv);
+	// Enter packet handling loop
+	while (1) {
+		rv = recv(fd, buf, sizeof(buf), 0);
+
+		if (rv > 0) {
+			nflog_handle_packet(h, buf, rv);	
+		}
+		if (rv == 0) {
+			std::cerr << "nflog connection closed" << std::endl;
+			break;
+		}
+		if (rv < 0) {
+			if (errno == EINTR) {
+				// Signal interrupted, try again
+				continue;
+			} else {
+				std::cerr << "recv error " << strerror(errno) << std::endl;
+				break;
+			}
+		}
 	}
+
+	// Cleanup nflog
+	nflog_unbind_group(qh);
+	nflog_close(h);
 }

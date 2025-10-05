@@ -1,0 +1,12 @@
+[Unit]
+Description=NFLOG DNS Logger
+After=network.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/nflog_dns
+ExecStart=/usr/sbin/nflog_dns $OPTIONS
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

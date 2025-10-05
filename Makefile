@@ -25,9 +25,12 @@ install-bin:
 install-init:
 	install -Dm755 "init.d/nflog_dns"  "$(ETCDIR)/init.d/nflog_dns"
 
+install-systemd:
+	install -Dm644 "systemd/nflog_dns.service" "$(PREFIX)/lib/systemd/system/nflog_dns.service"
+
 CONFIG_FILES := default/nflog_dns
 install-config:
 	$(foreach file, $(CONFIG_FILES), \
 		test -e "$(ETCDIR)/$(file)" || install -v -Dm644 "$(file)" "$(ETCDIR)/$(file)";)
 
-install: install-bin install-init install-config
+install: install-bin install-init install-systemd install-config

@@ -44,13 +44,13 @@ void print_help(char* prgname) {
 bool is_number(const char* facility_arg) {
 	// Check if number was given
 	char* temp;
-	unsigned long number = strtoul(optarg, &temp, 10);
-	return optarg != temp && *temp == '\0' && number <= USHRT_MAX;
+	unsigned long number = strtoul(facility_arg, &temp, 10);
+	return facility_arg != temp && *temp == '\0' && number <= USHRT_MAX;
 }
 
 int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table) {
-	if (is_number(optarg)) {
-		return atoi(optarg);
+	if (is_number(facility_arg)) {
+		return atoi(facility_arg);
 	}
 
 	// Try matching string to given syslog code table
@@ -87,14 +87,14 @@ static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nf
 			source = ipv6.src_addr().to_string();
 		} catch (malformed_packet&) {
 			// Packet was not IPv6 either, ignore it
-			return true;
+			return 0;
 		}
 	}
 
 	try {
 		if (dns.type() == DNS::RESPONSE) {
 			auto dns_logger = spdlog::get(PROGRAM_NAME);
-			if (!dns_logger) return true;
+			if (!dns_logger) return 0;
 
 			for(const auto &answer : dns.answers()) {
 				switch (answer.query_type()) {
@@ -118,7 +118,7 @@ static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nf
 	} catch (...) {
 		// Ignore exceptions
 	}
-	return true;
+	return 0;
 }
 
 int main(int argc, char *argv[]) 

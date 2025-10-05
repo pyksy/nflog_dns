@@ -6,7 +6,6 @@
  */
 
 #define PROGRAM_NAME "nflog_dns"
-#define PROGRAM_VERSION "0.0.0"
 #define DEFAULT_NFLOG_GROUP 123
 
 #define	SYSLOG_NAMES
@@ -18,6 +17,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <tins/tins.h>
 #include <iostream>
+#include "version.h"
 
 extern "C"{
 #include <libnetfilter_log/libnetfilter_log.h>

@@ -17,6 +17,10 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 2. sudo ./nflog_dns
 3. Make some DNS queries and observe the extracted names and IPs
 
+# build deb package
+
+1. make deb
+
 # install
 
 1. Compile nflog_dns as above

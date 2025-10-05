@@ -1,0 +1,10 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_test:
+	@echo "Skipping tests during package build (require true root privileges)"
+
+override_dh_auto_install:
+	$(MAKE) DESTDIR=$(CURDIR)/debian/nflog-dns PREFIX=/usr ETCDIR=/etc install

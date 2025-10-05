@@ -9,8 +9,22 @@ ETCDIR := /etc
 all:
 	g++ nflog_dns.cpp -std=c++11 -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
 
-clean:
+deb:
+	dpkg-buildpackage -us -uc -b
+
+clean-bin:
 	rm -f nflog_dns
+
+clean-deb:
+	rm -rf debian/nflog-dns
+	rm -rf debian/.debhelper
+	rm -f debian/debhelper-build-stamp
+	rm -f debian/*.debhelper.log
+	rm -f debian/*.debhelper
+	rm -f debian/files
+	rm -f debian/*.substvars
+
+clean: clean-bin clean-deb
 
 distclean: clean
 
@@ -20,17 +34,20 @@ run-tests:
 test: run-tests
 
 install-bin:
-	install -s -Dm755 "nflog_dns" "$(PREFIX)/sbin/nflog_dns"
+	install -s -Dm755 "nflog_dns" "$(DESTDIR)$(PREFIX)/sbin/nflog_dns"
 
 install-init:
-	install -Dm755 "init.d/nflog_dns"  "$(ETCDIR)/init.d/nflog_dns"
+	install -Dm755 "init.d/nflog_dns"  "$(DESTDIR)$(ETCDIR)/init.d/nflog_dns"
+	sed -i 's#^DAEMON=.*#DAEMON="$(PREFIX)/sbin/nflog_dns"#' "$(DESTDIR)$(ETCDIR)/init.d/nflog_dns"
 
 install-systemd:
-	install -Dm644 "systemd/nflog_dns.service" "$(PREFIX)/lib/systemd/system/nflog_dns.service"
+	install -Dm644 "systemd/nflog_dns.service" "$(DESTDIR)$(PREFIX)/lib/systemd/system/nflog_dns.service"
 
 CONFIG_FILES := default/nflog_dns
 install-config:
 	$(foreach file, $(CONFIG_FILES), \
-		test -e "$(ETCDIR)/$(file)" || install -v -Dm644 "$(file)" "$(ETCDIR)/$(file)";)
+		test -e "$(DESTDIR)$(ETCDIR)/$(file)" || install -v -Dm644 "$(file)" "$(DESTDIR)$(ETCDIR)/$(file)";)
 
 install: install-bin install-init install-systemd install-config
+
+.PHONY: all clean distclean run-tests test install-bin install-init install-systemd install-config install deb

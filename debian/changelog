@@ -1,0 +1,5 @@
+nflog-dns (0.0.0-1) unstable; urgency=medium
+
+  * Initial release.
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Sun, 05 Oct 2025 15:15:00 +0300

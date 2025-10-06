@@ -107,7 +107,8 @@ jobs:
         "rpm")
           if grep -q "opensuse" "/etc/os-release"
           then
-            RELEASE="$(grep '^CPE_NAME=' "/etc/os-release" | cut -d : -f 5)"
+            RELEASE="$(grep '^ID=' "/etc/os-release" | cut -d '=' -f 2 | tr -d '"')"
+            RELEASE="${RELEASE##*-}"
             sed -i "s/^Release:.*/Release:        1.${RELEASE}/" "nflog_dns.spec"
             echo "Release: ${DISTRIBUTION_ID}"
           else

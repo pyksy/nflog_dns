@@ -3,14 +3,24 @@
 #
 # nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
 
-PREFIX := /usr/local
-ETCDIR := /etc
+PREFIX ?= /usr/local
+ETCDIR ?= /etc
+SBINDIR ?= $(PREFIX)/sbin
 
 all:
-	g++ nflog_dns.cpp -std=c++11 -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
+	g++ nflog_dns.cpp -std=c++11 -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
 
 deb:
 	dpkg-buildpackage -us -uc -b
+
+rpm: nflog_dns.spec
+	$(eval VERSION := $(shell grep '#define PROGRAM_VERSION' version.h | cut -d'"' -f2))
+	mkdir -p ${HOME}/rpmbuild/SOURCES ~/rpmbuild/SPECS
+	tar czf ${HOME}/rpmbuild/SOURCES/nflog-dns-$(VERSION).tar.gz \
+		--exclude=.git --exclude=debian --exclude='*.deb' --exclude='*.rpm' \
+		--transform 's,^\.,nflog-dns-$(VERSION),' .
+	sed 's/^Version:.*/Version:        $(VERSION)/' nflog_dns.spec > ${HOME}/rpmbuild/SPECS/nflog_dns.spec
+	rpmbuild -ba --define "_topdir $(HOME)/rpmbuild" $(HOME)/rpmbuild/SPECS/nflog_dns.spec
 
 clean-bin:
 	rm -f nflog_dns
@@ -34,7 +44,7 @@ run-tests:
 test: run-tests
 
 install-bin:
-	install -s -Dm755 "nflog_dns" "$(DESTDIR)$(PREFIX)/sbin/nflog_dns"
+	install -s -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
 
 install-init:
 	install -Dm755 "init.d/nflog_dns"  "$(DESTDIR)$(ETCDIR)/init.d/nflog_dns"
@@ -50,4 +60,4 @@ install-config:
 
 install: install-bin install-init install-systemd install-config
 
-.PHONY: all clean distclean run-tests test install-bin install-init install-systemd install-config install deb
+.PHONY: all clean distclean run-tests test install-bin install-init install-systemd install-config install deb rpm

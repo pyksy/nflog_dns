@@ -7,7 +7,7 @@ on:
     - '**'
 
 jobs:
-  # Full integration testing, requires full VM
+  # Do integration testing, requires full VM
   ubuntu-full:
     name: Ubuntu 24.04 compile and test
     runs-on: ubuntu-24.04
@@ -32,21 +32,7 @@ jobs:
     - name: Verify installation
       run: sudo make install
 
-    - name: Inject distribution name to deb package version
-      run: |
-        CODENAME="$(lsb_release -c -s)"
-        PACKAGE="$(dpkg-parsechangelog --show-field Source)"
-        FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
-        BASE_VERSION="$(echo "${FULL_VERSION}" | sed -E 's/(.*)-[^-]+$/\1-/')"
-        BASE_REVISION="$(echo "${FULL_VERSION}" | sed -E 's/^[^-]+-([0-9]+)$/\1/')"
-        NEW_VERSION="${BASE_VERSION}${CODENAME}${BASE_REVISION}"
-        echo "Package version: ${NEW_VERSION}"
-        sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${CODENAME}; urgency=medium/" debian/changelog
-
-#    - name: Build .deb package
-#      run: make deb
-
-  # Build only, use containers
+  # Build packages, uses containers
   build-matrix:
     strategy:
       fail-fast: false
@@ -68,6 +54,26 @@ jobs:
             image: fedora:41
             pkgtype: rpm
             install: dnf install -y git gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
+          - name: openSUSE Leap 15.6
+            image: opensuse/leap:15.6
+            pkgtype: rpm
+            install: |
+              zypper -n ref
+              zypper -n in --no-recommends gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
+          - name: openSUSE Tumbleweed
+            image: opensuse/tumbleweed
+            pkgtype: rpm
+            install: |
+              zypper -n ref
+              zypper -n in --no-recommends gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
+          - name: Ubuntu 24.04
+            image: ubuntu:24.04
+            pkgtype: deb
+            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+          - name: Ubuntu 22.04
+            image: ubuntu:22.04
+            pkgtype: deb
+            install: apt-get update && apt-get -y --no-install-recommends  install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
 
     runs-on: ubuntu-latest
     container:
@@ -93,28 +99,20 @@ jobs:
         "deb")
           CODENAME="$(lsb_release -c -s)"
           FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
-          BASE_VERSION="$(echo "${FULL_VERSION}" | sed -E 's/(.*)-[^-]+$/\1-/')"
-          BASE_REVISION="$(echo "${FULL_VERSION}" | sed -E 's/^[^-]+-([0-9]+)$/\1/')"
-          ;;
-        "rpm")
-          CODENAME="$(cat /etc/redhat-release | sed -e 's/.*(\([^)]*\)).*/\1/g' -e 's/ //g' | tr '[:upper:]' '[:lower:]')"
-          BASE_VERSION="$(grep "PROGRAM_VERSION" "version.h" | cut -d '"' -f 2)"
-          BASE_REVISION="-1"
-          ;;
-        *)
-          echo "Error: unknown pkgtype" >&2
-          exit 1
-          ;;
-        esac
-        NEW_VERSION="${BASE_VERSION}${CODENAME}${BASE_REVISION}"
-        echo "Package version: ${NEW_VERSION}"
-        case "${{ matrix.pkgtype }}" in
-        "deb")
+          NEW_VERSION="${FULL_VERSION}~${CODENAME}1"
           PACKAGE="$(dpkg-parsechangelog --show-field Source)"
-          sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${CODENAME}; urgency=medium/" debian/changelog
+          sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${CODENAME}; urgency=medium/" "debian/changelog"
+          echo "Package version: ${NEW_VERSION}"
           ;;
         "rpm")
-          echo Not yet implemented
+          if grep -q "opensuse" "/etc/os-release"
+          then
+            RELEASE="$(grep '^CPE_NAME=' "/etc/os-release" | cut -d : -f 5)"
+            sed -i "s/^Release:.*/Release:        1.${RELEASE}/" "nflog_dns.spec"
+            echo "Release: ${DISTRIBUTION_ID}"
+          else
+            echo "No changes"
+          fi
           ;;
         *)
           echo "Error: unknown pkgtype" >&2
@@ -124,8 +122,15 @@ jobs:
 
     - name: Build package
       run: |
-        if [ "${{ matrix.pkgtype }}" = "deb" ]; then
+        case "${{ matrix.pkgtype }}" in
+        "deb")
           make deb
-        else
-          echo make rpm
-        fi
+          ;;
+        "rpm")
+          make rpm
+          ;;
+        *)
+          echo "Error: unknown pkgtype" >&2
+          exit 1
+          ;;
+        esac

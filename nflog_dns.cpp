@@ -9,6 +9,7 @@
 #define DEFAULT_NFLOG_GROUP 123
 
 #define	SYSLOG_NAMES
+#define SPDLOG_FMT_EXTERNAL
 #include <getopt.h>
 #include <errno.h>
 #include <string.h>

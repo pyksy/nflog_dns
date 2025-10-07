@@ -5,11 +5,13 @@ on:
   push:
     branches:
     - '**'
+    tags:
+      - 'v*.*.*'
 
 jobs:
   # Do integration testing, requires full VM
   ubuntu-full:
-    name: Ubuntu 24.04 compile and test
+    name: Ubuntu 24.04 compile and test suite
     runs-on: ubuntu-24.04
 
     steps:
@@ -21,7 +23,7 @@ jobs:
       run: |
         sudo rm -f /var/lib/man-db/auto-update
         sudo apt-get update
-        sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat
+        sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential
 
     - name: Compile binary
       run: make
@@ -46,6 +48,7 @@ jobs:
             image: debian:12
             pkgtype: deb
             install: apt-get update && apt-get -y --no-install-recommends  install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+
           - name: Fedora 42
             image: fedora:42
             pkgtype: rpm
@@ -54,6 +57,7 @@ jobs:
             image: fedora:41
             pkgtype: rpm
             install: dnf install -y git gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
+
           - name: openSUSE Leap 15.6
             image: opensuse/leap:15.6
             pkgtype: rpm
@@ -66,14 +70,15 @@ jobs:
             install: |
               zypper -n ref
               zypper -n in --no-recommends gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
+
           - name: Ubuntu 24.04
             image: ubuntu:24.04
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
           - name: Ubuntu 22.04
             image: ubuntu:22.04
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends  install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
 
     runs-on: ubuntu-latest
     container:
@@ -87,12 +92,6 @@ jobs:
 
     - uses: actions/checkout@v4
 
-    - name: Compile binary
-      run: make
-
-    - name: Verify installation
-      run: make install
-
     - name: Inject distribution into package version
       run: |
         case "${{ matrix.pkgtype }}" in
@@ -102,15 +101,31 @@ jobs:
           NEW_VERSION="${FULL_VERSION}~${CODENAME}1"
           PACKAGE="$(dpkg-parsechangelog --show-field Source)"
           sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${CODENAME}; urgency=medium/" "debian/changelog"
-          echo "Package version: ${NEW_VERSION}"
+          echo "DEB package version: ${NEW_VERSION}"
           ;;
         "rpm")
           if grep -q "opensuse" "/etc/os-release"
           then
             RELEASE="$(grep '^ID=' "/etc/os-release" | cut -d '=' -f 2 | tr -d '"')"
             RELEASE="${RELEASE##*-}"
-            sed -i "s/^Release:.*/Release:        1.${RELEASE}/" "nflog_dns.spec"
-            echo "Release: ${DISTRIBUTION_ID}"
+            VERSION_ID="$(grep '^VERSION_ID=' "/etc/os-release" | cut -d '=' -f 2 | tr -d '"' | tr -d '.')"
+            FULLRELEASE="${RELEASE}${VERSION_ID}"
+            sed -i "s/^Release:.*/Release:        1.${FULLRELEASE}/" "nflog_dns.spec"
+            NOW="$(date '+%a %b %d %Y')"
+            VERSION="$(grep '^Version:' nflog_dns.spec | awk '{print $2}')"
+            PACKAGER="GitHub Actions <ci@molukki.com>"
+
+            awk -v rel="${NEWREL}" -v ver="${VERSION}" -v date="${NOW}" \
+                -v packager="${PACKAGER}" -v release="${RELEASE}" -v version_id="${VERSION_ID}" '
+                /^%changelog/ {
+                    print;
+                    print "* " date " " packager " - " ver "-" rel;
+                    print "- Automated RPM build for openSUSE " release " " version_id "\n";
+                    next
+                }
+                { print }
+            ' nflog_dns.spec > nflog_dns.spec.tmp && mv nflog_dns.spec.tmp nflog_dns.spec
+            echo "OpenSUSE RPM release: ${FULLRELEASE}"
           else
             echo "No changes"
           fi
@@ -123,15 +138,88 @@ jobs:
 
     - name: Build package
       run: |
+        mkdir -p artifacts
         case "${{ matrix.pkgtype }}" in
         "deb")
           make deb
+          cp -v ../*.deb artifacts/
           ;;
         "rpm")
           make rpm
+          cp -v ${HOME}/rpmbuild/RPMS/x86_64/*.rpm artifacts/
           ;;
         *)
           echo "Error: unknown pkgtype" >&2
           exit 1
           ;;
         esac
+
+    - name: Upload DEB package
+      if: ${{ matrix.pkgtype == 'deb' }}
+      uses: actions/upload-artifact@v4
+      continue-on-error: false
+      with:
+        name: nflog_dns ${{ matrix.name }} amd64 deb
+        path: |
+          artifacts/*.deb
+    - name: Upload RPM package
+      if: ${{ matrix.pkgtype == 'rpm' }}
+      uses: actions/upload-artifact@v4
+      continue-on-error: false
+      with:
+        name: nflog_dns ${{ matrix.name }} x86_64 rpm
+        path: |
+          artifacts/*.rpm
+
+  # Build Raspberry Pi OS packages, uses QEMU
+  raspberrypi:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Raspberry Pi OS 13
+            image: debian:13
+          - name: Raspberry Pi OS 12
+            image: debian:12
+
+    runs-on: ubuntu-latest
+    name: ${{ matrix.name }} build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up QEMU for ARM64
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Install host dependencies
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update
+          sudo apt-get -y --no-install-recommends install qemu-user-static binfmt-support ca-certificates git
+
+      - name: Build Raspberry Pi ${{ matrix.name }} package
+        run: |
+          mkdir -p artifacts
+          docker run --rm --platform linux/arm64 \
+            -v ${{ github.workspace }}:/src -w /src ${{ matrix.image }} \
+            bash -c "apt-get update \
+              && apt-get -y --no-install-recommends install \
+                ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev \
+                python3 build-essential debhelper-compat lsb-release \
+              && CODENAME=\$(lsb_release -c -s) \
+              && FULL_VERSION=\$(dpkg-parsechangelog --show-field Version) \
+              && PACKAGE=\$(dpkg-parsechangelog --show-field Source) \
+              && NEW_VERSION=\${FULL_VERSION}~\${CODENAME}1 \
+              && sed -i \"1s/^.*\$/\${PACKAGE} (\${NEW_VERSION}) \${CODENAME}; urgency=medium/\" debian/changelog \
+              && echo Building for \${CODENAME} \(arm64\) \
+              && make deb \
+              && cp -v ../*.deb /src/artifacts/"
+
+      - name: Upload DEB package
+        uses: actions/upload-artifact@v4
+        continue-on-error: false
+        with:
+          name: nflog-dns ${{ matrix.name }} arm64 deb
+          path: |
+            artifacts/*.deb

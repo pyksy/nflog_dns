@@ -21,6 +21,10 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 
 1. make deb
 
+# build rpm package
+
+1. make rpm
+
 # install
 
 1. Compile nflog_dns as above

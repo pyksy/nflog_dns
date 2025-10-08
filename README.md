@@ -42,3 +42,7 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 
 [A bug in libtins ip6.arpa PTR reply parsing](https://github.com/mfontanini/libtins/issues/551) 
 prevents logging IPv6 reverse DNS lookups.
+
+# create a new release
+
+1. Run the create_release.sh script

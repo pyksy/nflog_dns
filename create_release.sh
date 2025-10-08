@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Copyright Antti Kultanen <antti.kultanen@molukki.com>
+# nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
+
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "master" ]
 then
 	echo "Error: must create release in master branch." >&2

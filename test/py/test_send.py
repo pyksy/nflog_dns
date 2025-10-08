@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+# Copyright Antti Kultanen <antti.kultanen@molukki.com>
+# nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
+
 import socket
 import sys
 

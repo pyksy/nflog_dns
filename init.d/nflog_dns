@@ -10,7 +10,8 @@
 # Description:       NFLOG-based userland DNS reply logger
 ### END INIT INFO
 
-# Author: Antti Kultanen <pyksy at pyksy dot fi>
+# Author: Antti Kultanen <antti.kultanen@molukki.com>
+# nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
 
 PATH="/sbin:/bin:/usr/sbin:/usr/bin"
 DAEMON="/usr/local/sbin/nflog_dns"

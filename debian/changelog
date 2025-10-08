@@ -1,3 +1,9 @@
+nflog-dns (0.0.2-1) UNRELEASED; urgency=medium
+
+  * Release version 0.0.2
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Wed, 08 Oct 2025 18:31:26 +0300
+
 nflog-dns (0.0.0-1) unstable; urgency=medium
 
   * Initial release.

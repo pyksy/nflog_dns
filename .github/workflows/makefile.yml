@@ -46,20 +46,20 @@ jobs:
           - name: Debian 13
             image: debian:13
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
           - name: Debian 12
             image: debian:12
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends  install ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+            install: apt-get update && apt-get -y --no-install-recommends  install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
 
           - name: Fedora 42
             image: fedora:42
             pkgtype: rpm
-            install: dnf install -y git gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
+            install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
           - name: Fedora 41
             image: fedora:41
             pkgtype: rpm
-            install: dnf install -y git gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
+            install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
 
           - name: openSUSE Leap 15.6
             image: opensuse/leap:15.6
@@ -118,7 +118,7 @@ jobs:
             VERSION="$(grep '^Version:' nflog_dns.spec | awk '{print $2}')"
             PACKAGER="GitHub Actions <ci@molukki.com>"
 
-            awk -v rel="${NEWREL}" -v ver="${VERSION}" -v date="${NOW}" \
+            awk -v rel="${FULLRELEASE}" -v ver="${VERSION}" -v date="${NOW}" \
                 -v packager="${PACKAGER}" -v release="${RELEASE}" -v version_id="${VERSION_ID}" '
                 /^%changelog/ {
                     print;
@@ -199,7 +199,7 @@ jobs:
         run: |
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get update
-          sudo apt-get -y --no-install-recommends install qemu-user-static binfmt-support ca-certificates git
+          sudo apt-get -y --no-install-recommends install qemu-user-static binfmt-support ca-certificates
 
       - name: Build Raspberry Pi ${{ matrix.name }} package
         run: |
@@ -223,7 +223,7 @@ jobs:
         uses: actions/upload-artifact@v4
         continue-on-error: false
         with:
-          name: nflog-dns ${{ matrix.name }} arm64 deb
+          name: nflog_dns ${{ matrix.name }} arm64 deb
           path: |
             artifacts/*.deb
 

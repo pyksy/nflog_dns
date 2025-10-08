@@ -96,7 +96,7 @@ jobs:
         "deb")
           CODENAME="$(lsb_release -c -s)"
           FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
-          NEW_VERSION="${FULL_VERSION}~${CODENAME}1"
+          NEW_VERSION="${FULL_VERSION}+${CODENAME}1"
           PACKAGE="$(dpkg-parsechangelog --show-field Source)"
           sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${CODENAME}; urgency=medium/" "debian/changelog"
           echo "DEB package version: ${NEW_VERSION}"
@@ -208,7 +208,7 @@ jobs:
               && CODENAME=\$(lsb_release -c -s) \
               && FULL_VERSION=\$(dpkg-parsechangelog --show-field Version) \
               && PACKAGE=\$(dpkg-parsechangelog --show-field Source) \
-              && NEW_VERSION=\${FULL_VERSION}~\${CODENAME}1 \
+              && NEW_VERSION=\${FULL_VERSION}+\${CODENAME}1 \
               && sed -i \"1s/^.*\$/\${PACKAGE} (\${NEW_VERSION}) \${CODENAME}; urgency=medium/\" debian/changelog \
               && echo Building for \${CODENAME} \(arm64\) \
               && make deb \

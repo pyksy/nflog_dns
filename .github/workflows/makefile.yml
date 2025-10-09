@@ -69,13 +69,13 @@ jobs:
             pkgtype: rpm
             install: |
               zypper -n ref
-              zypper -n in --no-recommends gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
+              zypper -n in gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
           - name: openSUSE Tumbleweed
             image: opensuse/tumbleweed
             pkgtype: rpm
             install: |
               zypper -n ref
-              zypper -n in --no-recommends gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
+              zypper -n in gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
 
           - name: Ubuntu 24.04
             image: ubuntu:24.04
@@ -160,13 +160,13 @@ jobs:
           ;;
         esac
 
-    - name: Verify DEB package installation
+    - name: Verify DEB package installation and removal
       if: ${{ matrix.pkgtype == 'deb' }}
       run: |
         dpkg -i artifacts/*.deb
         dpkg -r nflog-dns
 
-    - name: Verify RPM package installation
+    - name: Verify RPM package installation and removal
       if: ${{ matrix.pkgtype == 'rpm' }}
       run: |
         rpm -i artifacts/*.rpm

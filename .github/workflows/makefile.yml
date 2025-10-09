@@ -234,10 +234,11 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          echo 'echo Acquire::http::proxy "http://10.0.0.1:9999"\; | tee /etc/apt/apt.conf.d/02proxy' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
-          cat ../devuan-${{ matrix.release }}/etc/apt/apt.conf.d/02proxy
+          sudo mount -o bind /var/cache/apt/archives ../devuan-${{ matrix.release }}/var/cache/apt/archives
           sudo chroot ../devuan-${{ matrix.release }} apt-get update
           sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+          sudo umount ../devuan-${{ matrix.release }}/var/cache/apt/archives
+
 
       - name: Inject distribution into package version
         run: |
@@ -265,7 +266,7 @@ jobs:
         run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
 
       - name: Verify DEB package removal
-        run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog_dns
+        run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog-dns
 
       - name: Cleanup chroot
         run: sudo chroot ../devuan-${{ matrix.release }} rm -rf /tmp/nflog_dns-build/nflog_dns/debian
@@ -282,9 +283,9 @@ jobs:
       - name: Clean Up Workspace
         if: always()
         run: |
+          sudo umount ../devuan-${{ matrix.release }}/var/cache/apt/archives || true
           sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns || true
-          echo sudo rm -rf "../devuan-${{ matrix.release }}"
-          rm -rf "${{ github.workspace }}"
+          sudo rm -rf "../devuan-${{ matrix.release }}" debian nflog_dns
 
   # Build Raspberry Pi OS packages, uses QEMU
   qemu:

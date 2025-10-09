@@ -230,12 +230,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Debootstrap ${{ matrix.name }}
-        run: sudo debootstrap --variant=minbase ${{ matrix.release }} devuan-${{ matrix.release }} http://deb.devuan.org/merged
+        run: sudo debootstrap --variant=minbase ${{ matrix.release }} ../devuan-${{ matrix.release }} http://deb.devuan.org/merged
 
       - name: Install build dependencies
         run: |
-          sudo chroot devuan-${{ matrix.release }} apt-get update
-          sudo chroot devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+          sudo chroot ../devuan-${{ matrix.release }} apt-get update
+          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
 
       - name: Inject distribution into package version
         run: |
@@ -247,23 +247,23 @@ jobs:
 
       - name: Bind mount checkout to chroot
         run: |
-          mkdir -p devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
-          sudo mount -o bind . devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+          mkdir -p ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+          sudo mount -o bind . ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
 
       - name: Build package
         run: |
-          echo 'cd /tmp/nflog_dns-build/nflog_dns && make deb' | sudo chroot devuan-${{ matrix.release }} /bin/sh
+          echo 'cd /tmp/nflog_dns-build/nflog_dns && make deb' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
           mkdir -p artifacts
-          cp -v devuan-${{ matrix.release }}/tmp/nflog_dns-build/*.deb artifacts/
+          cp -v ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/*.deb artifacts/
 
       - name: Remove bind mount
-        run: sudo umount devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+        run: sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
 
       - name: Verify DEB package installation
-        run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot devuan-${{ matrix.release }}
+        run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot ../devuan-${{ matrix.release }}
 
       - name: Verify DEB package removal
-        run: sudo chroot devuan-${{ matrix.release }} dpkg -r nflog_dns
+        run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog_dns
 
       - name: Upload DEB package
         if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule')
@@ -277,7 +277,8 @@ jobs:
       - name: Clean Up Workspace
         if: always()
         run: |
-          sudo umount devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns || true
+          sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns || true
+          ls -ld ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
           rm -rf "${{ github.workspace }}"
 
   # Build Raspberry Pi OS packages, uses QEMU

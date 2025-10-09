@@ -26,7 +26,10 @@ jobs:
       run: |
         sudo rm -f /var/lib/man-db/auto-update
         sudo apt-get update
-        sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential
+        sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy
+
+    - name: Run clang-tidy
+      run: clang-tidy nflog_dns.cpp -- -std=c++11 -I/usr/include/libnetfilter_log
 
     - name: Compile binary
       run: make
@@ -156,6 +159,18 @@ jobs:
           exit 1
           ;;
         esac
+
+    - name: Verify DEB package installation
+      if: ${{ matrix.pkgtype == 'deb' }}
+      run: |
+        sudo dpkg -i artifacts/*.deb
+        sudo dpkg -r nflog-dns
+
+    - name: Verify RPM package installation
+      if: ${{ matrix.pkgtype == 'rpm' }}
+      run: |
+        sudo rpm -i artifacts/*.rpm
+        sudo rpm -e nflog-dns
 
     - name: Upload DEB package
       if: ${{ matrix.pkgtype == 'deb' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule') }}

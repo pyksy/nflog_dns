@@ -10,6 +10,7 @@
 
 #define	SYSLOG_NAMES
 #define SPDLOG_FMT_EXTERNAL
+
 #include <getopt.h>
 #include <errno.h>
 #include <string.h>
@@ -20,8 +21,8 @@
 #include <iostream>
 #include "version.h"
 
-extern "C"{
-#include <libnetfilter_log/libnetfilter_log.h>
+extern "C" {
+	#include <libnetfilter_log/libnetfilter_log.h>
 }
 
 using namespace Tins;

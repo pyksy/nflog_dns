@@ -8,9 +8,10 @@ ETCDIR ?= /etc
 SBINDIR ?= $(PREFIX)/sbin
 CXX ?= c++
 CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -pedantic
+CXXEXTRAFLAGS ?= 
 
 all:
-	$(CXX) $(CXXFLAGS) nflog_dns.cpp -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
+	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) nflog_dns.cpp -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
 
 deb:
 	dpkg-buildpackage -us -uc -b
@@ -23,6 +24,9 @@ rpm: nflog_dns.spec
 		--transform 's,^\.,nflog-dns-$(VERSION),' .
 	sed 's/^Version:.*/Version:        $(VERSION)/' nflog_dns.spec > ${HOME}/rpmbuild/SPECS/nflog_dns.spec
 	rpmbuild -ba --define "_topdir ${HOME}/rpmbuild" ${HOME}/rpmbuild/SPECS/nflog_dns.spec
+
+debug: CXXEXTRAFLAGS = -fsanitize=address
+debug: all
 
 clean-bin:
 	rm -f nflog_dns

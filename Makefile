@@ -6,9 +6,11 @@
 PREFIX ?= /usr/local
 ETCDIR ?= /etc
 SBINDIR ?= $(PREFIX)/sbin
+CXX ?= c++
+CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -pedantic
 
 all:
-	g++ nflog_dns.cpp -std=c++11 -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
+	$(CXX) $(CXXFLAGS) nflog_dns.cpp -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
 
 deb:
 	dpkg-buildpackage -us -uc -b

@@ -67,7 +67,10 @@ int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table) {
 	return -1;
 }
 
-static int callback(struct nflog_g_handle *gh, struct nfgenmsg *nfmsg, struct nflog_data *ldata, void *data)
+static int callback(struct nflog_g_handle *gh __attribute__((unused)),
+	struct nfgenmsg *nfmsg __attribute__((unused)),
+	struct nflog_data *ldata,
+	void *data __attribute__((unused)))
 {
 	uint32_t payload_len;
 	uint8_t* payload;
@@ -140,7 +143,7 @@ int main(int argc, char *argv[])
 		{"level", required_argument, NULL, 'l'},
 		{"syslog", no_argument, NULL, 's'},
 		{"version", no_argument, NULL, 'v'},
-		{0}
+		{0, 0, 0, 0}
 	};
 
 		while (true) {

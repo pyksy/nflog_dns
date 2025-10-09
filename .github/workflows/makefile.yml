@@ -220,17 +220,39 @@ jobs:
       matrix:
         include:
           - name: Devuan 5.0
-            script: daedalus
-          - name: Devuan 4.0
-            script: chimaera
+            release: daedalus
+#          - name: Devuan 4.0
+#            release: chimaera
 
     runs-on: ubuntu-latest
     name: ${{ matrix.name }} build
     steps:
       - uses: actions/checkout@v4
 
-      - name: Hello, Devuan ${{ matrix.name }}
-        run: echo "Hello, world"
+      - name: Add Devuan keyring
+        run: |
+          sudo apt-get update
+          sudo apt-get -y --no-install-recommends install wget gnupg ca-certificates
+          echo Devuan keyring web page is at https://www.devuan.org/os/keyring
+          sudo wget -O /tmp/devuan-keyring.deb http://deb.devuan.org/merged/pool/DEVUAN/main/d/devuan-keyring/devuan-keyring_2025.08.09_all.deb
+          sudo dpkg -i /tmp/devuan-keyring.deb
+
+      - name: Add Devuan repository
+        run: |
+          echo "deb http://deb.devuan.org/merged ${{ matrix.release }} main" | sudo tee /etc/apt/sources.list.d/devuan.list
+          sudo apt-get update
+
+      - name: Install debootstrap
+        run: |
+          sudo apt-get install debootstrap/${{ matrix.release }}
+
+      - name: Run debootstrap stage 1
+        run: |
+          sudo debootstrap --arch=amd64 --foreign --variant=minbase ${{ matrix.release }} /tmp/devuan-${{ matrix.release }} http://deb.devuan.org/merged
+
+      - name: Run debootstrap stage 2
+        run: |
+          sudo chroot /tmp/devuan-daedalus /debootstrap/debootstrap --second-stage
 
   # Build Raspberry Pi OS packages, uses QEMU
   qemu:

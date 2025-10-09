@@ -231,6 +231,7 @@ jobs:
 
       - name: Add Devuan keyring
         run: |
+          sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get update
           sudo apt-get -y --no-install-recommends install wget gnupg ca-certificates
           echo Devuan keyring web page is at https://www.devuan.org/os/keyring
@@ -242,17 +243,53 @@ jobs:
           echo "deb http://deb.devuan.org/merged ${{ matrix.release }} main" | sudo tee /etc/apt/sources.list.d/devuan.list
           sudo apt-get update
 
-      - name: Install debootstrap
-        run: |
-          sudo apt-get install debootstrap/${{ matrix.release }}
+      - name: Install debootstrap from Devuan repository
+        run: sudo apt-get install debootstrap/${{ matrix.release }}
 
-      - name: Run debootstrap stage 1
-        run: |
-          sudo debootstrap --arch=amd64 --foreign --variant=minbase ${{ matrix.release }} /tmp/devuan-${{ matrix.release }} http://deb.devuan.org/merged
+      - name: Debootstrap ${{ matrix.name }}
+        run: sudo debootstrap --arch=amd64 --variant=minbase ${{ matrix.release }} /tmp/devuan-${{ matrix.release }} http://deb.devuan.org/merged
 
-      - name: Run debootstrap stage 2
+      - name: Install build dependencies
         run: |
-          sudo chroot /tmp/devuan-daedalus /debootstrap/debootstrap --second-stage
+          sudo chroot /tmp/devuan-${{ matrix.release }} apt-get update
+          sudo chroot /tmp/devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+
+      - name: Inject distribution into package version
+        run: |
+          FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
+          NEW_VERSION="${FULL_VERSION}+${{ matrix.release }}1"
+          PACKAGE="$(dpkg-parsechangelog --show-field Source)"
+          sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${{ matrix.release }}; urgency=medium/" "debian/changelog"
+          echo "DEB package version: ${NEW_VERSION}"
+
+      - name: Bind mount checkout to chroot
+        run: |
+          mkdir -p /tmp/devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+          sudo mount -o bind . /tmp/devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+
+      - name: Build package
+        run: |
+          echo 'cd /tmp/nflog_dns-build/nflog_dns && make deb' | sudo chroot /tmp/devuan-${{ matrix.release }} /bin/sh
+          mkdir -p artifacts
+          cp -v /tmp/devuan-${{ matrix.release }}/tmp/nflog_dns-build/*.deb artifacts/
+
+      - name: Remove bind mount
+        run: sudo umount /tmp/devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+
+      - name: Verify DEB package installation
+        run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot /tmp/devuan-${{ matrix.release }}
+
+      - name: Verify DEB package removal
+        run: sudo chroot /tmp/devuan-${{ matrix.release }} dpkg -r nflog_dns
+
+      - name: Upload DEB package
+        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule')
+        uses: actions/upload-artifact@v4
+        continue-on-error: false
+        with:
+          name: nflog_dns ${{ matrix.name }} amd64 deb
+          path: |
+            artifacts/*.deb
 
   # Build Raspberry Pi OS packages, uses QEMU
   qemu:

@@ -230,10 +230,12 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Debootstrap ${{ matrix.name }}
-        run: sudo debootstrap --variant=minbase ${{ matrix.release }} ../devuan-${{ matrix.release }} http://deb.devuan.org/merged
+        run: sudo debootstrap --variant=minbase --cache-dir=/var/cache/debootstrap ${{ matrix.release }} ../devuan-${{ matrix.release }} http://deb.devuan.org/merged
 
       - name: Install build dependencies
         run: |
+          echo 'echo Acquire::http::proxy "http://10.0.0.1:9999"\; | tee /etc/apt/apt.conf.d/02proxy' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
+          cat ../devuan-${{ matrix.release }}/etc/apt/apt.conf.d/02proxy
           sudo chroot ../devuan-${{ matrix.release }} apt-get update
           sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
 
@@ -260,10 +262,13 @@ jobs:
         run: sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
 
       - name: Verify DEB package installation
-        run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot ../devuan-${{ matrix.release }}
+        run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
 
       - name: Verify DEB package removal
         run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog_dns
+
+      - name: Cleanup chroot
+        run: sudo chroot ../devuan-${{ matrix.release }} rm -rf /tmp/nflog_dns-build/nflog_dns/debian
 
       - name: Upload DEB package
         if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule')
@@ -278,7 +283,7 @@ jobs:
         if: always()
         run: |
           sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns || true
-          ls -ld ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+          echo sudo rm -rf "../devuan-${{ matrix.release }}"
           rm -rf "${{ github.workspace }}"
 
   # Build Raspberry Pi OS packages, uses QEMU

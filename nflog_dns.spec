@@ -35,14 +35,13 @@ The tool binds to an NFLOG group and logs received DNS response records
 %make_build
 
 %install
-%make_install PREFIX=%{_prefix} ETCDIR=%{_sysconfdir} SBINDIR=%{_sbindir}
+%make_install PREFIX=%{_prefix} ETCDIR=%{_sysconfdir} SBINDIR=%{_sbindir} INSTALL_SYSVINIT=0
 
 %files
 %license LICENSE
 %doc README.md
 %{_sbindir}/nflog_dns
 %{_unitdir}/nflog_dns.service
-%{_sysconfdir}/init.d/nflog_dns
 %config(noreplace) %{_sysconfdir}/default/nflog_dns
 
 %post

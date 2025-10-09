@@ -9,6 +9,7 @@ SBINDIR ?= $(PREFIX)/sbin
 CXX ?= c++
 CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -pedantic
 CXXEXTRAFLAGS ?= 
+INSTALL_SYSVINIT ?= 1
 
 all:
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) nflog_dns.cpp -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
@@ -32,15 +33,14 @@ clean-bin:
 	rm -f nflog_dns
 
 clean-deb:
-	rm -rf debian/nflog-dns
-	rm -rf debian/.debhelper
-	rm -f debian/debhelper-build-stamp
-	rm -f debian/*.debhelper.log
-	rm -f debian/*.debhelper
-	rm -f debian/files
-	rm -f debian/*.substvars
+	dh_clean
 
-clean: clean-bin clean-deb
+clean-rpm:
+	rm -rf ${HOME}/rpmbuild/BUILD/nflog-dns-*
+	rm -f ${HOME}/rpmbuild/SOURCES/nflog-dns-*.tar.gz
+	rm -f ${HOME}/rpmbuild/SPECS/nflog_dns.spec
+
+clean: clean-bin clean-deb clean-rpm
 
 distclean: clean
 
@@ -53,8 +53,10 @@ install-bin:
 	install -s -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
 
 install-init:
+ifeq ($(INSTALL_SYSVINIT),1)
 	install -Dm755 "init.d/nflog_dns"  "$(DESTDIR)$(ETCDIR)/init.d/nflog_dns"
 	sed -i 's#^DAEMON=.*#DAEMON="$(SBINDIR)/nflog_dns"#' "$(DESTDIR)$(ETCDIR)/init.d/nflog_dns"
+endif
 
 install-systemd:
 	install -Dm644 "systemd/nflog_dns.service" "$(DESTDIR)$(PREFIX)/lib/systemd/system/nflog_dns.service"

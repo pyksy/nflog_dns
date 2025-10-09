@@ -142,6 +142,22 @@ jobs:
           ;;
         esac
 
+    - name: Fix RPM package dependencies for openSUSE
+      run: |
+        if grep -q "opensuse" "/etc/os-release"
+        then
+          PKGNAME="$(rpm -qa 'libtins*' --qf '%{NAME}\n' | head -1)"
+          sed -i "s/^Requires: *libtins/Requires:       ${PKGNAME}/" nflog_dns.spec
+          PKGNAME="$(rpm -qa 'libnetfilter_log*' --qf '%{NAME}\n' | head -1)"
+          sed -i "s/^Requires: *libnetfilter_log/Requires:       ${PKGNAME}/" nflog_dns.spec
+          PKGNAME="$(rpm -qa 'libspdlog*' --qf '%{NAME}\n' | head -1)"
+          sed -i "s/^Requires: *spdlog/Requires:       ${PKGNAME}/" nflog_dns.spec
+          PKGNAME="$(rpm -qa 'libpcap*' --qf '%{NAME}\n' | head -1)"
+          sed -i "s/^Requires: *libpcap/Requires:       ${PKGNAME}/" nflog_dns.spec
+          PKGNAME="$(rpm -qa 'libfmt*' --qf '%{NAME}\n' | head -1)"
+          sed -i "s/^Requires: *fmt/Requires:       ${PKGNAME}/" nflog_dns.spec
+        fi
+
     - name: Build package
       run: |
         mkdir -p artifacts
@@ -160,16 +176,24 @@ jobs:
           ;;
         esac
 
-    - name: Verify DEB package installation and removal
+    - name: Verify DEB package installation
       if: ${{ matrix.pkgtype == 'deb' }}
       run: |
         dpkg -i artifacts/*.deb
+
+    - name: Verify DEB package removal
+      if: ${{ matrix.pkgtype == 'deb' }}
+      run: |
         dpkg -r nflog-dns
 
-    - name: Verify RPM package installation and removal
+    - name: Verify RPM package installation
       if: ${{ matrix.pkgtype == 'rpm' }}
       run: |
         rpm -i artifacts/*.rpm
+
+    - name: Verify RPM package removal
+      if: ${{ matrix.pkgtype == 'rpm' }}
+      run: |
         rpm -e nflog-dns
 
     - name: Upload DEB package

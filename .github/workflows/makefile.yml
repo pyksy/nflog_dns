@@ -163,14 +163,14 @@ jobs:
     - name: Verify DEB package installation
       if: ${{ matrix.pkgtype == 'deb' }}
       run: |
-        sudo dpkg -i artifacts/*.deb
-        sudo dpkg -r nflog-dns
+        dpkg -i artifacts/*.deb
+        dpkg -r nflog-dns
 
     - name: Verify RPM package installation
       if: ${{ matrix.pkgtype == 'rpm' }}
       run: |
-        sudo rpm -i artifacts/*.rpm
-        sudo rpm -e nflog-dns
+        rpm -i artifacts/*.rpm
+        rpm -e nflog-dns
 
     - name: Upload DEB package
       if: ${{ matrix.pkgtype == 'deb' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule') }}

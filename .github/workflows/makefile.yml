@@ -221,8 +221,8 @@ jobs:
         include:
           - name: Devuan 5.0
             release: daedalus
-#          - name: Devuan 4.0
-#            release: chimaera
+          - name: Devuan 4.0
+            release: chimaera
 
     runs-on: self-hosted
     name: ${{ matrix.name }} build

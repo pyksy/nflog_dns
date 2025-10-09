@@ -232,6 +232,11 @@ jobs:
       - name: Debootstrap ${{ matrix.name }}
         run: sudo debootstrap --variant=minbase ${{ matrix.release }} devuan-${{ matrix.release }} http://deb.devuan.org/merged
 
+      - name: Install build dependencies
+        run: |
+          sudo chroot devuan-${{ matrix.release }} apt-get update
+          sudo chroot devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+
       - name: Inject distribution into package version
         run: |
           FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
@@ -268,6 +273,12 @@ jobs:
           name: nflog_dns ${{ matrix.name }} amd64 deb
           path: |
             artifacts/*.deb
+
+      - name: Clean Up Workspace
+        if: always()
+        run: |
+          sudo umount devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns || true
+          rm -rf "${{ github.workspace }}"
 
   # Build Raspberry Pi OS packages, uses QEMU
   qemu:

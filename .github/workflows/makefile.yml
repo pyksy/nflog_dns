@@ -224,40 +224,13 @@ jobs:
 #          - name: Devuan 4.0
 #            release: chimaera
 
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     name: ${{ matrix.name }} build
     steps:
       - uses: actions/checkout@v4
 
-      - name: Gather debugs
-        run: |
-          df -h
-          free
-
-      - name: Add Devuan keyring
-        run: |
-          sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get update
-          sudo apt-get -y --no-install-recommends install wget gnupg ca-certificates
-          echo Devuan keyring web page is at https://www.devuan.org/os/keyring
-          sudo wget -O /tmp/devuan-keyring.deb http://deb.devuan.org/merged/pool/DEVUAN/main/d/devuan-keyring/devuan-keyring_2025.08.09_all.deb
-          sudo dpkg -i /tmp/devuan-keyring.deb
-
-      - name: Add Devuan repository
-        run: |
-          echo "deb http://deb.devuan.org/merged ${{ matrix.release }} main" | sudo tee /etc/apt/sources.list.d/devuan.list
-          sudo apt-get update
-
-      - name: Install debootstrap from Devuan repository
-        run: sudo apt-get install debootstrap/${{ matrix.release }}
-
       - name: Debootstrap ${{ matrix.name }}
         run: sudo debootstrap --variant=minbase ${{ matrix.release }} ../devuan-${{ matrix.release }} http://deb.devuan.org/merged
-
-      - name: Install build dependencies
-        run: |
-          sudo chroot ../devuan-${{ matrix.release }} apt-get update
-          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
 
       - name: Inject distribution into package version
         run: |

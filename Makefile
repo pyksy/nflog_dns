@@ -10,6 +10,7 @@ CXX ?= c++
 CXXFLAGS ?= -std=c++11 -Wall -Wextra -Werror -pedantic
 CXXEXTRAFLAGS ?= 
 INSTALL_SYSVINIT ?= 1
+INSTALL_SYSTEMD ?= 1
 
 all:
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) nflog_dns.cpp -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
@@ -59,7 +60,9 @@ ifeq ($(INSTALL_SYSVINIT),1)
 endif
 
 install-systemd:
+ifeq ($(INSTALL_SYSTEMD),1)
 	install -Dm644 "systemd/nflog_dns.service" "$(DESTDIR)$(PREFIX)/lib/systemd/system/nflog_dns.service"
+endif
 
 CONFIG_FILES := default/nflog_dns
 install-config:

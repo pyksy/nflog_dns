@@ -41,7 +41,7 @@ jobs:
       run: sudo make install
 
   # Build packages, uses containers
-  build-matrix:
+  containers:
     strategy:
       fail-fast: false
       matrix:
@@ -213,8 +213,27 @@ jobs:
         path: |
           artifacts/*.rpm
 
+  # Build Devuan packages, uses chroot
+  chroot:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Devuan 5.0
+            script: daedalus
+          - name: Devuan 4.0
+            script: chimaera
+
+    runs-on: ubuntu-latest
+    name: ${{ matrix.name }} build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Hello, Devuan ${{ matrix.name }}
+        run: echo "Hello, world"
+
   # Build Raspberry Pi OS packages, uses QEMU
-  raspberrypi:
+  qemu:
     strategy:
       fail-fast: false
       matrix:
@@ -269,7 +288,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [ubuntu-full, build-matrix, raspberrypi]
+    needs: [ubuntu-full, containers, chroot, qemu]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule'
 

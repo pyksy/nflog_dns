@@ -7,4 +7,9 @@ override_dh_auto_test:
 	@echo "Skipping tests during package build (require true root privileges)"
 
 override_dh_auto_install:
-	$(MAKE) DESTDIR=$(CURDIR)/debian/nflog-dns PREFIX=/usr ETCDIR=/etc install
+	if grep -qi 'devuan' /etc/os-release; \
+	then \
+		$(MAKE) DESTDIR=$(CURDIR)/debian/nflog-dns PREFIX=/usr ETCDIR=/etc install INSTALL_SYSTEMD=0; \
+	else \
+		$(MAKE) DESTDIR=$(CURDIR)/debian/nflog-dns PREFIX=/usr ETCDIR=/etc install; \
+	fi

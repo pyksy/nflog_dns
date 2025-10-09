@@ -41,7 +41,7 @@ jobs:
       run: sudo make install
 
   # Build packages, uses containers
-  build-matrix:
+  containers:
     strategy:
       fail-fast: false
       matrix:
@@ -213,8 +213,82 @@ jobs:
         path: |
           artifacts/*.rpm
 
+  # Build Devuan packages, uses chroot
+  chroot:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Devuan 5.0
+            release: daedalus
+          - name: Devuan 4.0
+            release: chimaera
+
+    runs-on: self-hosted
+    name: ${{ matrix.name }} build
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Debootstrap ${{ matrix.name }}
+        run: sudo debootstrap --variant=minbase --cache-dir=/var/cache/debootstrap ${{ matrix.release }} ../devuan-${{ matrix.release }} http://deb.devuan.org/merged
+
+      - name: Install build dependencies
+        run: |
+          sudo mount -o bind /var/cache/apt/archives ../devuan-${{ matrix.release }}/var/cache/apt/archives
+          sudo chroot ../devuan-${{ matrix.release }} apt-get update
+          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+          sudo umount ../devuan-${{ matrix.release }}/var/cache/apt/archives
+
+
+      - name: Inject distribution into package version
+        run: |
+          FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
+          NEW_VERSION="${FULL_VERSION}+${{ matrix.release }}1"
+          PACKAGE="$(dpkg-parsechangelog --show-field Source)"
+          sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${{ matrix.release }}; urgency=medium/" "debian/changelog"
+          echo "DEB package version: ${NEW_VERSION}"
+
+      - name: Bind mount checkout to chroot
+        run: |
+          mkdir -p ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+          sudo mount -o bind . ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+
+      - name: Build package
+        run: |
+          echo 'cd /tmp/nflog_dns-build/nflog_dns && make deb' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
+          mkdir -p artifacts
+          cp -v ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/*.deb artifacts/
+
+      - name: Remove bind mount
+        run: sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
+
+      - name: Verify DEB package installation
+        run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
+
+      - name: Verify DEB package removal
+        run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog-dns
+
+      - name: Cleanup chroot
+        run: sudo chroot ../devuan-${{ matrix.release }} rm -rf /tmp/nflog_dns-build/nflog_dns/debian
+
+      - name: Upload DEB package
+        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule')
+        uses: actions/upload-artifact@v4
+        continue-on-error: false
+        with:
+          name: nflog_dns ${{ matrix.name }} amd64 deb
+          path: |
+            artifacts/*.deb
+
+      - name: Clean Up Workspace
+        if: always()
+        run: |
+          sudo umount ../devuan-${{ matrix.release }}/var/cache/apt/archives || true
+          sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns || true
+          sudo rm -rf "../devuan-${{ matrix.release }}" debian nflog_dns
+
   # Build Raspberry Pi OS packages, uses QEMU
-  raspberrypi:
+  qemu:
     strategy:
       fail-fast: false
       matrix:
@@ -269,7 +343,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [ubuntu-full, build-matrix, raspberrypi]
+    needs: [ubuntu-full, containers, chroot, qemu]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule'
 

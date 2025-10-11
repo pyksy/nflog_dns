@@ -229,6 +229,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Upgrade build host
+        run: |
+          sudo apt-get update
+          sudo apt-get -y --no-install-recommends dist-upgrade
+
       - name: Debootstrap ${{ matrix.name }}
         run: sudo debootstrap --variant=minbase --cache-dir=/var/cache/debootstrap ${{ matrix.release }} ../devuan-${{ matrix.release }} http://deb.devuan.org/merged
 

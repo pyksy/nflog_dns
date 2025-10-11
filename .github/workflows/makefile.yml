@@ -16,7 +16,7 @@ on:
 jobs:
   # Do integration testing, requires full VM
   ubuntu-full:
-    name: Ubuntu 24.04 compile and test suite
+    name: Ubuntu 24.04 test only
     runs-on: ubuntu-24.04
 
     steps:
@@ -345,6 +345,50 @@ jobs:
           name: nflog_dns ${{ matrix.name }} arm64 deb
           path: |
             artifacts/*.deb
+
+  arm64:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Ubuntu 24.04 ARM64
+            runs-on: ubuntu-24.04-arm64
+          - name: Ubuntu 22.04 ARM64
+            runs-on: ubuntu-22.04-arm64
+
+    runs-on: ${{ matrix.runs-on }}
+    name: ${{ matrix.name }} build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+
+      - name: Inject distribution into package version
+        run: |
+          CODENAME="$(lsb_release -c -s)"
+          FULL_VERSION="$(dpkg-parsechangelog --show-field Version)"
+          NEW_VERSION="${FULL_VERSION}+${CODENAME}1"
+          PACKAGE="$(dpkg-parsechangelog --show-field Source)"
+          sed -i "1s/^.*$/${PACKAGE} (${NEW_VERSION}) ${CODENAME}; urgency=medium/" "debian/changelog"
+          echo "DEB package version: ${NEW_VERSION}"
+
+      - name: Build package
+        run: |
+          mkdir -p artifacts
+          make deb
+          cp -v ../*.deb artifacts/
+
+      - name: Upload DEB package
+        if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' }}
+        uses: actions/upload-artifact@v4
+        continue-on-error: false
+        with:
+          name: nflog-dns ${{ matrix.name }} arm64 deb
+          path: artifacts/*.deb
 
   create-release:
     name: Create GitHub Release

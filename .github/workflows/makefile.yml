@@ -387,7 +387,7 @@ jobs:
         run: |
           mkdir -p artifacts
           make deb
-          cp -v ../*.deb artifacts/
+          cp -v ../*${CODENAME}*.deb artifacts/
 
       - name: Verify DEB package installation
         run: |

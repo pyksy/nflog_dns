@@ -224,26 +224,35 @@ jobs:
           - name: Devuan 4.0
             release: chimaera
 
-    runs-on: [ self-hosted, X64 ]
+    runs-on: ubuntu-latest
+
     name: ${{ matrix.name }} build
     steps:
       - uses: actions/checkout@v4
 
-      - name: Upgrade build host
+      - name: Install Devuan keyring
         run: |
+          echo "Note: Devuan keyring information page is at https://www.devuan.org/os/keyring"
+          wget -O /tmp/devuan-keyring.deb http://deb.devuan.org/merged/pool/DEVUAN/main/d/devuan-keyring/devuan-keyring_2025.08.09_all.deb
+          sudo dpkg -i /tmp/devuan-keyring.deb
+
+      - name: Add Devuan Ceres package source
+        run: |
+          echo "deb http://devuan.keff.org/devuan/ ceres main contrib non-free" | sudo tee -a /etc/apt/sources.list
           sudo apt-get update
-          sudo apt-get -y --no-install-recommends dist-upgrade
+
+      - name: Install debootstrap from Devuan Ceres
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get -y install debootstrap/ceres
 
       - name: Debootstrap ${{ matrix.name }}
-        run: sudo debootstrap --variant=minbase --cache-dir=/var/cache/debootstrap ${{ matrix.release }} ../devuan-${{ matrix.release }} http://deb.devuan.org/merged
+        run: sudo debootstrap --variant=minbase ${{ matrix.release }} ../devuan-${{ matrix.release }} http://deb.devuan.org/merged
 
       - name: Install build dependencies
         run: |
-          sudo mount -o bind /var/cache/apt/archives ../devuan-${{ matrix.release }}/var/cache/apt/archives
           sudo chroot ../devuan-${{ matrix.release }} apt-get update
           sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
-          sudo umount ../devuan-${{ matrix.release }}/var/cache/apt/archives
-
 
       - name: Inject distribution into package version
         run: |
@@ -264,17 +273,11 @@ jobs:
           mkdir -p artifacts
           cp -v ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/*.deb artifacts/
 
-      - name: Remove bind mount
-        run: sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns
-
       - name: Verify DEB package installation
         run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
 
       - name: Verify DEB package removal
         run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog-dns
-
-      - name: Cleanup chroot
-        run: sudo chroot ../devuan-${{ matrix.release }} rm -rf /tmp/nflog_dns-build/nflog_dns/debian
 
       - name: Upload DEB package
         if: startsWith(github.ref, 'refs/tags/')
@@ -284,22 +287,6 @@ jobs:
           name: nflog_dns ${{ matrix.name }} amd64 deb
           path: |
             artifacts/*.deb
-
-      - name: Remove apt archive bind mount
-        if: always()
-        continue-on-error: true
-        run: |
-          sudo umount ../devuan-${{ matrix.release }}/var/cache/apt/archives || true
-      - name: Remove build directory bind mount
-        if: always()
-        continue-on-error: true
-        run: |
-          sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns || true
-      - name: Delete chroot from workspace
-        if: always()
-        continue-on-error: true
-        run: |
-          sudo rm -rf "../devuan-${{ matrix.release }}" debian nflog_dns
 
   containers-arm64:
     strategy:

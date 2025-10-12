@@ -41,7 +41,7 @@ jobs:
       run: sudo make install
 
   # Build packages, uses containers
-  containers:
+  containers-amd64:
     strategy:
       fail-fast: false
       matrix:
@@ -214,7 +214,7 @@ jobs:
           artifacts/*.rpm
 
   # Build Devuan packages, uses chroot
-  chroot:
+  chroot-amd64:
     strategy:
       fail-fast: false
       matrix:
@@ -301,7 +301,7 @@ jobs:
         run: |
           sudo rm -rf "../devuan-${{ matrix.release }}" debian nflog_dns
 
-  arm64:
+  containers-arm64:
     strategy:
       fail-fast: false
       matrix:
@@ -319,15 +319,13 @@ jobs:
     container:
       image: ${{ matrix.image }}
       volumes:
-        - /var/cache/apt-${{ matrix.name }}:/var/cache/apt/archives:rw
+        - /var/cache/apt/archives:/var/cache/apt/archives:rw
+        - /var/lib/apt/lists:/var/lib/apt/lists:rw
 
     name: ${{ matrix.name }} build
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Make sure cache directory exists
-        run: mkdir -p /var/cache/apt/archives
 
       - name: Install build dependencies
         run: |
@@ -368,7 +366,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [ ubuntu-full, containers, chroot, arm64 ]
+    needs: [ ubuntu-full, containers-amd64, chroot-amd64, containers-arm64 ]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 

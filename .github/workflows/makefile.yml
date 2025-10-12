@@ -197,7 +197,7 @@ jobs:
         rpm -e nflog-dns
 
     - name: Upload DEB package
-      if: ${{ matrix.pkgtype == 'deb' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule') }}
+      if: ${{ matrix.pkgtype == 'deb' && (startsWith(github.ref, 'refs/tags/')) }}
       uses: actions/upload-artifact@v4
       continue-on-error: false
       with:
@@ -205,7 +205,7 @@ jobs:
         path: |
           artifacts/*.deb
     - name: Upload RPM package
-      if: ${{ matrix.pkgtype == 'rpm' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule') }}
+      if: ${{ matrix.pkgtype == 'rpm' && (startsWith(github.ref, 'refs/tags/')) }}
       uses: actions/upload-artifact@v4
       continue-on-error: false
       with:
@@ -277,7 +277,7 @@ jobs:
         run: sudo chroot ../devuan-${{ matrix.release }} rm -rf /tmp/nflog_dns-build/nflog_dns/debian
 
       - name: Upload DEB package
-        if: (startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule')
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         continue-on-error: false
         with:
@@ -285,74 +285,87 @@ jobs:
           path: |
             artifacts/*.deb
 
-      - name: Clean Up Workspace
+      - name: Remove apt archive bind mount
         if: always()
+        continue-on-error: true
         run: |
           sudo umount ../devuan-${{ matrix.release }}/var/cache/apt/archives || true
+      - name: Remove build directory bind mount
+        if: always()
+        continue-on-error: true
+        run: |
           sudo umount ../devuan-${{ matrix.release }}/tmp/nflog_dns-build/nflog_dns || true
+      - name: Delete chroot from workspace
+        if: always()
+        continue-on-error: true
+        run: |
           sudo rm -rf "../devuan-${{ matrix.release }}" debian nflog_dns
 
-  # Build Raspberry Pi OS packages, uses QEMU
-  qemu:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: Raspberry Pi OS 13
-            image: debian:13
-          - name: Raspberry Pi OS 12
-            image: debian:12
-
-    runs-on: ubuntu-latest
-    name: ${{ matrix.name }} build
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up QEMU for ARM64
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
-
-      - name: Install host dependencies
-        run: |
-          sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get update
-          sudo apt-get -y --no-install-recommends install qemu-user-static binfmt-support ca-certificates
-
-      - name: Build Raspberry Pi ${{ matrix.name }} package
-        run: |
-          mkdir -p artifacts
-          docker run --rm --platform linux/arm64 \
-            -v ${{ github.workspace }}:/src -w /src ${{ matrix.image }} \
-            bash -c "apt-get update \
-              && apt-get -y --no-install-recommends install \
-                ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev \
-                python3 build-essential debhelper-compat lsb-release \
-              && CODENAME=\$(lsb_release -c -s) \
-              && FULL_VERSION=\$(dpkg-parsechangelog --show-field Version) \
-              && PACKAGE=\$(dpkg-parsechangelog --show-field Source) \
-              && NEW_VERSION=\${FULL_VERSION}+\${CODENAME}1 \
-              && sed -i \"1s/^.*\$/\${PACKAGE} (\${NEW_VERSION}) \${CODENAME}; urgency=medium/\" debian/changelog \
-              && echo Building for \${CODENAME} \(arm64\) \
-              && make deb \
-              && cp -v ../*.deb /src/artifacts/ \
-              && dpkg -i artifacts/*.deb \
-              && dpkg -r nflog-dns"
-
-      - name: Upload DEB package
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: actions/upload-artifact@v4
-        continue-on-error: false
-        with:
-          name: nflog_dns ${{ matrix.name }} arm64 deb
-          path: |
-            artifacts/*.deb
+#  # Build Raspberry Pi OS packages, uses QEMU
+#  qemu:
+#    strategy:
+#      fail-fast: false
+#      matrix:
+#        include:
+#          - name: Raspberry Pi OS 13
+#            image: debian:13
+#          - name: Raspberry Pi OS 12
+#            image: debian:12
+#
+#    runs-on: ubuntu-latest
+#    name: ${{ matrix.name }} build
+#    steps:
+#      - uses: actions/checkout@v4
+#
+#      - name: Set up QEMU for ARM64
+#        uses: docker/setup-qemu-action@v3
+#        with:
+#          platforms: arm64
+#
+#      - name: Install host dependencies
+#        run: |
+#          sudo rm -f /var/lib/man-db/auto-update
+#          sudo apt-get update
+#          sudo apt-get -y --no-install-recommends install qemu-user-static binfmt-support ca-certificates
+#
+#      - name: Build Raspberry Pi ${{ matrix.name }} package
+#        run: |
+#          mkdir -p artifacts
+#          docker run --rm --platform linux/arm64 \
+#            -v ${{ github.workspace }}:/src -w /src ${{ matrix.image }} \
+#            bash -c "apt-get update \
+#              && apt-get -y --no-install-recommends install \
+#                ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev \
+#                python3 build-essential debhelper-compat lsb-release \
+#              && CODENAME=\$(lsb_release -c -s) \
+#              && FULL_VERSION=\$(dpkg-parsechangelog --show-field Version) \
+#              && PACKAGE=\$(dpkg-parsechangelog --show-field Source) \
+#              && NEW_VERSION=\${FULL_VERSION}+\${CODENAME}1 \
+#              && sed -i \"1s/^.*\$/\${PACKAGE} (\${NEW_VERSION}) \${CODENAME}; urgency=medium/\" debian/changelog \
+#              && echo Building for \${CODENAME} \(arm64\) \
+#              && make deb \
+#              && cp -v ../*.deb /src/artifacts/ \
+#              && dpkg -i artifacts/*.deb \
+#              && dpkg -r nflog-dns"
+#
+#      - name: Upload DEB package
+#        if: startsWith(github.ref, 'refs/tags/')
+#        uses: actions/upload-artifact@v4
+#        continue-on-error: false
+#        with:
+#          name: nflog_dns ${{ matrix.name }} arm64 deb
+#          path: |
+#            artifacts/*.deb
 
   arm64:
     strategy:
       fail-fast: false
       matrix:
         include:
+          - name: Debian 13 ARM64
+            image: debian:13
+          - name: Debian 12 ARM64
+            image: debian:12
           - name: Ubuntu 24.04 ARM64
             image: ubuntu:24.04
           - name: Ubuntu 22.04 ARM64
@@ -398,7 +411,7 @@ jobs:
           dpkg -r nflog-dns
 
       - name: Upload DEB package
-        if: ${{ startsWith(github.ref, 'refs/tags/') || github.event_name == 'schedule' }}
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-artifact@v4
         continue-on-error: false
         with:
@@ -407,7 +420,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [ubuntu-full, containers, chroot, qemu]
+    needs: [ ubuntu-full, containers, chroot, arm64 ]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
 

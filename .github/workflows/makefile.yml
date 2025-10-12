@@ -16,11 +16,21 @@ on:
 jobs:
   # Do integration testing, requires full VM
   ubuntu-full:
-    name: Ubuntu 24.04 test only
+    name: Ubuntu 24.04 QA build
     runs-on: ubuntu-24.04
+
+    permissions:
+      security-events: write
+      contents: read
 
     steps:
     - uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: cpp
+        queries: security-and-quality
 
     - name: Install build and test dependencies
       run: |
@@ -39,6 +49,9 @@ jobs:
 
     - name: Verify installation
       run: sudo make install
+
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
 
   # Build packages, uses containers
   containers-amd64:
@@ -239,6 +252,7 @@ jobs:
       - name: Add Devuan Ceres package source
         run: |
           echo "deb http://devuan.keff.org/devuan/ ceres main contrib non-free" | sudo tee -a /etc/apt/sources.list
+          echo "deb http://deb.devuan.org/merged ceres main contrib non-free" | sudo tee -a /etc/apt/sources.list
           sudo apt-get update
 
       - name: Install debootstrap from Devuan Ceres

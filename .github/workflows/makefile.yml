@@ -319,12 +319,15 @@ jobs:
     container:
       image: ${{ matrix.image }}
       volumes:
-        - /var/cache/apt/archives:/var/cache/apt/archives:rw
+        - /var/cache/apt-${{ matrix.name }}:/var/cache/apt/archives:rw
 
     name: ${{ matrix.name }} build
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Make sure cache directory exists
+        run: mkdir -p /var/cache/apt/archives
 
       - name: Install build dependencies
         run: |

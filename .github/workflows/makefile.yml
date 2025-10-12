@@ -301,62 +301,6 @@ jobs:
         run: |
           sudo rm -rf "../devuan-${{ matrix.release }}" debian nflog_dns
 
-#  # Build Raspberry Pi OS packages, uses QEMU
-#  qemu:
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        include:
-#          - name: Raspberry Pi OS 13
-#            image: debian:13
-#          - name: Raspberry Pi OS 12
-#            image: debian:12
-#
-#    runs-on: ubuntu-latest
-#    name: ${{ matrix.name }} build
-#    steps:
-#      - uses: actions/checkout@v4
-#
-#      - name: Set up QEMU for ARM64
-#        uses: docker/setup-qemu-action@v3
-#        with:
-#          platforms: arm64
-#
-#      - name: Install host dependencies
-#        run: |
-#          sudo rm -f /var/lib/man-db/auto-update
-#          sudo apt-get update
-#          sudo apt-get -y --no-install-recommends install qemu-user-static binfmt-support ca-certificates
-#
-#      - name: Build Raspberry Pi ${{ matrix.name }} package
-#        run: |
-#          mkdir -p artifacts
-#          docker run --rm --platform linux/arm64 \
-#            -v ${{ github.workspace }}:/src -w /src ${{ matrix.image }} \
-#            bash -c "apt-get update \
-#              && apt-get -y --no-install-recommends install \
-#                ca-certificates git libtins-dev libnetfilter-log-dev libspdlog-dev \
-#                python3 build-essential debhelper-compat lsb-release \
-#              && CODENAME=\$(lsb_release -c -s) \
-#              && FULL_VERSION=\$(dpkg-parsechangelog --show-field Version) \
-#              && PACKAGE=\$(dpkg-parsechangelog --show-field Source) \
-#              && NEW_VERSION=\${FULL_VERSION}+\${CODENAME}1 \
-#              && sed -i \"1s/^.*\$/\${PACKAGE} (\${NEW_VERSION}) \${CODENAME}; urgency=medium/\" debian/changelog \
-#              && echo Building for \${CODENAME} \(arm64\) \
-#              && make deb \
-#              && cp -v ../*.deb /src/artifacts/ \
-#              && dpkg -i artifacts/*.deb \
-#              && dpkg -r nflog-dns"
-#
-#      - name: Upload DEB package
-#        if: startsWith(github.ref, 'refs/tags/')
-#        uses: actions/upload-artifact@v4
-#        continue-on-error: false
-#        with:
-#          name: nflog_dns ${{ matrix.name }} arm64 deb
-#          path: |
-#            artifacts/*.deb
-
   arm64:
     strategy:
       fail-fast: false
@@ -435,11 +379,47 @@ jobs:
         with:
           path: release-artifacts
 
+      - name: Generate SHA256 checksums
+        run: |
+          cd release-artifacts
+          find . -type f \( -name "*.deb" -o -name "*.rpm" \) -exec sha256sum {} \; | sed 's|^\./||' | sort -k2 > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Generate release note
+        run: |
+          cat > release-body.md << 'EOF'
+          Prebuilt installation packages available for:
+          - AMD64 / x86_64:
+            - Debian 12, 13
+            - Ubuntu 22.04, 24.04
+            - Devuan 4.0, 5.0
+            - Fedora 41, 42
+            - openSUSE Leap 15.6, Tumbleweed
+          - ARM64:
+            - Debian 12, 13
+            - Ubuntu 22.04, 24.04
+          
+          To verify the download:
+              sha256sum -c SHA256SUMS.txt
+          
+          To install on Debian/Ubuntu/Devuan:
+              sudo dpkg -i nflog-dns_*.deb
+          
+          To install on Fedora/openSUSE:
+              sudo rpm -i nflog-dns-*.rpm
+          
+          
+          SHA256 Checksums:
+          
+          EOF
+          cat release-artifacts/SHA256SUMS.txt >> release-body.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: release-artifacts/**/*
           generate_release_notes: true
+          body_path: release-body.md
           draft: false
           prerelease: false
         env:

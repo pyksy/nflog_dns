@@ -331,8 +331,9 @@ jobs:
 
       - name: Install build dependencies
         run: |
+          rm -f /etc/apt/apt.conf.d/docker-clean
           apt-get update
-          apt-get -y --no-install-recommends -o APT::Keep-Downloaded-Packages=true install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+          apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
 
       - name: Inject distribution into package version
         run: |

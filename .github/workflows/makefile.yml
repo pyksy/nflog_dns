@@ -252,7 +252,6 @@ jobs:
       - name: Add Devuan Ceres package source
         run: |
           echo "deb http://devuan.keff.org/devuan/ ceres main contrib non-free" | sudo tee -a /etc/apt/sources.list
-          echo "deb http://deb.devuan.org/merged ceres main contrib non-free" | sudo tee -a /etc/apt/sources.list
           sudo apt-get update
 
       - name: Install debootstrap from Devuan Ceres

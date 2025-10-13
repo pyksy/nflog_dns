@@ -21,9 +21,9 @@ deb:
 rpm: nflog_dns.spec
 	$(eval VERSION := $(shell grep '#define PROGRAM_VERSION' version.h | cut -d'"' -f2))
 	mkdir -p ${HOME}/rpmbuild/SOURCES ${HOME}/rpmbuild/SPECS
-	tar czf ${HOME}/rpmbuild/SOURCES/nflog-dns-$(VERSION).tar.gz \
+	tar czf ${HOME}/rpmbuild/SOURCES/nflog_dns-$(VERSION).tar.gz \
 		--exclude=.git --exclude=debian --exclude='*.deb' --exclude='*.rpm' \
-		--transform 's,^\.,nflog-dns-$(VERSION),' .
+		--transform 's,^\.,nflog_dns-$(VERSION),' .
 	sed 's/^Version:.*/Version:        $(VERSION)/' nflog_dns.spec > ${HOME}/rpmbuild/SPECS/nflog_dns.spec
 	rpmbuild -ba --define "_topdir ${HOME}/rpmbuild" ${HOME}/rpmbuild/SPECS/nflog_dns.spec
 

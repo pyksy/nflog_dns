@@ -1,4 +1,4 @@
-Name:           nflog-dns
+Name:           nflog_dns
 Version:        0.0.0
 Release:        1%{?dist}
 Summary:        Extract and log DNS replies from NFLOG group

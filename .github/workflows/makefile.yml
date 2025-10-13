@@ -11,17 +11,19 @@ on:
     tags:
       - 'v*.*.*'
   schedule:
-    - cron: "37 13 * * *"
+    - cron: "37 13 * * 3"
 
 jobs:
   # Do integration testing, requires full VM
   ubuntu-full:
     name: Ubuntu 24.04 QA build
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
 
     permissions:
       security-events: write
       contents: read
+      checks: write
 
     steps:
     - uses: actions/checkout@v4
@@ -39,7 +41,8 @@ jobs:
         sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy
 
     - name: Run clang-tidy
-      run: clang-tidy nflog_dns.cpp -- -std=c++11 -I/usr/include/libnetfilter_log
+      run: |
+        clang-tidy nflog_dns.cpp -- -std=c++11 -I/usr/include/libnetfilter_log
 
     - name: Compile binary
       run: make
@@ -102,6 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     container:
       image: ${{ matrix.image }}
+    timeout-minutes: 60
 
     name: ${{ matrix.name }} build
 
@@ -159,16 +163,12 @@ jobs:
       run: |
         if grep -q "opensuse" "/etc/os-release"
         then
-          PKGNAME="$(rpm -qa 'libtins*' --qf '%{NAME}\n' | head -1)"
-          sed -i "s/^Requires: *libtins/Requires:       ${PKGNAME}/" nflog_dns.spec
-          PKGNAME="$(rpm -qa 'libnetfilter_log*' --qf '%{NAME}\n' | head -1)"
-          sed -i "s/^Requires: *libnetfilter_log/Requires:       ${PKGNAME}/" nflog_dns.spec
-          PKGNAME="$(rpm -qa 'libspdlog*' --qf '%{NAME}\n' | head -1)"
-          sed -i "s/^Requires: *spdlog/Requires:       ${PKGNAME}/" nflog_dns.spec
-          PKGNAME="$(rpm -qa 'libpcap*' --qf '%{NAME}\n' | head -1)"
-          sed -i "s/^Requires: *libpcap/Requires:       ${PKGNAME}/" nflog_dns.spec
-          PKGNAME="$(rpm -qa 'libfmt*' --qf '%{NAME}\n' | head -1)"
-          sed -i "s/^Requires: *fmt/Requires:       ${PKGNAME}/" nflog_dns.spec
+          for PKG in libtins libnetfilter_log spdlog libpcap fmt
+          do
+            PKGNAME="$(rpm -qa '*'${PKG}'*' --qf '%{NAME}\n' | head -1)"
+            [ -n "$PKGNAME" ] || exit 1
+            sed -i "s/^Requires: *${PKG}/Requires:       ${PKGNAME}/" nflog_dns.spec
+          done
         fi
 
     - name: Build package
@@ -207,7 +207,7 @@ jobs:
     - name: Verify RPM package removal
       if: ${{ matrix.pkgtype == 'rpm' }}
       run: |
-        rpm -e nflog-dns
+        rpm -e nflog_dns
 
     - name: Upload DEB package
       if: ${{ matrix.pkgtype == 'deb' && (startsWith(github.ref, 'refs/tags/')) }}
@@ -238,6 +238,7 @@ jobs:
             release: chimaera
 
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     name: ${{ matrix.name }} build
     steps:
@@ -321,6 +322,7 @@ jobs:
       volumes:
         - /var/cache/apt/archives:/var/cache/apt/archives:rw
         - /var/lib/apt/lists:/var/lib/apt/lists:rw
+    timeout-minutes: 60
 
     name: ${{ matrix.name }} build
 
@@ -384,7 +386,7 @@ jobs:
       - name: Generate SHA256 checksums
         run: |
           cd release-artifacts
-          find . -type f \( -name "*.deb" -o -name "*.rpm" \) -exec sha256sum {} \; | sed 's|  .*/nflog|  /nflog|g' | sort -k2 > SHA256SUMS.txt
+          find . -type f \( -name "*.deb" -o -name "*.rpm" \) -exec sha256sum {} \; | sed 's|  .*/nflog|  nflog|g' | sort -k2 > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Generate release note

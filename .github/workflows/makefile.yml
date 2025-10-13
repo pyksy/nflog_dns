@@ -385,7 +385,7 @@ jobs:
       - name: Generate SHA256 checksums
         run: |
           cd release-artifacts
-          find . -type f \( -name "*.deb" -o -name "*.rpm" \) -exec sha256sum {} \; | sed 's|^\./[^/]*/||' | sort -k2 > SHA256SUMS.txt
+          find . -type f \( -name "*.deb" -o -name "*.rpm" \) -exec sha256sum {} \; | sed 's|  .*/nflog|  /nflog|g' | sort -k2 > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Generate release note

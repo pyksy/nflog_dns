@@ -417,7 +417,7 @@ jobs:
           
           EOF
           cat release-artifacts/SHA256SUMS.txt \
-            sed 's/^/    /g' >> release-body.md
+            | sed 's/^/    /g' >> release-body.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

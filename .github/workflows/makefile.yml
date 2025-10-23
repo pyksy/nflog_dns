@@ -74,24 +74,24 @@ jobs:
           - name: Fedora 42
             image: fedora:42
             pkgtype: rpm
-            install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
+            install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint systemd-rpm-macros
           - name: Fedora 41
             image: fedora:41
             pkgtype: rpm
-            install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint
+            install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint systemd-rpm-macros
 
           - name: openSUSE Leap 15.6
             image: opensuse/leap:15.6
             pkgtype: rpm
             install: |
               zypper -n ref
-              zypper -n in gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
+              zypper -n in gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint systemd-rpm-macros
           - name: openSUSE Tumbleweed
             image: opensuse/tumbleweed
             pkgtype: rpm
             install: |
               zypper -n ref
-              zypper -n in gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint
+              zypper -n in gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint systemd-rpm-macros
 
           - name: Ubuntu 24.04
             image: ubuntu:24.04
@@ -410,13 +410,14 @@ jobs:
               sudo dpkg -i nflog-dns_*.deb
           
           To install on Fedora/openSUSE:
-              sudo rpm -i nflog-dns-*.rpm
+              sudo rpm -i nflog_dns-*.rpm
           
           
           SHA256 Checksums:
           
           EOF
-          cat release-artifacts/SHA256SUMS.txt >> release-body.md
+          cat release-artifacts/SHA256SUMS.txt \
+            sed 's/^/    /g' >> release-body.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v2

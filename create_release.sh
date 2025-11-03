@@ -61,7 +61,7 @@ dch -v ${RELEASE}-1 "Release version ${RELEASE}"
 
 # Commit changes
 git add version.h debian/changelog
-git commit -m "Bump version to ${RELEASE}"
+git commit -m "Release version ${RELEASE}"
 
 # Create and push tag
 git tag v${RELEASE}

@@ -232,10 +232,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - name: Devuan 6.0
+            release: excalibur
           - name: Devuan 5.0
             release: daedalus
-          - name: Devuan 4.0
-            release: chimaera
 
     runs-on: ubuntu-latest
     timeout-minutes: 60
@@ -252,7 +252,7 @@ jobs:
 
       - name: Add Devuan Ceres package source
         run: |
-          echo "deb http://devuan.keff.org/devuan/ ceres main contrib non-free" | sudo tee -a /etc/apt/sources.list
+          echo "deb http://deb.devuan.org/merged/ ceres main contrib non-free" | sudo tee -a /etc/apt/sources.list
           sudo apt-get update
 
       - name: Install debootstrap from Devuan Ceres

@@ -84,11 +84,13 @@ jobs:
             pkgtype: rpm
             install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel python3 rpm-build rpmdevtools rpmlint systemd-rpm-macros
 
-          - name: openSUSE Leap 15.6
-            image: opensuse/leap:15.6
+          - name: openSUSE Leap 16.0
+            image: opensuse/leap:16.0
             pkgtype: rpm
             install: |
               zypper -n ref
+              zypper -n addrepo https://download.opensuse.org/repositories/security:netfilter/16.0/security:netfilter.repo
+              zypper -n --gpg-auto-import-keys ref
               zypper -n in gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint systemd-rpm-macros
           - name: openSUSE Tumbleweed
             image: opensuse/tumbleweed

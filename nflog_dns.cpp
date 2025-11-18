@@ -27,8 +27,12 @@ extern "C" {
 
 using namespace Tins;
 
-bool use_syslog = false;
 spdlog::level::level_enum syslog_level = spdlog::level::info;
+bool use_syslog = false;
+bool log_a = true;
+bool log_aaaa = true;
+bool log_cname = true;
+bool log_ptr = true;
 
 void print_help(char* prgname) {
 	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
@@ -41,7 +45,10 @@ void print_help(char* prgname) {
 	std::cout << "  -l, --level       log level for syslog logging (default: info)" << std::endl;
     std::cout << "  -h, --help        print this help and exit" << std::endl;
     std::cout << "  -v, --version     show version and exit" << std::endl;
-	std::cout << "" << std::endl;
+	std::cout << "      --a           yes/no A record logging (default: yes)" << std::endl;
+	std::cout << "      --aaaa        yes/no AAAA record logging (default: yes)" << std::endl;
+	std::cout << "      --cname       yes/no CNAME record logging (default: yes)" << std::endl;
+	std::cout << "      --ptr         yes/no PTR record logging (default: yes)" << std::endl;
 	std::cout << "" << std::endl;
 }
 
@@ -66,6 +73,43 @@ int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table) {
 
 	// No match, return error
 	return -1;
+}
+
+int parse_bool(const char *str) {
+	if (strcasecmp(str, "1") == 0 ||
+		strcasecmp(str, "enable") == 0 ||
+		strcasecmp(str, "on") == 0 ||
+		strcasecmp(str, "true") == 0 ||
+		strcasecmp(str, "yes") == 0)
+		return 1;
+	if (strcasecmp(str, "0") == 0 ||
+		strcasecmp(str, "disable") == 0 ||
+		strcasecmp(str, "off") == 0 ||
+		strcasecmp(str, "false") == 0 ||
+		strcasecmp(str, "no") == 0)
+		return 0;
+
+	// Cannot parse, return error
+	return -1;
+}
+
+void set_setting(int optindex, bool setting_value) {
+	switch (optindex) {
+		case 0:
+			log_a = setting_value;
+			break;
+		case 1:
+			log_aaaa = setting_value;
+			break;
+		case 2:
+			log_cname = setting_value;
+			break;
+		case 3:
+			log_ptr = setting_value;
+			break;
+		default:
+			break;
+	}
 }
 
 static int callback(struct nflog_g_handle *gh __attribute__((unused)),
@@ -106,16 +150,16 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 			for(const auto &answer : dns.answers()) {
 				switch (answer.query_type()) {
 					case DNS::A:
-						dns_logger->log(syslog_level, "{} reply A {} -> {}", source, answer.dname(), answer.data());
+						if (log_a) dns_logger->log(syslog_level, "{} reply A {} -> {}", source, answer.dname(), answer.data());
 						break;
 					case DNS::AAAA:
-						dns_logger->log(syslog_level, "{} reply AAAA {} -> {}", source, answer.dname(), answer.data());
+						if (log_aaaa) dns_logger->log(syslog_level, "{} reply AAAA {} -> {}", source, answer.dname(), answer.data());
 						break;
 					case DNS::CNAME:
-						dns_logger->log(syslog_level, "{} reply CNAME {} -> {}", source, answer.dname(), answer.data());
+						if (log_cname) dns_logger->log(syslog_level, "{} reply CNAME {} -> {}", source, answer.dname(), answer.data());
 						break;
 					case DNS::PTR:
-						dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
+						if (log_ptr) dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
 						break;
 					default:
 						break;
@@ -136,8 +180,14 @@ int main(int argc, char *argv[])
 	char buf[4096];
 	uint16_t group = DEFAULT_NFLOG_GROUP;
 	int syslog_facility = LOG_USER;
+	int optindex = 0;
+	int setting_value = -1;
 
 	option longopts[] = {
+		{"a", required_argument, NULL, 0},
+		{"aaaa", required_argument, NULL, 0},
+		{"cname", required_argument, NULL, 0},
+		{"ptr", required_argument, NULL, 0},
 		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
 		{"help", no_argument, NULL, 'h'},
@@ -148,13 +198,22 @@ int main(int argc, char *argv[])
 	};
 
 		while (true) {
-		const int opt = getopt_long(argc, argv, "f:g:hl:sv", longopts, 0);
+			const int opt = getopt_long(argc, argv, "f:g:hl:sv", longopts, &optindex);
 
-		if (opt == -1) {
-			break;
+			if (opt == -1) {
+				break;
 		}
 
 		switch (opt) {
+			case 0:
+				setting_value = parse_bool(optarg);
+				if (setting_value < 0) {
+					std::cerr << "Error: Bad --" << longopts[optindex].name << " value: " << optarg << std::endl;
+					return 1;
+				}
+				set_setting(optindex, setting_value);
+				break;
+
 			case 'f':
 				syslog_facility = parse_syslog_code(optarg, facilitynames);
 				if (syslog_facility == -1) {

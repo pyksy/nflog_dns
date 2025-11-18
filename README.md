@@ -42,6 +42,25 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 
 1. sudo make test
 
+# usage
+```
+% nflog_dns -h
+Usage: nflog_dns [OPTION]...
+
+Extract DNS replies from NFLOG group
+
+  -g, --group       NFLOG group to bind (default: 123)
+  -s, --syslog      log replies to syslog instead of stdout
+  -f, --facility    facility for syslog logging (default: user)
+  -l, --level       log level for syslog logging (default: info)
+  -h, --help        print this help and exit
+  -v, --version     show version and exit
+      --a           yes/no A record logging (default: yes)
+      --aaaa        yes/no AAAA record logging (default: yes)
+      --cname       yes/no CNAME record logging (default: yes)
+      --ptr         yes/no PTR record logging (default: yes)
+```
+
 # known issues
 
 [A bug in libtins ip6.arpa PTR reply parsing](https://github.com/mfontanini/libtins/issues/551) 

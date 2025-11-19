@@ -19,6 +19,7 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <tins/tins.h>
 #include <iostream>
+#include "config.h"
 #include "version.h"
 
 extern "C" {
@@ -27,28 +28,25 @@ extern "C" {
 
 using namespace Tins;
 
-spdlog::level::level_enum syslog_level = spdlog::level::info;
-bool use_syslog = false;
-bool log_a = true;
-bool log_aaaa = true;
-bool log_cname = true;
-bool log_ptr = true;
+std::string bool_to_string(bool value) {
+	return value ? "yes" : "no";
+}
 
 void print_help(char* prgname) {
 	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
 	std::cout << "" << std::endl;
 	std::cout << "Extract DNS replies from NFLOG group" << std::endl;
 	std::cout << "" << std::endl;
-	std::cout << "  -g, --group       NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
-	std::cout << "  -s, --syslog      log replies to syslog instead of stdout" << std::endl;
-	std::cout << "  -f, --facility    facility for syslog logging (default: user)" << std::endl;
-	std::cout << "  -l, --level       log level for syslog logging (default: info)" << std::endl;
-    std::cout << "  -h, --help        print this help and exit" << std::endl;
-    std::cout << "  -v, --version     show version and exit" << std::endl;
-	std::cout << "      --a           yes/no A record logging (default: yes)" << std::endl;
-	std::cout << "      --aaaa        yes/no AAAA record logging (default: yes)" << std::endl;
-	std::cout << "      --cname       yes/no CNAME record logging (default: yes)" << std::endl;
-	std::cout << "      --ptr         yes/no PTR record logging (default: yes)" << std::endl;
+	std::cout << "  -g, --group=NUM          NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
+	std::cout << "  -s, --syslog             log replies to syslog instead of stdout" << std::endl;
+	std::cout << "  -f, --facility=FACILITY  facility for syslog logging (default: user)" << std::endl;
+	std::cout << "  -l, --level=LOGLEVEL     log level for syslog logging (default: info)" << std::endl;
+	std::cout << "  -h, --help               print this help and exit" << std::endl;
+	std::cout << "  -v, --version            show version and exit" << std::endl;
+	std::cout << "      --a=BOOL             A record logging (default: " << bool_to_string(log_a) << ")" << std::endl;
+	std::cout << "      --aaaa=BOOL          AAAA record logging (default: " << bool_to_string(log_aaaa) << ")" << std::endl;
+	std::cout << "      --cname=BOOL         CNAME record logging (default: " << bool_to_string(log_cname) << ")" << std::endl;
+	std::cout << "      --ptr=BOOL           PTR record logging (default: " << bool_to_string(log_ptr) << ")" << std::endl;
 	std::cout << "" << std::endl;
 }
 

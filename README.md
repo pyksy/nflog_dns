@@ -49,16 +49,16 @@ Usage: nflog_dns [OPTION]...
 
 Extract DNS replies from NFLOG group
 
-  -g, --group       NFLOG group to bind (default: 123)
-  -s, --syslog      log replies to syslog instead of stdout
-  -f, --facility    facility for syslog logging (default: user)
-  -l, --level       log level for syslog logging (default: info)
-  -h, --help        print this help and exit
-  -v, --version     show version and exit
-      --a           yes/no A record logging (default: yes)
-      --aaaa        yes/no AAAA record logging (default: yes)
-      --cname       yes/no CNAME record logging (default: yes)
-      --ptr         yes/no PTR record logging (default: yes)
+  -g, --group=NUM          NFLOG group to bind (default: 123)
+  -s, --syslog             log replies to syslog instead of stdout
+  -f, --facility=FACILITY  facility for syslog logging (default: user)
+  -l, --level=LOGLEVEL     log level for syslog logging (default: info)
+  -h, --help               print this help and exit
+  -v, --version            show version and exit
+      --a=BOOL             A record logging (default: yes)
+      --aaaa=BOOL          AAAA record logging (default: yes)
+      --cname=BOOL         CNAME record logging (default: yes)
+      --ptr=BOOL           PTR record logging (default: yes)
 ```
 
 # known issues

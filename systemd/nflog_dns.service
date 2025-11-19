@@ -6,7 +6,10 @@ After=network.target
 Type=simple
 EnvironmentFile=/etc/default/nflog_dns
 ExecStart=/usr/sbin/nflog_dns $OPTIONS
+ExecStop=/bin/kill -TERM $MAINPID
+TimeoutStopSec=5
 Restart=on-failure
+SuccessExitStatus=0 143
 
 [Install]
 WantedBy=multi-user.target

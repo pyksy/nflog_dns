@@ -200,6 +200,11 @@ jobs:
       run: |
         dpkg -i artifacts/*.deb
 
+    - name: Verify DEB package re-installation
+      if: ${{ matrix.pkgtype == 'deb' }}
+      run: |
+        dpkg -i artifacts/*.deb
+
     - name: Verify DEB package removal
       if: ${{ matrix.pkgtype == 'deb' }}
       run: |

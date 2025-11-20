@@ -60,6 +60,21 @@ jobs:
     - name: Run CodeQL Analysis
       uses: github/codeql-action/analyze@v4
 
+    - name: Verify DEB package build
+      run: make deb
+
+    - name: Verify DEB package installation
+      run: sudo dpkg -i ../nflog-dns_*.deb
+
+    - name: Verify DEB package reinstallation
+      run: sudo dpkg -i ../nflog-dns_*.deb
+
+    - name: Verify DEB package removal
+      run: sudo dpkg -r nflog-dns
+
+    - name: Verify DEB package purge
+      run: sudo dpkg -P nflog-dns
+
   # Build packages, uses containers
   containers-amd64:
     strategy:

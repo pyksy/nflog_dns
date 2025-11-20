@@ -78,9 +78,33 @@ install: install-bin install-files
 
 install-debug: install-bin-debug install-files
 
+uninstall-bin:
+	rm -f "$(DESTDIR)$(SBINDIR)/nflog_dns"
+
+uninstall-init:
+ifeq ($(INSTALL_SYSVINIT),1)
+	rm -f "$(DESTDIR)$(ETCDIR)/init.d/nflog_dns"
+endif
+
+uninstall-systemd:
+ifeq ($(INSTALL_SYSTEMD),1)
+	rm -f "$(DESTDIR)$(PREFIX)/lib/systemd/system/nflog_dns.service"
+endif
+
+uninstall-config:
+	$(foreach file, $(CONFIG_FILES), \
+		rm -f "$(DESTDIR)$(ETCDIR)/$(file)";)
+
+uninstall-files: uninstall-init uninstall-systemd uninstall-config
+
+uninstall: uninstall-bin uninstall-files
+
 .PHONY: all deb rpm \
 	clean distclean \
 	run-tests test \
 	install-bin install-bin-debug \
 	install-init install-systemd install-config install-files \
-	install install-debug
+	install install-debug \
+	uninstall-bin \
+	uninstall-init uninstall-systemd uninstall-config uninstall-files \
+	uninstall

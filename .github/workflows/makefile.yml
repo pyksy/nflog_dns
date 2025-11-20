@@ -20,7 +20,7 @@ concurrency:
 jobs:
   # Do integration testing, requires full VM
   ubuntu-full:
-    name: Ubuntu 24.04 QA build
+    name: Ubuntu 24.04 QA tests
     runs-on: ubuntu-24.04
     timeout-minutes: 60
 
@@ -42,7 +42,7 @@ jobs:
       run: |
         sudo rm -f /var/lib/man-db/auto-update
         sudo apt-get update
-        sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy
+        sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy debhelper-compat lsb-release
 
     - name: Run clang-tidy
       run: |
@@ -60,6 +60,14 @@ jobs:
     - name: Run CodeQL Analysis
       uses: github/codeql-action/analyze@v4
 
+    - name: Verify uninstallation
+      run: sudo make uninstall
+
+    - name: Verify clean
+      run: |
+        make clean
+        git status --porcelain
+
     - name: Verify DEB package build
       run: make deb
 
@@ -74,6 +82,11 @@ jobs:
 
     - name: Verify DEB package purge
       run: sudo dpkg -P nflog-dns
+
+    - name: Verify clean
+      run: |
+        make clean
+        git status --porcelain
 
   # Build packages, uses containers
   containers-amd64:

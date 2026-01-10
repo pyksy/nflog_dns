@@ -35,9 +35,9 @@ std::string bool_to_string(bool value) {
 
 void print_help(char* prgname) {
 	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
-	std::cout << "" << std::endl;
+	std::cout << std::endl;
 	std::cout << "Extract DNS replies from NFLOG group" << std::endl;
-	std::cout << "" << std::endl;
+	std::cout << std::endl;
 	std::cout << "  -g, --group=NUM          NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
 	std::cout << "  -s, --syslog             log replies to syslog instead of stdout" << std::endl;
 	std::cout << "  -f, --facility=FACILITY  facility for syslog logging (default: user)" << std::endl;
@@ -48,7 +48,7 @@ void print_help(char* prgname) {
 	std::cout << "      --aaaa=BOOL          AAAA record logging (default: " << bool_to_string(log_aaaa) << ")" << std::endl;
 	std::cout << "      --cname=BOOL         CNAME record logging (default: " << bool_to_string(log_cname) << ")" << std::endl;
 	std::cout << "      --ptr=BOOL           PTR record logging (default: " << bool_to_string(log_ptr) << ")" << std::endl;
-	std::cout << "" << std::endl;
+	std::cout << std::endl;
 }
 
 bool is_number(const char* facility_arg) {
@@ -119,6 +119,9 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	uint32_t payload_len;
 	uint8_t* payload;
 	payload_len = nflog_get_payload(ldata, (char **)(&payload));
+	if (!payload) {
+		return 0;
+	}
 	RawPDU rpdu = RawPDU(payload, payload_len);
 	DNS dns;
 	IP ip;
@@ -145,7 +148,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 		if (dns.type() == DNS::RESPONSE) {
 			auto dns_logger = spdlog::get(PROGRAM_NAME);
 
-			for(const auto &answer : dns.answers()) {
+			for (const auto &answer : dns.answers()) {
 				switch (answer.query_type()) {
 					case DNS::A:
 						if (log_a) dns_logger->log(syslog_level, "{} reply A {} -> {}", source, answer.dname(), answer.data());
@@ -175,7 +178,7 @@ int main(int argc, char *argv[])
 	struct nflog_handle *h;
 	struct nflog_g_handle *qh;
 	ssize_t rv;
-	char buf[NFLOG_BUFFER_SIZE];
+	static char buf[NFLOG_BUFFER_SIZE];
 	uint16_t group = DEFAULT_NFLOG_GROUP;
 	int syslog_facility = LOG_USER;
 	int optindex = 0;
@@ -221,15 +224,11 @@ int main(int argc, char *argv[])
 				break;
 
 			case 'g':
-				if (strcmp(optarg, "0") != 0) {
-					if (is_number(optarg)) {
-						group = atoi(optarg);
-					} else {
-						std::cerr << "Error: Bad group number: " << optarg << std::endl;
-						return 1;
-					}
+				if (is_number(optarg)) {
+					group = atoi(optarg);
 				} else {
-					group = 0;
+					std::cerr << "Error: Bad group number: " << optarg << std::endl;
+					return 1;
 				}
 				break;
 
@@ -282,8 +281,10 @@ int main(int argc, char *argv[])
 		nflog_close(h);
 		return 1;
 	}
-
-	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, 0xffff) < 0) {
+	if (nflog_set_nlbufsiz(qh, NFLOG_BUFFER_SIZE) < 0) {
+		std::cerr << "can't set netlink buffer size" << std::endl;
+	}
+	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, NFLOG_BUFFER_SIZE) < 0) {
 		std::cerr << "can't set packet copy mode" << std::endl;
 		nflog_unbind_group(qh);
 		nflog_close(h);
@@ -291,7 +292,7 @@ int main(int argc, char *argv[])
 	}
 
 	// Setup logging
-	std::shared_ptr<spdlog::sinks::sink> dns_logger_sink = NULL;
+	std::shared_ptr<spdlog::sinks::sink> dns_logger_sink = nullptr;
 	if (use_syslog) {
 		dns_logger_sink = std::make_shared<spdlog::sinks::syslog_sink_mt>(PROGRAM_NAME, LOG_PID, syslog_facility, false);
 	} else {
@@ -308,7 +309,7 @@ int main(int argc, char *argv[])
 	while (1) {
 		rv = recv(fd, buf, sizeof(buf), 0);
 
-		if (rv > 0) {
+		if (rv > 0 && rv <= NFLOG_BUFFER_SIZE) {
 			nflog_handle_packet(h, buf, rv);	
 		}
 		if (rv == 0) {

@@ -143,7 +143,6 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	try {
 		if (dns.type() == DNS::RESPONSE) {
 			auto dns_logger = spdlog::get(PROGRAM_NAME);
-			if (!dns_logger) return 0;
 
 			for(const auto &answer : dns.answers()) {
 				switch (answer.query_type()) {

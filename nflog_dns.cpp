@@ -11,6 +11,8 @@
 #define	SYSLOG_NAMES
 #define SPDLOG_FMT_EXTERNAL
 
+#define NFLOG_BUFFER_SIZE 65536
+
 #include <getopt.h>
 #include <errno.h>
 #include <string.h>
@@ -174,7 +176,7 @@ int main(int argc, char *argv[])
 	struct nflog_handle *h;
 	struct nflog_g_handle *qh;
 	ssize_t rv;
-	char buf[4096];
+	char buf[NFLOG_BUFFER_SIZE];
 	uint16_t group = DEFAULT_NFLOG_GROUP;
 	int syslog_facility = LOG_USER;
 	int optindex = 0;

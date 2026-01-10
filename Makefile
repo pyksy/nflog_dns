@@ -7,13 +7,15 @@ PREFIX ?= /usr/local
 ETCDIR ?= /etc
 SBINDIR ?= $(PREFIX)/sbin
 CXX ?= c++
-CXXFLAGS ?= -O2 -std=c++11 -Wall -Wextra -Werror -pedantic
+CXXFLAGS ?= -O2 -std=c++11 -Wall -Wextra -Werror -pedantic -DSPDLOG_FMT_EXTERNAL
 CXXEXTRAFLAGS ?= 
 INSTALL_SYSVINIT ?= 1
 INSTALL_SYSTEMD ?= 1
+SOURCES = config.cpp nflog_dns.cpp
+HEADERS = config.h version.h
 
 all:
-	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) nflog_dns.cpp -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
+	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(SOURCES) -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
 
 deb:
 	dpkg-buildpackage -us -uc -b

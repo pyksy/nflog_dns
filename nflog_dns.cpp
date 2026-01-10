@@ -195,11 +195,11 @@ int main(int argc, char *argv[])
 		{0, 0, 0, 0}
 	};
 
-		while (true) {
-			const int opt = getopt_long(argc, argv, "f:g:hl:sv", longopts, &optindex);
+	while (true) {
+		const int opt = getopt_long(argc, argv, "f:g:hl:sv", longopts, &optindex);
 
-			if (opt == -1) {
-				break;
+		if (opt == -1) {
+			break;
 		}
 
 		switch (opt) {

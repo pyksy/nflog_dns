@@ -57,6 +57,9 @@ jobs:
     - name: Verify installation
       run: sudo make install
 
+    - name: Run the installed binary
+      run: nflog_dns --version
+
     - name: Run CodeQL Analysis
       uses: github/codeql-action/analyze@v4
 
@@ -66,13 +69,26 @@ jobs:
     - name: Verify clean
       run: |
         make clean
-        git status --porcelain
+        [ -z "$(git status --porcelain)" ] || exit 1
 
     - name: Verify DEB package build
       run: make deb
 
     - name: Verify DEB package installation
       run: sudo dpkg -i ../nflog-dns_*.deb
+
+    - name: Run the installed binary
+      run: nflog_dns --version
+
+    - name: Stop and disable nflog_dns systemd service
+      run: |
+        sudo systemctl stop nflog_dns.service
+        sudo systemctl disable nflog_dns.service
+
+    - name: Enable and start nflog_dns systemd service
+      run: |
+        sudo systemctl enable nflog_dns.service
+        sudo systemctl start nflog_dns.service
 
     - name: Verify DEB package reinstallation
       run: sudo dpkg -i ../nflog-dns_*.deb
@@ -86,7 +102,7 @@ jobs:
     - name: Verify clean
       run: |
         make clean
-        git status --porcelain
+        [ -z "$(git status --porcelain)" ] || exit 1
 
   # Build packages, uses containers
   containers-amd64:
@@ -225,45 +241,45 @@ jobs:
 
     - name: Verify DEB package installation
       if: ${{ matrix.pkgtype == 'deb' }}
-      run: |
-        dpkg -i artifacts/*.deb
+      run: dpkg -i artifacts/*.deb
+
+    - name: Run the installed binary
+      if: ${{ matrix.pkgtype == 'deb' }}
+      run: nflog_dns --version
 
     - name: Verify DEB package re-installation
       if: ${{ matrix.pkgtype == 'deb' }}
-      run: |
-        dpkg -i artifacts/*.deb
+      run: dpkg -i artifacts/*.deb
 
     - name: Verify DEB package removal
       if: ${{ matrix.pkgtype == 'deb' }}
-      run: |
-        dpkg -r nflog-dns nflog-dns-dbgsym
+      run: dpkg -r nflog-dns nflog-dns-dbgsym
 
     - name: Verify RPM package installation
       if: ${{ matrix.pkgtype == 'rpm' }}
-      run: |
-        rpm -i artifacts/*.rpm
+      run: rpm -i artifacts/*.rpm
+
+    - name: Run the installed binary
+      if: ${{ matrix.pkgtype == 'rpm' }}
+      run: nflog_dns --version
 
     - name: Verify RPM package removal
       if: ${{ matrix.pkgtype == 'rpm' }}
-      run: |
-        rpm -e nflog_dns
+      run: rpm -e nflog_dns
 
     - name: Upload DEB package
       if: ${{ matrix.pkgtype == 'deb' && github.event_name == 'push' }}
       uses: actions/upload-artifact@v5
-      continue-on-error: false
       with:
         name: nflog-dns ${{ matrix.name }} amd64 deb
-        path: |
-          artifacts/*.deb
+        path: artifacts/*.deb
+
     - name: Upload RPM package
       if: ${{ matrix.pkgtype == 'rpm' && github.event_name == 'push' }}
       uses: actions/upload-artifact@v5
-      continue-on-error: false
       with:
         name: nflog_dns ${{ matrix.name }} x86_64 rpm
-        path: |
-          artifacts/*.rpm
+        path: artifacts/*.rpm
 
   # Build Devuan packages, uses chroot
   chroot-amd64:
@@ -329,13 +345,20 @@ jobs:
       - name: Verify DEB package installation
         run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
 
+      - name: Run the installed binary
+        run: sudo chroot ../devuan-${{ matrix.release }} nflog_dns --version
+
+      - name: Verify disabling and enabling nflog_dns sysvinit service
+        run: |
+          sudo chroot ../devuan-${{ matrix.release }} update-rc.d nflog_dns remove
+          sudo chroot ../devuan-${{ matrix.release }} update-rc.d nflog_dns defaults
+
       - name: Verify DEB package removal
         run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog-dns nflog-dns-dbgsym
 
       - name: Upload DEB package
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v5
-        continue-on-error: false
         with:
           name: nflog-dns ${{ matrix.name }} amd64 deb
           path: |
@@ -387,20 +410,20 @@ jobs:
         run: |
           mkdir -p artifacts
           make deb
-          mv -v ../*$(lsb_release -c -s)*.deb artifacts/
+          mv -v ../nflog-dns*$(lsb_release -c -s)*.deb artifacts/
 
       - name: Verify DEB package installation
-        run: |
-          dpkg -i artifacts/*.deb
+        run: dpkg -i artifacts/*.deb
+
+      - name: Run the installed binary
+        run: nflog_dns --version
 
       - name: Verify DEB package removal
-        run: |
-          dpkg -r nflog-dns nflog-dns-dbgsym
+        run: dpkg -r nflog-dns nflog-dns-dbgsym
 
       - name: Upload DEB package
         if: github.event_name == 'push'
         uses: actions/upload-artifact@v5
-        continue-on-error: false
         with:
           name: nflog-dns ${{ matrix.name }} arm64 deb
           path: artifacts/*.deb
@@ -436,8 +459,8 @@ jobs:
             - Debian 12, 13
             - Ubuntu 22.04, 24.04
             - Devuan 4.0, 5.0
-            - Fedora 41, 42
-            - openSUSE Leap 15.6, Tumbleweed
+            - Fedora 42, 43
+            - openSUSE Leap 16.0, Tumbleweed
           - ARM64:
             - Debian 12, 13
             - Ubuntu 22.04, 24.04

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <spdlog/common.h>
 
 extern spdlog::level::level_enum syslog_level;

@@ -4,12 +4,16 @@ parses A, AAAA and PTR type DNS reply packets and logs the details to syslog or 
 
 # requirements
 
-nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
+nflog_dns.cpp requires libfmt, libtins, libnetfilter_log and libspdlog libraries
 
 # compile
 
 1. sudo apt-get install build-essential libtins-dev libnetfilter-log-dev libspdlog-dev
 2. make
+
+# run tests
+
+1. sudo make test
 
 # quickstart
 
@@ -38,9 +42,12 @@ nflog_dns.cpp requires libtins, libnetfilter_log and libspdlog libraries
 3. sudo update-rc.d nflog_dns defaults
 4. sudo service nflog_dns start
 
-# run tests
+# enable systemd service
 
-1. sudo make test
+1. Install nflog_dns as above
+2. Edit options in /etc/default/nflog_dns to suit your needs
+3. sudo systemctl enable nflog_dns.service
+4. sudo systemctl start nflog_dns.service
 
 # usage
 ```

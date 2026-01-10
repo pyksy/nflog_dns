@@ -1,6 +1,11 @@
 # nflog_dns
+
 DNS packet syslogging using iptables NFLOG, written in C++. This program
 parses A, AAAA and PTR type DNS reply packets and logs the details to syslog or console.
+
+# .deb/.rpm packages
+
+Prebuilt .deb/.rpm packages for popular distributions can be downloaded from the Releases page.
 
 # requirements
 

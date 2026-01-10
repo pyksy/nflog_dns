@@ -78,7 +78,7 @@ jobs:
       run: sudo dpkg -i ../nflog-dns_*.deb
 
     - name: Verify DEB package removal
-      run: sudo dpkg -r nflog-dns
+      run: sudo dpkg -r nflog-dns nflog-dns-dbgsym
 
     - name: Verify DEB package purge
       run: sudo dpkg -P nflog-dns
@@ -236,7 +236,7 @@ jobs:
     - name: Verify DEB package removal
       if: ${{ matrix.pkgtype == 'deb' }}
       run: |
-        dpkg -r nflog-dns
+        dpkg -r nflog-dns nflog-dns-dbgsym
 
     - name: Verify RPM package installation
       if: ${{ matrix.pkgtype == 'rpm' }}
@@ -330,7 +330,7 @@ jobs:
         run: echo 'dpkg -i /tmp/nflog_dns-build/*.deb' | sudo chroot ../devuan-${{ matrix.release }} /bin/sh
 
       - name: Verify DEB package removal
-        run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog-dns
+        run: sudo chroot ../devuan-${{ matrix.release }} dpkg -r nflog-dns nflog-dns-dbgsym
 
       - name: Upload DEB package
         if: github.event_name == 'push'
@@ -395,7 +395,7 @@ jobs:
 
       - name: Verify DEB package removal
         run: |
-          dpkg -r nflog-dns
+          dpkg -r nflog-dns nflog-dns-dbgsym
 
       - name: Upload DEB package
         if: github.event_name == 'push'

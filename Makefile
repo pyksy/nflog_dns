@@ -6,42 +6,51 @@
 PREFIX ?= /usr/local
 ETCDIR ?= /etc
 SBINDIR ?= $(PREFIX)/sbin
+RPMBUILDDIR ?= $(HOME)/rpmbuild
 CXX ?= c++
-CXXFLAGS ?= -O2 -std=c++11 -Wall -Wextra -Werror -pedantic -DSPDLOG_FMT_EXTERNAL
-CXXEXTRAFLAGS ?= 
+CXXFLAGS ?= -O2 -std=c++11 -Wall -Wextra -Werror -pedantic
+CXXEXTRAFLAGS ?=
+LDFLAGS ?=
+CXXFLAGS += $(shell pkg-config --cflags libnetfilter_log libtins fmt spdlog)
+LDFLAGS += $(shell pkg-config --libs libnetfilter_log libtins fmt spdlog)
 INSTALL_SYSVINIT ?= 1
 INSTALL_SYSTEMD ?= 1
 SOURCES = config.cpp nflog_dns.cpp
 HEADERS = config.h version.h
 
-all:
-	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(SOURCES) -I/usr/include/libnetfilter_log -ltins -lnetfilter_log -lfmt -lspdlog -o nflog_dns
+nflog_dns: $(SOURCES) $(HEADERS)
+	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(SOURCES) $(LDFLAGS) -o $@
+
+all: nflog_dns
 
 deb:
 	dpkg-buildpackage -us -uc -b
 
 rpm: nflog_dns.spec
-	$(eval VERSION := $(shell grep '#define PROGRAM_VERSION' version.h | cut -d'"' -f2))
-	mkdir -p ${HOME}/rpmbuild/SOURCES ${HOME}/rpmbuild/SPECS
-	tar czf ${HOME}/rpmbuild/SOURCES/nflog_dns-$(VERSION).tar.gz \
+	$(eval VERSION := $(shell awk -F'"' '/PROGRAM_VERSION/ {print $$2}' version.h))
+	mkdir -p "$(RPMBUILDDIR)"/SOURCES "$(RPMBUILDDIR)"/SPECS
+	tar czf "$(RPMBUILDDIR)"/SOURCES/nflog_dns-$(VERSION).tar.gz \
 		--exclude=.git --exclude=debian --exclude='*.deb' --exclude='*.rpm' \
 		--transform 's,^\.,nflog_dns-$(VERSION),' .
-	sed 's/^Version:.*/Version:        $(VERSION)/' nflog_dns.spec > ${HOME}/rpmbuild/SPECS/nflog_dns.spec
-	rpmbuild -ba --define "_topdir ${HOME}/rpmbuild" ${HOME}/rpmbuild/SPECS/nflog_dns.spec
+	sed 's/^Version:.*/Version:        $(VERSION)/' nflog_dns.spec > "$(RPMBUILDDIR)"/SPECS/nflog_dns.spec
+	rpmbuild -ba --define "_topdir $(RPMBUILDDIR)" "$(RPMBUILDDIR)"/SPECS/nflog_dns.spec
 
-debug: CXXEXTRAFLAGS = -g -fsanitize=address
-debug: all
+debug: CXXFLAGS = -g -O0 -std=c++11 -Wall -Wextra -Werror -pedantic -fsanitize=address -fsanitize=undefined
+debug: LDFLAGS += -fsanitize=address -fsanitize=undefined
+debug: nflog_dns
 
 clean-bin:
 	rm -f nflog_dns
 
 clean-deb:
-	dh_clean
+	@if [ -f debian/debhelper-build-stamp ]; then dh_clean; fi
 
 clean-rpm:
-	rm -rf ${HOME}/rpmbuild/BUILD/nflog-dns-*
-	rm -f ${HOME}/rpmbuild/SOURCES/nflog-dns-*.tar.gz
-	rm -f ${HOME}/rpmbuild/SPECS/nflog_dns.spec
+	rm -rf "$(RPMBUILDDIR)"/BUILD/nflog_dns-*
+	rm -f "$(RPMBUILDDIR)"/SOURCES/nflog_dns-*.tar.gz
+	rm -f "$(RPMBUILDDIR)"/SPECS/nflog_dns.spec
+	rm -f "$(RPMBUILDDIR)"/RPMS/*/nflog_dns-*.rpm
+	rm -f "$(RPMBUILDDIR)"/SRPMS/nflog_dns-*.src.rpm
 
 clean: clean-bin clean-deb clean-rpm
 
@@ -53,10 +62,10 @@ run-tests:
 test: run-tests
 
 install-bin:
-	install -s -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
-
-install-bin-debug:
 	install -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
+
+install-bin-strip:
+	install -s -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
 
 install-init:
 ifeq ($(INSTALL_SYSVINIT),1)
@@ -78,7 +87,7 @@ install-files: install-init install-systemd install-config
 
 install: install-bin install-files
 
-install-debug: install-bin-debug install-files
+install-strip: install-bin-strip install-files
 
 uninstall-bin:
 	rm -f "$(DESTDIR)$(SBINDIR)/nflog_dns"
@@ -104,9 +113,9 @@ uninstall: uninstall-bin uninstall-files
 .PHONY: all deb rpm \
 	clean distclean \
 	run-tests test \
-	install-bin install-bin-debug \
+	install-bin install-bin-strip \
 	install-init install-systemd install-config install-files \
-	install install-debug \
+	install install-strip \
 	uninstall-bin \
 	uninstall-init uninstall-systemd uninstall-config uninstall-files \
 	uninstall

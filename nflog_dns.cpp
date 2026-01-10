@@ -268,20 +268,25 @@ int main(int argc, char *argv[])
 	}
 	if (nflog_unbind_pf(h, AF_INET) < 0) {
 		std::cerr << "error nflog_unbind_pf()" << std::endl;
+		nflog_close(h);
 		return 1;
 	}
 	if (nflog_bind_pf(h, AF_INET) < 0) {
 		std::cerr << "error during nflog_bind_pf()" << std::endl;
+		nflog_close(h);
 		return 1;
 	}
 	qh = nflog_bind_group(h, group);
 	if (!qh) {
 		std::cerr << "no handle for group " << group << " -- is " << PROGRAM_NAME << " already running?" << std::endl;
+		nflog_close(h);
 		return 1;
 	}
 
 	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, 0xffff) < 0) {
 		std::cerr << "can't set packet copy mode" << std::endl;
+		nflog_unbind_group(qh);
+		nflog_close(h);
 		return 1;
 	}
 

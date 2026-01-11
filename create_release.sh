@@ -4,12 +4,12 @@
 # nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
 
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
-    echo "Usage: $0 [VERSION]"
-    echo "Create a new release by bumping version and creating a git tag"
-    echo ""
-    echo "If VERSION is not specified, performs a patch-level bump"
-    echo "VERSION must be in semantic format MAJOR.MINOR.PATCHLEVEL (e.g., 1.2.3)"
-    exit 0
+	echo "Usage: $0 [VERSION]"
+	echo "Create a new release by bumping version and creating a git tag"
+	echo ""
+	echo "If VERSION is not specified, performs a patch-level bump"
+	echo "VERSION must be in semantic format MAJOR.MINOR.PATCHLEVEL (e.g., 1.2.3)"
+	exit 0
 fi
 
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "master" ]
@@ -19,8 +19,8 @@ then
 fi
 if ! git diff-index --quiet HEAD --
 then
-        echo "Error: You have uncommitted changes. Commit or stash them first." >&2
-        exit 1
+	echo "Error: You have uncommitted changes. Commit or stash them first." >&2
+	exit 1
 fi
 
 CURRENTVERSION="$(awk -F'"' '/PROGRAM_VERSION/ {print $2}' version.h)"
@@ -56,8 +56,8 @@ fi
 
 if git rev-parse "v${RELEASE}" >/dev/null 2>&1
 then
-        echo "Error: Tag v${RELEASE} already exists" >&2
-        exit 1
+	echo "Error: Tag v${RELEASE} already exists" >&2
+	exit 1
 fi
 
 if [ -z "$DEBFULLNAME" ]
@@ -71,6 +71,35 @@ fi
 echo "Creating release v${RELEASE} as ${DEBFULLNAME} <${DEBEMAIL}>."
 
 echo '#define PROGRAM_VERSION "'${RELEASE}'"' | tee version.h
+
+LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+rm -f debian/changelog.dch
+if [ -n "$LAST_TAG" ]; then
+	echo "Extracting changes since $LAST_TAG..."
+
+	# Create new changelog entry
+	dch -v ${RELEASE}-1 --distribution unstable ""
+
+	# Get commit messages since last tag and add them
+	git log ${LAST_TAG}..HEAD --pretty=format:"%s" --no-merges | while IFS= read -r line
+	do
+		# Skip empty lines and the version bump commit we haven't made yet
+		if [ -n "$line" ]; then
+			dch --append "$line"
+		fi
+	done
+
+	# If no commits found, add a generic entry
+	if ! git log ${LAST_TAG}..HEAD --oneline --no-merges | grep -q .; then
+		dch --append "No changes found."
+	fi
+else
+	echo "Initial release."
+	dch -v ${RELEASE}-1 --distribution unstable "Initial release"
+fi
+
+dch --release ""
+
 rm -f debian/changelog.dch
 dch -v ${RELEASE}-1 "Release version ${RELEASE}"
 

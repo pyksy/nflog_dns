@@ -282,7 +282,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	if (nflog_set_nlbufsiz(qh, NFLOG_BUFFER_SIZE) < 0) {
-		std::cerr << "can't set netlink buffer size" << std::endl;
+		std::cerr << "Warning: can't set netlink buffer size" << std::endl;
 	}
 	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, NFLOG_BUFFER_SIZE) < 0) {
 		std::cerr << "can't set packet copy mode" << std::endl;
@@ -309,7 +309,7 @@ int main(int argc, char *argv[])
 	while (1) {
 		rv = recv(fd, buf, sizeof(buf), 0);
 
-		if (rv > 0 && rv <= NFLOG_BUFFER_SIZE) {
+		if (rv > 0) {
 			nflog_handle_packet(h, buf, rv);	
 		}
 		if (rv == 0) {

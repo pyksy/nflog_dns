@@ -9,9 +9,9 @@ SBINDIR ?= $(PREFIX)/sbin
 RPMBUILDDIR ?= $(HOME)/rpmbuild
 CXX ?= c++
 CXXFLAGS ?= -O2 -std=c++11 -Wall -Wextra -Werror -pedantic
-CXXEXTRAFLAGS ?=
-LDFLAGS ?=
 CXXFLAGS += $(shell pkg-config --cflags libnetfilter_log libtins fmt spdlog)
+CXXEXTRAFLAGS ?=
+LDFLAGS ?= 
 LDFLAGS += $(shell pkg-config --libs libnetfilter_log libtins fmt spdlog)
 INSTALL_SYSVINIT ?= 1
 INSTALL_SYSTEMD ?= 1
@@ -36,6 +36,7 @@ rpm: nflog_dns.spec
 	rpmbuild -ba --define "_topdir $(RPMBUILDDIR)" "$(RPMBUILDDIR)"/SPECS/nflog_dns.spec
 
 debug: CXXFLAGS = -g -O0 -std=c++11 -Wall -Wextra -Werror -pedantic -fsanitize=address -fsanitize=undefined
+debug: CXXFLAGS += $(shell pkg-config --cflags libnetfilter_log libtins fmt spdlog)
 debug: LDFLAGS += -fsanitize=address -fsanitize=undefined
 debug: nflog_dns
 

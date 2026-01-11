@@ -46,7 +46,7 @@ jobs:
 
     - name: Run clang-tidy
       run: |
-        clang-tidy nflog_dns.cpp -- -std=c++11 -I/usr/include/libnetfilter_log
+        clang-tidy config.cpp nflog_dns.cpp -- -std=c++11 $(pkg-config --cflags libnetfilter_log libtins fmt spdlog)
 
     - name: Compile binary
       run: make
@@ -65,6 +65,17 @@ jobs:
 
     - name: Verify uninstallation
       run: sudo make uninstall
+
+    - name: Verify clean
+      run: |
+        make clean
+        [ -z "$(git status --porcelain)" ] || exit 1
+
+    - name: Compile debug binary
+      run: make debug
+
+    - name: Run the debug binary
+      run: ASAN_OPTIONS=verify_asan_link_order=0 ./nflog_dns --version
 
     - name: Verify clean
       run: |
@@ -362,9 +373,10 @@ jobs:
         with:
           name: nflog-dns ${{ matrix.name }} amd64 deb
           path: |
-            artifacts/*.deb
+            artifacts/*_amd64.*deb
 
   containers-arm64:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     strategy:
       fail-fast: false
       matrix:
@@ -461,7 +473,7 @@ jobs:
           - AMD64 / x86_64:
             - Debian 12, 13
             - Ubuntu 22.04, 24.04
-            - Devuan 4.0, 5.0
+            - Devuan 5.0, 6.0
             - Fedora 42, 43
             - openSUSE Leap 16.0, Tumbleweed
           - ARM64:

@@ -1,19 +1,137 @@
-nflog-dns (0.9.99-1) UNRELEASED; urgency=medium
+nflog-dns (0.9.99-1) unstable; urgency=medium
 
-  * Release version 0.0.2
-  * Release version 0.0.3
-  * Release version 0.0.4
-  * Release version 0.0.5
-  * Release version 0.0.6
-  * Release version 0.0.7
-  * Release version 0.0.8
-  * Release version 0.0.9
-  * Release version 0.9.0
-  * Release version 0.9.1
-  * Release version 0.9.9
-  * Release version 0.9.99
+  * Code fixes
+  * Fix indentation
+  * Fix arm64 dbgsym
+  * Update README
+  * Add header guard
+  * Update readme
+  * Update CI
+  * Makefile improvements
+  * Touch up defaults config
+  * Increase nflog buffer size
+  * Remove redundant resource check
+  * Handle resources on error
 
  -- Antti Kultanen <antti.kultanen@molukki.com>  Sun, 11 Jan 2026 00:15:26 +0200
+
+nflog-dns (0.9.9-1) unstable; urgency=medium
+
+  * Add DEB testing to QA build
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Thu, 27 Nov 2025 10:54:34 +0200
+
+nflog-dns (0.9.1-1) unstable; urgency=medium
+
+  * Add Fedora 43 build, drop Fedora 41
+  * Add re-install step
+  * Add maintainer scripts
+  * Update tests
+  * Update help, split defaults to config.h
+  * Add usage to README
+  * Add cmdline args for record types
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Thu, 20 Nov 2025 12:27:43 +0200
+
+nflog-dns (0.9.0-1) unstable; urgency=medium
+
+  * Fix package naming
+  * Add OpenSUSE Leap 16.0 build, drop 15.6 build (#1)
+  * Update CI
+  * Minor build optimizations
+  * Release message wording
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Thu, 13 Nov 2025 23:04:24 +0200
+
+nflog-dns (0.0.9-1) unstable; urgency=medium
+
+  * Bump version to 0.0.9
+  * Add Devuan 6.0 (excalibur) stable build, drop Devuan 4.0 oldoldstable build
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Mon, 03 Nov 2025 15:56:10 +0200
+
+nflog-dns (0.0.8-1) unstable; urgency=medium
+
+  * Bump version to 0.0.8
+  * Typo fix
+  * Add systemd-rpm-macros dependency, update release note
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Thu, 23 Oct 2025 11:14:02 +0300
+
+nflog-dns (0.0.7-1) unstable; urgency=medium
+
+  * Bump version to 0.0.7
+  * Fix fox release note redux
+  * Fix for release note
+  * CodeQL scan
+  * Devuan updates
+  * Caching fixes
+  * Release note body
+  * RPi build revamp
+  * Workflow update
+  * Runner fix
+  * Runner archs
+  * Arm64 ubuntu
+  * Update Devuan build
+  * No releases for daily builds
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Mon, 13 Oct 2025 22:54:39 +0300
+
+nflog-dns (0.0.6-1) unstable; urgency=medium
+
+  * Bump version to 0.0.6
+  * Add Devuan builds
+  * Fixes and updates to package builds
+  * opensuse package test fix
+  * Fix CI
+  * Add asan for test build, verify package install
+  * Code quality fixes
+  * Update copyright notices
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Fri, 10 Oct 2025 00:27:17 +0300
+
+nflog-dns (0.0.5-1) unstable; urgency=medium
+
+  * Bump version to 0.0.5
+  * No artifact upload for commits
+  * Fix opensuse builds, remove git from pkgbuild dependencies, other minor fixes
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Thu, 09 Oct 2025 00:52:03 +0300
+
+nflog-dns (0.0.4-1) unstable; urgency=medium
+
+  * Bump version to 0.0.4
+  * Update README for rpm package
+  * Schedule nightly builds
+  * Update copyright notices
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Wed, 08 Oct 2025 23:53:10 +0300
+
+nflog-dns (0.0.3-1) unstable; urgency=medium
+
+  * Bump version to 0.0.3
+  * Modify release pkg versioning
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Wed, 08 Oct 2025 20:07:35 +0300
+
+nflog-dns (0.0.2-1) unstable; urgency=medium
+
+  * Bump version to 0.0.2
+  * Add release script
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Wed, 08 Oct 2025 18:31:26 +0300
+
+nflog-dns (0.0.1-1) unstable; urgency=medium
+
+  * Bump version to 0.0.1
+  * Release creation
+  * Add builds for raspberry pi, upload builds from commits
+  * RPM fix for suse
+  * Build rpms for Fedora, openSUSE and add deb builds for Ubuntu
+  * Build packages in containers
+  * version.h
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Tue, 07 Oct 2025 23:57:04 +0300
 
 nflog-dns (0.0.0-1) unstable; urgency=medium
 

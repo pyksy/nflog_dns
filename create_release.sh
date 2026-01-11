@@ -3,6 +3,15 @@
 # Copyright Antti Kultanen <antti.kultanen@molukki.com>
 # nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
 
+if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+    echo "Usage: $0 [VERSION]"
+    echo "Create a new release by bumping version and creating a git tag"
+    echo ""
+    echo "If VERSION is not specified, performs a patch-level bump"
+    echo "VERSION must be in semantic format MAJOR.MINOR.PATCHLEVEL (e.g., 1.2.3)"
+    exit 0
+fi
+
 if [ "$(git rev-parse --abbrev-ref HEAD)" != "master" ]
 then
 	echo "Error: must create release in master branch." >&2
@@ -14,16 +23,17 @@ then
         exit 1
 fi
 
+CURRENTVERSION="$(awk -F'"' '/PROGRAM_VERSION/ {print $2}' version.h)"
+
 if [ -n "${1}" ]
 then
-	if ! grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' <<<"${1}"
+	RELEASE="${1}"
+	if ! grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$' <<<"${RELEASE}"
 	then
 		echo "Error: Version must be in semantic format X.Y.Z (e.g., 1.2.3)" >&2
 		exit 1
 	fi
-	RELEASE="${1}"
 else
-	CURRENTVERSION="$(cut -d '"' -f 2 version.h)"
 	echo "Usage: ${0} [VERSION]"
 	echo "No arguments given, assuming patchlevel bump"
 	echo ""
@@ -37,6 +47,11 @@ else
 	REPLY="${REPLY,}"
 	[ "${REPLY:0:1}" = "y" ] || exit 0
 	echo
+fi
+
+if [ "$(printf '%s\n' "$CURRENTVERSION" "$RELEASE" | sort -V | head -n1)" = "$RELEASE" ]; then
+	echo "Error: New version $RELEASE is not greater than current version $CURRENTVERSION" >&2
+	exit 1
 fi
 
 if git rev-parse "v${RELEASE}" >/dev/null 2>&1

@@ -9,7 +9,7 @@ Prebuilt .deb/.rpm packages for popular distributions can be downloaded from the
 
 # requirements
 
-nflog_dns.cpp requires libfmt, libtins, libnetfilter_log and libspdlog libraries
+nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries
 
 # compile
 
@@ -72,6 +72,18 @@ Extract DNS replies from NFLOG group
       --cname=BOOL         CNAME record logging (default: yes)
       --ptr=BOOL           PTR record logging (default: yes)
 ```
+
+# iptables setup
+To log DNS replies, add an iptables rule to send packets to NFLOG group 123:
+
+**IPv4:**
+```bash
+sudo iptables -A INPUT -p udp --sport 53 -j NFLOG --nflog-group 123
+```
+
+**IPv6:**
+```bash
+sudo ip6tables -A INPUT -p udp --sport 53 -j NFLOG --nflog-group 123
 
 # known issues
 

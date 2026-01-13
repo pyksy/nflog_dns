@@ -54,5 +54,101 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Sun Jan 11 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.9.99-1
+- Code fixes
+- Fix indentation
+- Fix arm64 dbgsym
+- Update README
+- Add header guard
+- Update readme
+- Update CI
+- Makefile improvements
+- Touch up defaults config
+- Increase nflog buffer size
+- Remove redundant resource check
+- Handle resources on error
+
+* Thu Nov 27 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.9.9-1
+- Add DEB testing to QA build
+
+* Thu Nov 20 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.9.1-1
+- Add Fedora 43 build, drop Fedora 41
+- Add re-install step
+- Add maintainer scripts
+- Update tests
+- Update help, split defaults to config.h
+- Add usage to README
+- Add cmdline args for record types
+
+* Thu Nov 13 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.9.0-1
+- Fix package naming
+- Add OpenSUSE Leap 16.0 build, drop 15.6 build (#1)
+- Update CI
+- Minor build optimizations
+- Release message wording
+
+* Mon Nov 03 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.9-1
+- Bump version to 0.0.9
+- Add Devuan 6.0 (excalibur) stable build, drop Devuan 4.0 oldoldstable build
+
+* Thu Oct 23 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.8-1
+- Bump version to 0.0.8
+- Typo fix
+- Add systemd-rpm-macros dependency, update release note
+
+* Mon Oct 13 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.7-1
+- Bump version to 0.0.7
+- Fix fox release note redux
+- Fix for release note
+- CodeQL scan
+- Devuan updates
+- Caching fixes
+- Release note body
+- RPi build revamp
+- Workflow update
+- Runner fix
+- Runner archs
+- Arm64 ubuntu
+- Update Devuan build
+- No releases for daily builds
+
+* Fri Oct 10 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.6-1
+- Bump version to 0.0.6
+- Add Devuan builds
+- Fixes and updates to package builds
+- opensuse package test fix
+- Fix CI
+- Add asan for test build, verify package install
+- Code quality fixes
+- Update copyright notices
+
+* Thu Oct 09 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.5-1
+- Bump version to 0.0.5
+- No artifact upload for commits
+- Fix opensuse builds, remove git from pkgbuild dependencies, other minor fixes
+
+* Wed Oct 08 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.4-1
+- Bump version to 0.0.4
+- Update README for rpm package
+- Schedule nightly builds
+- Update copyright notices
+
+* Wed Oct 08 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.3-1
+- Bump version to 0.0.3
+- Modify release pkg versioning
+
+* Wed Oct 08 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.2-1
+- Bump version to 0.0.2
+- Add release script
+
+* Tue Oct 07 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.1-1
+- Bump version to 0.0.1
+- Release creation
+- Add builds for raspberry pi, upload builds from commits
+- RPM fix for suse
+- Build rpms for Fedora, openSUSE and add deb builds for Ubuntu
+- Build packages in containers
+- version.h
+
 * Sun Oct 05 2025 Antti Kultanen <antti.kultanen@molukki.com> - 0.0.0-1
 - Initial RPM package

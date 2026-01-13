@@ -88,6 +88,9 @@ jobs:
     - name: Verify DEB package installation
       run: sudo dpkg -i ../nflog-dns_*.deb
 
+    - name: List installed package contents
+      run: dpkg -L nflog-dns
+
     - name: Run the installed binary
       run: nflog_dns --version
 

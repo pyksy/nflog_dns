@@ -72,6 +72,7 @@ echo "Creating release v${RELEASE} as ${DEBFULLNAME} <${DEBEMAIL}>."
 
 echo '#define PROGRAM_VERSION "'${RELEASE}'"' | tee version.h
 
+# Update DEB changelog
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 rm -f debian/changelog.dch
 if [ -n "$LAST_TAG" ]; then
@@ -97,14 +98,40 @@ else
 	echo "Initial release."
 	dch -v ${RELEASE}-1 --distribution unstable "Initial release"
 fi
-
 dch --release ""
-
 rm -f debian/changelog.dch
 dch -v ${RELEASE}-1 "Release version ${RELEASE}"
 
+# Update RPM changelog
+if [ -f nflog_dns.spec ]; then
+	LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+	CHANGELOG_DATE=$(date '+%a %b %d %Y')
+
+	# Create new entry header
+	NEW_ENTRY="* ${CHANGELOG_DATE} ${DEBFULLNAME} <${DEBEMAIL}> - ${RELEASE}-1"
+
+	# Get commits or use default
+	if [ -n "$LAST_TAG" ] && git log ${LAST_TAG}..HEAD --oneline --no-merges | grep -q .; then
+	    CHANGES=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+	else
+	    CHANGES="- Release version ${RELEASE}"
+	fi
+
+	# Insert into spec file
+	awk -v entry="$NEW_ENTRY" -v changes="$CHANGES" '
+	/^%changelog/ {
+		print
+		print entry
+		print changes
+		print ""
+		next
+	}
+	{ print }
+	' nflog_dns.spec > nflog_dns.spec.new && mv nflog_dns.spec.new nflog_dns.spec
+fi
+
 # Commit changes
-git add version.h debian/changelog
+git add version.h debian/changelog nflog_dns.spec
 git commit -m "Release version ${RELEASE}"
 
 # Create and push tag

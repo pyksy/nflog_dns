@@ -99,8 +99,6 @@ else
 	dch -v ${RELEASE}-1 --distribution unstable "Initial release"
 fi
 dch --release ""
-rm -f debian/changelog.dch
-dch -v ${RELEASE}-1 "Release version ${RELEASE}"
 
 # Update RPM changelog
 if [ -f nflog_dns.spec ]; then

@@ -84,6 +84,7 @@ sudo iptables -A INPUT -p udp --sport 53 -j NFLOG --nflog-group 123
 **IPv6:**
 ```bash
 sudo ip6tables -A INPUT -p udp --sport 53 -j NFLOG --nflog-group 123
+```
 
 # known issues
 

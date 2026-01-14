@@ -54,6 +54,20 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Wed Jan 14 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.9.999-1
+- Fix release script
+- Fix readme
+- Properly update rpm .spec when creating a release
+- List package contents in QA
+- Repair .spec changelog
+- Ship README.md in .deb package docs
+- Update readme
+- Properly update debian/changelog when creating a release
+- Repair debian/changelog
+- Fixes to release script
+- Add .gitignore
+- Minor fixes
+
 * Sun Jan 11 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.9.99-1
 - Code fixes
 - Fix indentation

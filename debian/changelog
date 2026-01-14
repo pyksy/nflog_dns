@@ -1,3 +1,19 @@
+nflog-dns (0.9.999-1) unstable; urgency=medium
+
+  * Fix release script
+  * Fix readme
+  * Properly update rpm .spec when creating a release
+  * List package contents in QA
+  * Repair .spec changelog
+  * Ship README.md in .deb package docs
+  * Update readme
+  * Properly update debian/changelog when creating a release
+  * Repair debian/changelog
+  * Fixes to release script
+  * Add .gitignore
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Wed, 14 Jan 2026 12:15:34 +0200
+
 nflog-dns (0.9.99-1) unstable; urgency=medium
 
   * Code fixes

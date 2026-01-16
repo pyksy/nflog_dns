@@ -19,6 +19,31 @@ declare -a PACKET_TYPES=(
 
 fail_count=0
 
+cleanup() {
+    echo -n "Clean up ... "
+    # Kill nflog_dns if running
+    if [ -n "$NFLOGPID" ]; then
+        kill -HUP "$NFLOGPID" 2>/dev/null
+        wait "$NFLOGPID" 2>/dev/null
+    fi
+    rm -f "${NFLOGTEMP}" 2>/dev/null
+	echo "done"
+
+	echo -n "Tear down iptables ... "
+    iptables -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
+    iptables -F nflog_dns_logger 2>/dev/null
+    iptables -X nflog_dns_logger 2>/dev/null
+	echo "done"
+
+	echo -n "Tear down dummy interface ... "
+    ip link set down dev nflog0 2>/dev/null
+    ip addr del "${IP}"/32 dev nflog0 2>/dev/null
+    ip link del nflog0 2>/dev/null
+	echo "done"
+}
+
+trap cleanup EXIT INT TERM
+
 send_packets() {
 	for TYPE in "${PACKET_TYPES[@]}"
 	do
@@ -49,6 +74,12 @@ verify_packets() {
 	done
 }
 
+# Clean up iptables just in case
+iptables -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
+iptables -F nflog_dns_logger 2>/dev/null
+iptables -X nflog_dns_logger 2>/dev/null
+ip link del nflog0 2>/dev/null
+
 echo -n "Setup dummy interface nflog0 ... "
 ip link add nflog0 type dummy
 ip addr add "${IP}"/32 dev nflog0
@@ -59,7 +90,7 @@ echo -n "Setup iptables NFLOG target ... "
 iptables -N nflog_dns_logger
 iptables -A nflog_dns_logger -j NFLOG --nflog-group 123
 iptables -I INPUT 1 -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger
-echo  "done"
+echo "done"
 
 echo -n "Start nflog_dns ... "
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"
@@ -105,17 +136,6 @@ echo "NOTE: Following tests are expected to fail:"
 verify_packets
 rm -f "${NFLOGTEMP}"
 
-echo -n "Tear down iptables  ... "
-iptables -D INPUT 1 -t filter
-iptables -F nflog_dns_logger
-iptables -X nflog_dns_logger
-echo "done"
-
-echo -n "Tear down dummy interface ... "
-ip link set down dev nflog0
-ip addr del "${IP}"/32 dev nflog0
-ip link del nflog0
-echo "done"
-
 ((fail_count == ${#PACKET_TYPES[@]})) || exit 1
 
+echo

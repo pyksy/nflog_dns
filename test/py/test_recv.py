@@ -22,5 +22,9 @@ s.bind((BIND_ADDRESS, 0))
 assigned_port = s.getsockname()[1]
 print(assigned_port, flush=True)
 
-# Wait to receive a packet (data discarded)
-s.recvfrom(4096)
+s.settimeout(10.0)
+try:
+    s.recvfrom(4096)
+except socket.timeout:
+    print("Timeout waiting for packet", file=sys.stderr)
+    sys.exit(1)

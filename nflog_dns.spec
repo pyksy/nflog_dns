@@ -4,10 +4,8 @@ Release:        1%{?dist}
 Summary:        Extract and log DNS replies from NFLOG group
 
 License:        GPL-2.0-or-later
-URL:            https://github.com/yourusername/nflog_dns
+URL:            https://github.com/pyksy/nflog_dns
 Source0:        %{name}-%{version}.tar.gz
-
-%global debug_package %{nil}
 
 BuildRequires:  gcc-c++
 BuildRequires:  make
@@ -37,12 +35,18 @@ The tool binds to an NFLOG group and logs received DNS response records
 %install
 %make_install PREFIX=%{_prefix} ETCDIR=%{_sysconfdir} SBINDIR=%{_sbindir} INSTALL_SYSVINIT=0
 
+%check
+# Tests require root and cannot be run during rpm build
+# make test
+
 %files
 %license LICENSE
 %doc README.md
 %{_sbindir}/nflog_dns
 %{_unitdir}/nflog_dns.service
 %config(noreplace) %{_sysconfdir}/default/nflog_dns
+
+%{?systemd_requires}
 
 %post
 %systemd_post nflog_dns.service

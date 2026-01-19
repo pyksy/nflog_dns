@@ -16,6 +16,12 @@ BuildRequires: libpcap-devel
 BuildRequires: fmt-devel
 BuildRequires: systemd-rpm-macros
 
+Requires:       libtins
+Requires:       libnetfilter_log
+Requires:       spdlog
+Requires:       libpcap
+Requires:       fmt
+
 %description
 A tool to extract and log DNS replies from Netfilter NFLOG groups.
 The tool binds to an NFLOG group and logs received DNS response records

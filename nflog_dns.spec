@@ -15,6 +15,7 @@ BuildRequires: spdlog-devel
 BuildRequires: libpcap-devel
 BuildRequires: fmt-devel
 BuildRequires: systemd-rpm-macros
+%{?systemd_requires}
 
 Requires:       libtins
 Requires:       libnetfilter_log

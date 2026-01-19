@@ -7,13 +7,14 @@ License:        GPL-2.0-or-later
 URL:            https://github.com/pyksy/nflog_dns
 Source0:        %{name}-%{version}.tar.gz
 
-BuildRequires:  gcc-c++
-BuildRequires:  make
-BuildRequires:  libtins-devel
-BuildRequires:  libnetfilter_log-devel
-BuildRequires:  spdlog-devel
-BuildRequires:  libpcap-devel
-BuildRequires:  fmt-devel
+BuildRequires: gcc-c++
+BuildRequires: make
+BuildRequires: libtins-devel
+BuildRequires: libnetfilter_log-devel
+BuildRequires: spdlog-devel
+BuildRequires: libpcap-devel
+BuildRequires: fmt-devel
+BuildRequires: systemd-rpm-macros
 
 %description
 A tool to extract and log DNS replies from Netfilter NFLOG groups.
@@ -39,8 +40,6 @@ The tool binds to an NFLOG group and logs received DNS response records
 %{_sbindir}/nflog_dns
 %{_unitdir}/nflog_dns.service
 %config(noreplace) %{_sysconfdir}/default/nflog_dns
-
-%{?systemd_requires}
 
 %post
 %systemd_post nflog_dns.service

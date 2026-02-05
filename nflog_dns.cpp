@@ -31,6 +31,13 @@ std::string bool_to_string(bool value) {
 	return value ? "yes" : "no";
 }
 
+enum RecordOption {
+	OPT_A = 1000,
+	OPT_AAAA,
+	OPT_CNAME,
+	OPT_PTR
+};
+
 void print_help(char* prgname) {
 	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
 	std::cout << std::endl;
@@ -90,18 +97,18 @@ int parse_bool(const char *str) {
 	return -1;
 }
 
-void set_setting(int optindex, bool setting_value) {
-	switch (optindex) {
-		case 0:
+void set_setting(RecordOption opt, bool setting_value) {
+	switch (opt) {
+		case OPT_A:
 			log_a = setting_value;
 			break;
-		case 1:
+		case OPT_AAAA:
 			log_aaaa = setting_value;
 			break;
-		case 2:
+		case OPT_CNAME:
 			log_cname = setting_value;
 			break;
-		case 3:
+		case OPT_PTR:
 			log_ptr = setting_value;
 			break;
 		default:
@@ -183,10 +190,10 @@ int main(int argc, char *argv[])
 	int setting_value = -1;
 
 	option longopts[] = {
-		{"a", required_argument, NULL, 0},
-		{"aaaa", required_argument, NULL, 0},
-		{"cname", required_argument, NULL, 0},
-		{"ptr", required_argument, NULL, 0},
+		{"a", required_argument, NULL, OPT_A},
+		{"aaaa", required_argument, NULL, OPT_AAAA},
+		{"cname", required_argument, NULL, OPT_CNAME},
+		{"ptr", required_argument, NULL, OPT_PTR},
 		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
 		{"help", no_argument, NULL, 'h'},
@@ -204,13 +211,16 @@ int main(int argc, char *argv[])
 		}
 
 		switch (opt) {
-			case 0:
+			case OPT_A:
+			case OPT_AAAA:
+			case OPT_CNAME:
+			case OPT_PTR:
 				setting_value = parse_bool(optarg);
 				if (setting_value < 0) {
 					std::cerr << "Error: Bad --" << longopts[optindex].name << " value: " << optarg << std::endl;
 					return 1;
 				}
-				set_setting(optindex, setting_value);
+				set_setting(static_cast<RecordOption>(opt), setting_value);
 				break;
 
 			case 'f':
@@ -328,4 +338,6 @@ int main(int argc, char *argv[])
 	// Cleanup nflog
 	nflog_unbind_group(qh);
 	nflog_close(h);
+
+	return 0;
 }

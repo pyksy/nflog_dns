@@ -27,8 +27,6 @@ extern "C" {
 	#include <libnetfilter_log/libnetfilter_log.h>
 }
 
-using namespace Tins;
-
 std::string bool_to_string(bool value) {
 	return value ? "yes" : "no";
 }
@@ -122,44 +120,44 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	if (!payload) {
 		return 0;
 	}
-	RawPDU rpdu = RawPDU(payload, payload_len);
-	DNS dns;
-	IP ip;
-	IPv6 ipv6;
+	Tins::RawPDU rpdu = Tins::RawPDU(payload, payload_len);
+	Tins::DNS dns;
+	Tins::IP ip;
+	Tins::IPv6 ipv6;
 	std::string source;
 
 	try {
-		ip = rpdu.to<IP>();
-		dns = ip.rfind_pdu<RawPDU>().to<DNS>();
+		ip = rpdu.to<Tins::IP>();
+		dns = ip.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
 		source = ip.src_addr().to_string();
-	} catch (malformed_packet&) {
+	} catch (Tins::malformed_packet&) {
 		// Packet was not IPv4, try IPv6
 		try {
-			ipv6 = rpdu.to<IPv6>();
-			dns = ipv6.rfind_pdu<RawPDU>().to<DNS>();
+			ipv6 = rpdu.to<Tins::IPv6>();
+			dns = ipv6.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
 			source = ipv6.src_addr().to_string();
-		} catch (malformed_packet&) {
+		} catch (Tins::malformed_packet&) {
 			// Packet was not IPv6 either, ignore it
 			return 0;
 		}
 	}
 
 	try {
-		if (dns.type() == DNS::RESPONSE) {
-			auto dns_logger = spdlog::get(PROGRAM_NAME);
+		if (dns.type() == Tins::DNS::RESPONSE) {
+			static auto dns_logger = spdlog::get(PROGRAM_NAME);
 
 			for (const auto &answer : dns.answers()) {
 				switch (answer.query_type()) {
-					case DNS::A:
+					case Tins::DNS::A:
 						if (log_a) dns_logger->log(syslog_level, "{} reply A {} -> {}", source, answer.dname(), answer.data());
 						break;
-					case DNS::AAAA:
+					case Tins::DNS::AAAA:
 						if (log_aaaa) dns_logger->log(syslog_level, "{} reply AAAA {} -> {}", source, answer.dname(), answer.data());
 						break;
-					case DNS::CNAME:
+					case Tins::DNS::CNAME:
 						if (log_cname) dns_logger->log(syslog_level, "{} reply CNAME {} -> {}", source, answer.dname(), answer.data());
 						break;
-					case DNS::PTR:
+					case Tins::DNS::PTR:
 						if (log_ptr) dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
 						break;
 					default:
@@ -262,30 +260,30 @@ int main(int argc, char *argv[])
 	// Setup nflog
 	h = nflog_open();
 	if (!h) {
-		std::cerr << "error during nflog_open()" << std::endl;
+		std::cerr << "Error: nflog_open() failed" << std::endl;
 		return 1;
 	}
 	if (nflog_unbind_pf(h, AF_INET) < 0) {
-		std::cerr << "error nflog_unbind_pf()" << std::endl;
+		std::cerr << "Error: nflog_unbind_pf() failed" << std::endl;
 		nflog_close(h);
 		return 1;
 	}
 	if (nflog_bind_pf(h, AF_INET) < 0) {
-		std::cerr << "error during nflog_bind_pf()" << std::endl;
+		std::cerr << "Error: nflog_bind_pf() failed" << std::endl;
 		nflog_close(h);
 		return 1;
 	}
 	qh = nflog_bind_group(h, group);
 	if (!qh) {
-		std::cerr << "no handle for group " << group << " -- is " << PROGRAM_NAME << " already running?" << std::endl;
+		std::cerr << "Error: nflog_bind_group() failed, no handle for group " << group << " -- is " << PROGRAM_NAME << " already running?" << std::endl;
 		nflog_close(h);
 		return 1;
 	}
 	if (nflog_set_nlbufsiz(qh, NFLOG_BUFFER_SIZE) < 0) {
-		std::cerr << "Warning: can't set netlink buffer size" << std::endl;
+		std::cerr << "Warning: nflog_set_nlbufsiz() failed, cannot set netlink buffer size" << std::endl;
 	}
 	if (nflog_set_mode(qh, NFULNL_COPY_PACKET, NFLOG_BUFFER_SIZE) < 0) {
-		std::cerr << "can't set packet copy mode" << std::endl;
+		std::cerr << "Error: nflog_set_mode() failed, cannot set packet copy mode" << std::endl;
 		nflog_unbind_group(qh);
 		nflog_close(h);
 		return 1;
@@ -313,7 +311,7 @@ int main(int argc, char *argv[])
 			nflog_handle_packet(h, buf, rv);	
 		}
 		if (rv == 0) {
-			std::cerr << "nflog connection closed" << std::endl;
+			std::cerr << "Error: recv() failed, nflog connection is closed" << std::endl;
 			break;
 		}
 		if (rv < 0) {
@@ -321,7 +319,7 @@ int main(int argc, char *argv[])
 				// Signal interrupted, try again
 				continue;
 			} else {
-				std::cerr << "recv error " << strerror(errno) << std::endl;
+				std::cerr << "Error: recv() failed with error " << strerror(errno) << std::endl;
 				break;
 			}
 		}

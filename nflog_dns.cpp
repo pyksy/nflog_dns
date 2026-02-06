@@ -35,6 +35,7 @@ enum RecordOption {
 	OPT_A = 1000,
 	OPT_AAAA,
 	OPT_CNAME,
+	OPT_MX,
 	OPT_PTR
 };
 
@@ -52,6 +53,7 @@ void print_help(char* prgname) {
 	std::cout << "      --a=BOOL             A record logging (default: " << bool_to_string(log_a) << ")" << std::endl;
 	std::cout << "      --aaaa=BOOL          AAAA record logging (default: " << bool_to_string(log_aaaa) << ")" << std::endl;
 	std::cout << "      --cname=BOOL         CNAME record logging (default: " << bool_to_string(log_cname) << ")" << std::endl;
+	std::cout << "      --mx=BOOL            MX record logging (default: " << bool_to_string(log_mx) << ")" << std::endl;
 	std::cout << "      --ptr=BOOL           PTR record logging (default: " << bool_to_string(log_ptr) << ")" << std::endl;
 	std::cout << std::endl;
 }
@@ -108,6 +110,9 @@ void set_setting(RecordOption opt, bool setting_value) {
 		case OPT_CNAME:
 			log_cname = setting_value;
 			break;
+        case OPT_MX:
+            log_mx = setting_value;
+            break;
 		case OPT_PTR:
 			log_ptr = setting_value;
 			break;
@@ -164,6 +169,9 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 					case Tins::DNS::CNAME:
 						if (log_cname) dns_logger->log(syslog_level, "{} reply CNAME {} -> {}", source, answer.dname(), answer.data());
 						break;
+					case Tins::DNS::MX:
+						if (log_mx) dns_logger->log(syslog_level, "{} reply MX {} -> {}", source, answer.dname(), answer.data());
+						break;
 					case Tins::DNS::PTR:
 						if (log_ptr) dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
 						break;
@@ -193,6 +201,7 @@ int main(int argc, char *argv[])
 		{"a", required_argument, NULL, OPT_A},
 		{"aaaa", required_argument, NULL, OPT_AAAA},
 		{"cname", required_argument, NULL, OPT_CNAME},
+		{"mx", required_argument, NULL, OPT_MX},
 		{"ptr", required_argument, NULL, OPT_PTR},
 		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
@@ -214,6 +223,7 @@ int main(int argc, char *argv[])
 			case OPT_A:
 			case OPT_AAAA:
 			case OPT_CNAME:
+			case OPT_MX:
 			case OPT_PTR:
 				setting_value = parse_bool(optarg);
 				if (setting_value < 0) {

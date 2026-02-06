@@ -14,6 +14,7 @@ declare -a PACKET_TYPES=(
 	a
 	aaaa
 	cname
+	mx
 	ptr
 )
 

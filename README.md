@@ -70,6 +70,7 @@ Extract DNS replies from NFLOG group
       --a=BOOL             A record logging (default: yes)
       --aaaa=BOOL          AAAA record logging (default: yes)
       --cname=BOOL         CNAME record logging (default: yes)
+      --mx=BOOL            MX record logging (default: yes)
       --ptr=BOOL           PTR record logging (default: yes)
 ```
 

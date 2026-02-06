@@ -10,4 +10,5 @@ extern bool use_syslog;
 extern bool log_a;
 extern bool log_aaaa;
 extern bool log_cname;
+extern bool log_mx;
 extern bool log_ptr;

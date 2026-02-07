@@ -58,6 +58,18 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Sat Feb 07 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.99.0-1
+- TXT logging support
+- MX logging support
+- Improve cmdline option handling
+- Remove using namespace Tins, refine error messages, make logger static
+- Update CI
+- Revert "Autogenerate RPM dependencies"
+- Fix RPM .spec
+- Autogenerate RPM dependencies
+- misc RPM fixes
+- Update tests
+
 * Wed Jan 14 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.9.999-1
 - Fix release script
 - Fix readme

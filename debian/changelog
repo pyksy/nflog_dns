@@ -1,3 +1,18 @@
+nflog-dns (0.99.0-1) unstable; urgency=medium
+
+  * TXT logging support
+  * MX logging support
+  * Improve cmdline option handling
+  * Remove using namespace Tins, refine error messages, make logger
+    static
+  * Update CI
+  * Revert "Autogenerate RPM dependencies"
+  * Fix RPM .spec
+  * Autogenerate RPM dependencies
+  * misc RPM fixes
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Sat, 07 Feb 2026 10:51:48 +0200
+
 nflog-dns (0.9.999-1) unstable; urgency=medium
 
   * Fix release script

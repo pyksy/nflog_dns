@@ -16,6 +16,7 @@ declare -a PACKET_TYPES=(
 	cname
 	mx
 	ptr
+	txt
 )
 
 fail_count=0

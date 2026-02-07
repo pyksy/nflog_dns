@@ -36,7 +36,8 @@ enum RecordOption {
 	OPT_AAAA,
 	OPT_CNAME,
 	OPT_MX,
-	OPT_PTR
+	OPT_PTR,
+	OPT_TXT
 };
 
 void print_help(char* prgname) {
@@ -55,6 +56,7 @@ void print_help(char* prgname) {
 	std::cout << "      --cname=BOOL         CNAME record logging (default: " << bool_to_string(log_cname) << ")" << std::endl;
 	std::cout << "      --mx=BOOL            MX record logging (default: " << bool_to_string(log_mx) << ")" << std::endl;
 	std::cout << "      --ptr=BOOL           PTR record logging (default: " << bool_to_string(log_ptr) << ")" << std::endl;
+	std::cout << "      --txt=BOOL           TXT record logging (default: " << bool_to_string(log_txt) << ")" << std::endl;
 	std::cout << std::endl;
 }
 
@@ -116,6 +118,9 @@ void set_setting(RecordOption opt, bool setting_value) {
 		case OPT_PTR:
 			log_ptr = setting_value;
 			break;
+		case OPT_TXT:
+			log_txt = setting_value;
+			break;
 		default:
 			break;
 	}
@@ -175,6 +180,9 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 					case Tins::DNS::PTR:
 						if (log_ptr) dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
 						break;
+					case Tins::DNS::TXT:
+						if (log_ptr) dns_logger->log(syslog_level, "{} reply TXT {} -> {}", source, answer.dname(), answer.data());
+						break;
 					default:
 						break;
 				}
@@ -203,6 +211,7 @@ int main(int argc, char *argv[])
 		{"cname", required_argument, NULL, OPT_CNAME},
 		{"mx", required_argument, NULL, OPT_MX},
 		{"ptr", required_argument, NULL, OPT_PTR},
+		{"txt", required_argument, NULL, OPT_TXT},
 		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
 		{"help", no_argument, NULL, 'h'},
@@ -225,6 +234,7 @@ int main(int argc, char *argv[])
 			case OPT_CNAME:
 			case OPT_MX:
 			case OPT_PTR:
+			case OPT_TXT:
 				setting_value = parse_bool(optarg);
 				if (setting_value < 0) {
 					std::cerr << "Error: Bad --" << longopts[optindex].name << " value: " << optarg << std::endl;

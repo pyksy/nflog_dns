@@ -8,3 +8,4 @@ bool log_aaaa = true;
 bool log_cname = true;
 bool log_mx = true;
 bool log_ptr = true;
+bool log_txt = true;

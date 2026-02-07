@@ -12,3 +12,4 @@ extern bool log_aaaa;
 extern bool log_cname;
 extern bool log_mx;
 extern bool log_ptr;
+extern bool log_txt;

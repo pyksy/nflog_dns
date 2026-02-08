@@ -72,6 +72,7 @@ Extract DNS replies from NFLOG group
       --cname=BOOL         CNAME record logging (default: yes)
       --mx=BOOL            MX record logging (default: yes)
       --ptr=BOOL           PTR record logging (default: yes)
+      --txt=BOOL           TXT record logging (default: yes)
 ```
 
 # iptables setup

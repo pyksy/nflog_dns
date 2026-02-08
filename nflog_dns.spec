@@ -58,6 +58,10 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Sun Feb 08 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.99.1-1
+- Parse IP packet version from payload instead of always trying and catching v4 first
+- Update readme
+
 * Sat Feb 07 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.99.0-1
 - TXT logging support
 - MX logging support

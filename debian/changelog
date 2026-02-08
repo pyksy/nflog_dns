@@ -1,3 +1,10 @@
+nflog-dns (0.99.1-1) unstable; urgency=medium
+
+  * Parse IP packet version from payload instead of always trying and
+    catching v4 first
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Sun, 08 Feb 2026 20:22:21 +0200
+
 nflog-dns (0.99.0-1) unstable; urgency=medium
 
   * TXT logging support

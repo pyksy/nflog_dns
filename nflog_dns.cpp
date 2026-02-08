@@ -143,20 +143,26 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	Tins::IPv6 ipv6;
 	std::string source;
 
+
+	// Get IP version from payload
+	uint8_t ip_version = (payload[0] >> 4) & 0x0F;
+
 	try {
-		ip = rpdu.to<Tins::IP>();
-		dns = ip.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
-		source = ip.src_addr().to_string();
-	} catch (Tins::malformed_packet&) {
-		// Packet was not IPv4, try IPv6
-		try {
+		if (ip_version == 4) {
+			ip = rpdu.to<Tins::IP>();
+			dns = ip.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
+			source = ip.src_addr().to_string();
+		} else if (ip_version == 6) {
 			ipv6 = rpdu.to<Tins::IPv6>();
 			dns = ipv6.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
 			source = ipv6.src_addr().to_string();
-		} catch (Tins::malformed_packet&) {
-			// Packet was not IPv6 either, ignore it
+		} else {
+			// Unknown IP version, ignore
 			return 0;
 		}
+	} catch (Tins::malformed_packet&) {
+		// Malformed packet, ignore
+		return 0;
 	}
 
 	try {

@@ -194,7 +194,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 						if (log_ptr) dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
 						break;
 					case Tins::DNS::TXT:
-						if (log_ptr) dns_logger->log(syslog_level, "{} reply TXT {} -> {}", source, answer.dname(), answer.data());
+						if (log_txt) dns_logger->log(syslog_level, "{} reply TXT {} -> {}", source, answer.dname(), answer.data());
 						break;
 					default:
 						break;

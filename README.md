@@ -88,6 +88,13 @@ sudo iptables -A INPUT -p udp --sport 53 -j NFLOG --nflog-group 123
 sudo ip6tables -A INPUT -p udp --sport 53 -j NFLOG --nflog-group 123
 ```
 
+# nftables setup
+To log DNS replies, add an nftables rule to send packets to NFLOG group 123:
+
+```bash
+sudo nft add rule inet filter input udp sport 53 log group 123
+```
+
 # known issues
 
 [A bug in libtins ip6.arpa PTR reply parsing](https://github.com/mfontanini/libtins/issues/551) 

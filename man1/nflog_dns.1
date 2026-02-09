@@ -1,0 +1,150 @@
+.TH NFLOG_DNS 1 "2025" "nflog_dns" "User Commands"
+.SH NAME
+nflog_dns \- extract and log DNS replies from NFLOG netfilter group
+.SH SYNOPSIS
+.B nflog_dns
+[\fIOPTION\fR]...
+.SH DESCRIPTION
+.B nflog_dns
+captures DNS reply packets from a Linux netfilter NFLOG group and logs the DNS
+resource records (A, AAAA, CNAME, MX, PTR, TXT) to syslog or standard output.
+The program binds to an NFLOG group and processes incoming DNS response packets,
+extracting domain names and their resolved values.
+.PP
+This tool is designed to work with iptables/ip6tables rules that send DNS reply
+packets to an NFLOG group for logging purposes.
+.SH OPTIONS
+.TP
+.BR \-g ", " \-\-group=\fINUM\fR
+Bind to NFLOG group \fINUM\fR (default: 123).
+.TP
+.BR \-s ", " \-\-syslog
+Log DNS replies to syslog instead of standard output.
+.TP
+.BR \-f ", " \-\-facility=\fIFACILITY\fR
+Set syslog facility for logging (default: user).
+Valid facilities include: auth, authpriv, cron, daemon, ftp, kern, local0-local7,
+lpr, mail, news, syslog, user, uucp.
+.TP
+.BR \-l ", " \-\-level=\fILEVEL\fR
+Set log level for syslog logging (default: info).
+Valid levels: trace, debug, info, warn, error, critical.
+.TP
+.BR \-h ", " \-\-help
+Display help message and exit.
+.TP
+.BR \-v ", " \-\-version
+Display version information and exit.
+.TP
+.BR \-\-a=\fIBOOL\fR
+Enable or disable logging of A (IPv4 address) records (default: yes).
+.TP
+.BR \-\-aaaa=\fIBOOL\fR
+Enable or disable logging of AAAA (IPv6 address) records (default: yes).
+.TP
+.BR \-\-cname=\fIBOOL\fR
+Enable or disable logging of CNAME (canonical name) records (default: yes).
+.TP
+.BR \-\-mx=\fIBOOL\fR
+Enable or disable logging of MX (mail exchange) records (default: yes).
+.TP
+.BR \-\-ptr=\fIBOOL\fR
+Enable or disable logging of PTR (reverse DNS) records (default: yes).
+.TP
+.BR \-\-txt=\fIBOOL\fR
+Enable or disable logging of TXT (text) records (default: yes).
+.PP
+Boolean values can be specified as: 1, enable, on, true, yes (for true) or
+0, disable, off, false, no (for false).
+.SH EXAMPLES
+.PP
+Run nflog_dns with default settings (output to stdout):
+.RS
+.nf
+sudo nflog_dns
+.fi
+.RE
+.PP
+Log to syslog with daemon facility and warning level:
+.RS
+.nf
+sudo nflog_dns \-\-syslog \-\-facility=daemon \-\-level=warn
+.fi
+.RE
+.PP
+Log only A and AAAA records from NFLOG group 100:
+.RS
+.nf
+sudo nflog_dns \-g 100 \-\-cname=no \-\-mx=no \-\-ptr=no \-\-txt=no
+.fi
+.RE
+.SH IPTABLES SETUP
+To capture DNS replies, configure iptables to send DNS reply packets to NFLOG group:
+.PP
+For IPv4:
+.RS
+.nf
+sudo iptables \-A INPUT \-p udp \-\-sport 53 \-j NFLOG \-\-nflog\-group 123
+.fi
+.RE
+.PP
+For IPv6:
+.RS
+.nf
+sudo ip6tables \-A INPUT \-p udp \-\-sport 53 \-j NFLOG \-\-nflog\-group 123
+.fi
+.RE
+.SH FILES
+.TP
+.I /etc/default/nflog_dns
+Default configuration file containing command\-line options for the service.
+.TP
+.I /usr/lib/systemd/system/nflog_dns.service
+Systemd service unit file.
+.TP
+.I /etc/init.d/nflog_dns
+SysV init script (for systems without systemd).
+.SH EXIT STATUS
+.TP
+.B 0
+Successful execution or normal termination.
+.TP
+.B 1
+Error occurred (invalid arguments, nflog initialization failure, etc.).
+.SH KNOWN ISSUES
+Due to a bug in libtins library, IPv6 reverse DNS lookups (ip6.arpa PTR records)
+may not get parsed correctly. See: https://github.com/mfontanini/libtins/issues/551
+.SH REQUIREMENTS
+.B nflog_dns
+requires the following libraries:
+.RS
+.IP \(bu 2
+libtins (packet parsing)
+.IP \(bu 2
+libnetfilter_log (NFLOG interface)
+.IP \(bu 2
+libspdlog (logging)
+.IP \(bu 2
+libfmt (string formatting)
+.RE
+.SH AUTHOR
+Written by Andreas Jaggi <andreas.jaggi@waterwave.ch> in December 2015 and
+Antti Kultanen <antti.kultanen@molukki.com> since August 2025.
+.SH REPORTING BUGS
+Report bugs to: <https://github.com/pyksy/nflog_dns/issues>
+.SH COPYRIGHT
+Copyright \(co 2015 Andreas Jaggi.
+.br
+Copyright \(co 2025- Antti Kultanen.
+.br
+License GPLv2+: GNU GPL version 2 or later <https://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
+.SH SEE ALSO
+.BR iptables (8),
+.BR ip6tables (8),
+.BR syslogd (8),
+.BR systemd (1)
+.PP
+Full documentation: <https://github.com/pyksy/nflog_dns>

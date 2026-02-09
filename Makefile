@@ -68,6 +68,10 @@ install-bin:
 install-bin-strip:
 	install -s -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
 
+install-man:
+	install -Dm644 "man1/nflog_dns.1" "$(DESTDIR)$(PREFIX)/share/man/man1/nflog_dns.1"
+	gzip -f "$(DESTDIR)$(PREFIX)/share/man/man1/nflog_dns.1"
+
 install-init:
 ifeq ($(INSTALL_SYSVINIT),1)
 	install -Dm755 "init.d/nflog_dns"  "$(DESTDIR)$(ETCDIR)/init.d/nflog_dns"
@@ -86,12 +90,15 @@ install-config:
 
 install-files: install-init install-systemd install-config
 
-install: install-bin install-files
+install: install-bin install-man install-files
 
 install-strip: install-bin-strip install-files
 
 uninstall-bin:
 	rm -f "$(DESTDIR)$(SBINDIR)/nflog_dns"
+
+uninstall-man:
+	rm -f "$(DESTDIR)$(PREFIX)/share/man/man1/nflog_dns.1.gz"
 
 uninstall-init:
 ifeq ($(INSTALL_SYSVINIT),1)
@@ -109,14 +116,16 @@ uninstall-config:
 
 uninstall-files: uninstall-init uninstall-systemd uninstall-config
 
-uninstall: uninstall-bin uninstall-files
+uninstall: uninstall-bin uninstall-man uninstall-files
 
 .PHONY: all deb rpm \
 	clean distclean \
 	run-tests test \
 	install-bin install-bin-strip \
+	install-man \
 	install-init install-systemd install-config install-files \
 	install install-strip \
 	uninstall-bin \
+	uninstall-man \
 	uninstall-init uninstall-systemd uninstall-config uninstall-files \
 	uninstall

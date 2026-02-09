@@ -9,6 +9,7 @@ Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires: gcc-c++
 BuildRequires: make
+BuildRequires: gzip
 BuildRequires: libtins-devel
 BuildRequires: libnetfilter_log-devel
 BuildRequires: spdlog-devel
@@ -45,6 +46,7 @@ The tool binds to an NFLOG group and logs received DNS response records
 %license LICENSE
 %doc README.md
 %{_sbindir}/nflog_dns
+%{_mandir}/man1/nflog_dns.1.gz
 %{_unitdir}/nflog_dns.service
 %config(noreplace) %{_sysconfdir}/default/nflog_dns
 

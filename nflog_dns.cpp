@@ -143,9 +143,16 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	Tins::IPv6 ipv6;
 	std::string source;
 
+	// Minimum valid payload length (IP + UDP + DNS header)
+	const size_t MIN_IPV4_DNS_LENGTH = 40;  // 20 + 8 + 12
+	const size_t MIN_IPV6_DNS_LENGTH = 60;  // 40 + 8 + 12
 
-	// Get IP version from payload
+	// Get IP version from payload and verify minimum length
 	uint8_t ip_version = (payload[0] >> 4) & 0x0F;
+	if ((ip_version == 4 && payload_len < MIN_IPV4_DNS_LENGTH) ||
+	    (ip_version == 6 && payload_len < MIN_IPV6_DNS_LENGTH)) {
+		return 0;
+	}
 
 	try {
 		if (ip_version == 4) {

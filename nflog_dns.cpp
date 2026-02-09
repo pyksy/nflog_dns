@@ -134,7 +134,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	uint32_t payload_len;
 	uint8_t* payload;
 	payload_len = nflog_get_payload(ldata, (char **)(&payload));
-	if (!payload) {
+	if (!payload || payload_len < 1) {
 		return 0;
 	}
 	Tins::RawPDU rpdu = Tins::RawPDU(payload, payload_len);

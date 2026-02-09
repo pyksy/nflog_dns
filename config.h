@@ -2,8 +2,6 @@
 
 #include <spdlog/common.h>
 
-extern spdlog::level::level_enum syslog_level;
-
 // Defaults
 extern spdlog::level::level_enum syslog_level;
 extern bool use_syslog;

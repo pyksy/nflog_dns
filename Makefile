@@ -81,6 +81,7 @@ endif
 install-systemd:
 ifeq ($(INSTALL_SYSTEMD),1)
 	install -Dm644 "systemd/nflog_dns.service" "$(DESTDIR)$(PREFIX)/lib/systemd/system/nflog_dns.service"
+	sed -i 's#^ExecStart=.*#ExecStart=$(SBINDIR)/nflog_dns $$OPTIONS#' "$(DESTDIR)$(PREFIX)/lib/systemd/system/nflog_dns.service"
 endif
 
 CONFIG_FILES := default/nflog_dns

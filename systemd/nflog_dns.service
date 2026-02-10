@@ -6,7 +6,7 @@ Documentation=man:nflog_dns(1)
 [Service]
 Type=simple
 EnvironmentFile=-/etc/default/nflog_dns
-ExecStart=/usr/sbin/nflog_dns $OPTIONS
+ExecStart=/usr/local/sbin/nflog_dns $OPTIONS
 KillSignal=SIGHUP
 KillMode=mixed
 TimeoutStopSec=35

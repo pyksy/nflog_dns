@@ -11,15 +11,15 @@ CXX ?= c++
 CXXFLAGS ?= -O2 -std=c++11 -Wall -Wextra -Werror -pedantic
 CXXFLAGS += $(shell pkg-config --cflags libnetfilter_log libtins fmt spdlog)
 CXXEXTRAFLAGS ?=
-LDFLAGS ?= 
-LDFLAGS += $(shell pkg-config --libs libnetfilter_log libtins fmt spdlog)
+LDFLAGS ?=
+LIBS ?= $(shell pkg-config --libs libnetfilter_log libtins fmt spdlog)
 INSTALL_SYSVINIT ?= 1
 INSTALL_SYSTEMD ?= 1
 SOURCES = config.cpp nflog_dns.cpp
 HEADERS = config.h version.h
 
 nflog_dns: $(SOURCES) $(HEADERS)
-	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(SOURCES) $(LDFLAGS) -o $@
+	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(LDFLAGS) $(SOURCES) $(LIBS) -o $@
 
 all: nflog_dns
 
@@ -61,6 +61,8 @@ run-tests:
 	bash ./test/run_tests.sh
 
 test: run-tests
+
+check: test
 
 install-bin:
 	install -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
@@ -121,7 +123,7 @@ uninstall: uninstall-bin uninstall-man uninstall-files
 
 .PHONY: all deb rpm \
 	clean distclean \
-	run-tests test \
+	run-tests test check \
 	install-bin install-bin-strip \
 	install-man \
 	install-init install-systemd install-config install-files \

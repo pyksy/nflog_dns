@@ -9,6 +9,7 @@ Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires: gcc-c++
 BuildRequires: make
+BuildRequires: pkg-config
 BuildRequires: gzip
 BuildRequires: libtins-devel
 BuildRequires: libnetfilter_log-devel
@@ -27,7 +28,7 @@ Requires:       fmt
 %description
 A tool to extract and log DNS replies from Netfilter NFLOG groups.
 The tool binds to an NFLOG group and logs received DNS response records
-(A, AAAA, CNAME, PTR) to syslog or stdout.
+(A, AAAA, CNAME, MX, PTR, TXT) to syslog or stdout.
 
 %prep
 %autosetup

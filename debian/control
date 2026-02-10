@@ -4,6 +4,7 @@ Priority: optional
 Maintainer: Antti Kultanen <antti.kultanen@molukki.com>
 Build-Depends: debhelper-compat (= 13),
                g++,
+               pkg-config,
                libtins-dev,
                libnetfilter-log-dev,
                libspdlog-dev,
@@ -18,4 +19,4 @@ Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Extract and log DNS replies from NFLOG group
  A tool to extract and log DNS replies from Netfilter NFLOG groups.
  The tool binds to an NFLOG group and logs received DNS response records
- (A, AAAA, CNAME, PTR) to syslog or stdout.
+ (A, AAAA, CNAME, MX, PTR, TXT) to syslog or stdout.

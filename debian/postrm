@@ -1,8 +1,0 @@
-#!/bin/sh
-set -e
-
-# If we're using systemd, disable the service after removal
-if [ -n "$(which systemctl 2>/dev/null)" ]
-then
-	systemctl --quiet is-enabled nflog_dns && systemctl disable nflog_dns || true
-fi

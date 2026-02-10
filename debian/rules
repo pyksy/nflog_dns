@@ -11,12 +11,7 @@ override_dh_auto_test:
 override_dh_auto_install:
 	if grep -qi 'devuan' /etc/os-release; \
 	then \
-		$(MAKE) DESTDIR=$(CURDIR)/debian/nflog-dns PREFIX=/usr ETCDIR=/etc install INSTALL_SYSTEMD=0; \
+		$(MAKE) DESTDIR=$(CURDIR)/debian/nflog-dns PREFIX=/usr ETCDIR=/etc INSTALL_SYSTEMD=0 install; \
 	else \
 		$(MAKE) DESTDIR=$(CURDIR)/debian/nflog-dns PREFIX=/usr ETCDIR=/etc install; \
-		dh_installsystemd --name=nflog_dns; \
 	fi
-
-override_dh_install:
-	@echo "Running dh_installdeb"
-	dh_install

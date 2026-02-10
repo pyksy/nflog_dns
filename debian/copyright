@@ -4,11 +4,11 @@ Upstream-Contact: Antti Kultanen <antti.kultanen@molukki.com>
 Source: https://github.com/pyksy/nflog_dns
 
 Files: *
-Copyright: 2025 Antti Kultanen <antti.kultanen@molukki.com>
+Copyright: 2025- Antti Kultanen <antti.kultanen@molukki.com>
 License: GPL-2+
 
 Files: nflog_dns.cpp
-Copyright: 2025 Antti Kultanen <antti.kultanen@molukki.com>
+Copyright: 2025- Antti Kultanen <antti.kultanen@molukki.com>
            2015 Andreas Jaggi <andreas.jaggi@waterwave.ch>
 License: GPL-2+
 

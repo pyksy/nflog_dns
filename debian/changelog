@@ -1,3 +1,21 @@
+nflog-dns (0.99.2-1) unstable; urgency=medium
+
+  * .rpm package dependency fix
+  * .rpm package build fixes
+  * .deb package build fixes
+  * Makefile fixes
+  * Fix binary path to systemd service
+  * Update initd script
+  * Update service file
+  * Fix RPM
+  * Verify payload is not empty
+  * Fix dupe syslog level
+  * Fix TXT copypasta error
+  * Add nftables examples
+  * Add man page
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Tue, 10 Feb 2026 22:04:29 +0200
+
 nflog-dns (0.99.1-1) unstable; urgency=medium
 
   * Parse IP packet version from payload instead of always trying and

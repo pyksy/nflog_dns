@@ -1,1 +1,1 @@
-#define PROGRAM_VERSION "0.99.1"
+#define PROGRAM_VERSION "0.99.2"

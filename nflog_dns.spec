@@ -55,6 +55,22 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Tue Feb 10 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.99.2-1
+- .rpm package dependency fix
+- .rpm package build fixes
+- .deb package build fixes
+- Makefile fixes
+- Fix binary path to systemd service
+- Update initd script
+- Update service file
+- Fix RPM
+- Verify payload is not empty
+- Fix dupe syslog level
+- Fix TXT copypasta error
+- Add nftables examples
+- Add man page
+- Verify payload minimum length
+
 * Sun Feb 08 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.99.1-1
 - Parse IP packet version from payload instead of always trying and catching v4 first
 - Update readme

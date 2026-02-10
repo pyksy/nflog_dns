@@ -1,15 +1,19 @@
 [Unit]
 Description=NFLOG DNS Logger
 After=network.target
+Documentation=man:nflog_dns(1)
 
 [Service]
 Type=simple
-EnvironmentFile=/etc/default/nflog_dns
+EnvironmentFile=-/etc/default/nflog_dns
 ExecStart=/usr/sbin/nflog_dns $OPTIONS
-ExecStop=/bin/kill -TERM $MAINPID
-TimeoutStopSec=5
+KillSignal=SIGHUP
+KillMode=mixed
+TimeoutStopSec=35
 Restart=on-failure
-SuccessExitStatus=0 143
+SuccessExitStatus=0 129
+StandardOutput=journal
+StandardError=journal
 
 [Install]
 WantedBy=multi-user.target

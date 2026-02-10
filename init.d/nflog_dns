@@ -2,8 +2,8 @@
 
 ### BEGIN INIT INFO
 # Provides:          nflog_dns
-# Required-Start:    $network $remote_fs $local_fs
-# Required-Stop:     $network $remote_fs $local_fs
+# Required-Start:    $network $local_fs $syslog
+# Required-Stop:     $network $local_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
 # Short-Description: DNS reply logger
@@ -23,32 +23,34 @@ PIDFILE="/run/${NAME}.pid"
 source /lib/lsb/init-functions
 
 [ -f "${DEFAULT}" ] && source "${DEFAULT}"
-[ -x "${DAEMON}" ] || exit 0
+[ -x "${DAEMON}" ] || exit 5
 
 check_running() {
-	if status_of_proc "${DAEMON}" "${DESC}" > /dev/null
-	then
-		log_progress_msg "already running"
-		log_end_msg 0
-		exit 0
-	fi
+	status_of_proc "${DAEMON}" "${DESC}" > /dev/null && return 0 || return 1
 }
 
 start_nflog_dns() {
 	log_daemon_msg "Starting ${DESC}" "$NAME"
 
-	check_running
+	if check_running
+	then
+		log_progress_msg "already running"
+		log_end_msg 0
+		return 0
+	fi
 
 	if start-stop-daemon --start \
 		--pidfile "${PIDFILE}" \
 		--make-pidfile \
 		--background \
+		--quiet \
 		--exec "${DAEMON}" -- ${OPTIONS}
 	then
-		log_success_msg
+		log_end_msg 0
+		return 0
 	else
-		log_failure_msg
-		exit 1
+		log_end_msg 1
+		return 1
 	fi
 }
 
@@ -58,7 +60,7 @@ stop_nflog_dns() {
 	if start-stop-daemon --stop \
 		--pidfile "${PIDFILE}" \
 		--remove-pidfile \
-		--signal HUP \
+		--retry=HUP/5/TERM/10/KILL/5 \
 		--quiet \
 		--exec "${DAEMON}"
 	then
@@ -71,17 +73,23 @@ stop_nflog_dns() {
 
 case "${1}" in
 	start)
-		start_nflog_dns
+		start_nflog_dns || exit ${?}
 	;;
 	stop)
 		stop_nflog_dns || exit ${?}
 	;;
 	restart)
 		stop_nflog_dns
+		# Wait for process to actually exit
+		for i in {1..10}; do
+			status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" >/dev/null 2>&1 || break
+			sleep 1
+		done
 		start_nflog_dns
 	;;
 	status)
-		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 || exit ${?}
+		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}"
+		exit ${?}
 	;;
 	*)
 		log_action_msg "Usage: ${0} {start|stop|restart|status}" >&2

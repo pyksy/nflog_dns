@@ -223,18 +223,6 @@ jobs:
           ;;
         esac
 
-    - name: Fix RPM package dependencies for openSUSE
-      run: |
-        if grep -q "opensuse" "/etc/os-release"
-        then
-          for PKG in libtins libnetfilter_log spdlog libpcap fmt
-          do
-            PKGNAME="$(rpm -qa '*'${PKG}'*' --qf '%{NAME}\n' | head -1)"
-            [ -n "$PKGNAME" ] || exit 1
-            sed -i "s/^Requires: *${PKG}/Requires:       ${PKGNAME}/" nflog_dns.spec
-          done
-        fi
-
     - name: Build package
       run: |
         mkdir -p artifacts

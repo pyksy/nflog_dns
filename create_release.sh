@@ -3,7 +3,7 @@
 # Copyright Antti Kultanen <antti.kultanen@molukki.com>
 # nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
 
-if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+if [ "${1}" = "-h" ] || [ "${1}" = "--help" ]; then
 	echo "Usage: $0 [VERSION]"
 	echo "Create a new release by bumping version and creating a git tag"
 	echo ""
@@ -70,7 +70,7 @@ then
 fi
 echo "Creating release v${RELEASE} as ${DEBFULLNAME} <${DEBEMAIL}>."
 
-echo '#define PROGRAM_VERSION "'${RELEASE}'"' | tee version.h
+echo '#define PROGRAM_VERSION "'"${RELEASE}"'"' | tee version.h
 
 # Update DEB changelog
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
@@ -79,26 +79,26 @@ if [ -n "$LAST_TAG" ]; then
 	echo "Extracting changes since $LAST_TAG..."
 
 	# Create new changelog entry
-	dch -v ${RELEASE}-1 --distribution unstable ""
+	dch -v ${RELEASE}-1 --distribution unstable "" || exit 1
 
 	# Get commit messages since last tag and add them
 	git log ${LAST_TAG}..HEAD --pretty=format:"%s" --no-merges | while IFS= read -r line
 	do
-		# Skip empty lines and the version bump commit we haven't made yet
+		# Skip empty lines
 		if [ -n "$line" ]; then
-			dch --append "$line"
+			dch --append "$line" || exit 1
 		fi
 	done
 
 	# If no commits found, add a generic entry
 	if ! git log ${LAST_TAG}..HEAD --oneline --no-merges | grep -q .; then
-		dch --append "No changes found."
+		dch --append "No changes found." || exit 1
 	fi
 else
 	echo "Initial release."
-	dch -v ${RELEASE}-1 --distribution unstable "Initial release"
+	dch -v ${RELEASE}-1 --distribution unstable "Initial release" || exit 1
 fi
-dch --release ""
+dch --release "" || exit 1
 
 # Update RPM changelog
 if [ -f nflog_dns.spec ]; then

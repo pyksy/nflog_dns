@@ -20,6 +20,12 @@ nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries
 
 1. sudo make test
 
+# install
+
+1. Compile nflog_dns as above
+2. Optional: Edit the PREFIX in Makefile. By default installs to /usr/local
+3. sudo make install
+
 # quickstart
 
 1. sudo ./start.sh
@@ -33,12 +39,6 @@ nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries
 # build rpm package
 
 1. make rpm
-
-# install
-
-1. Compile nflog_dns as above
-2. Optional: Edit the PREFIX in Makefile. By default installs to /usr/local
-3. sudo make install
 
 # enable sysvinit service
 

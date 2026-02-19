@@ -115,15 +115,16 @@ ip addr add "${IP}"/32 dev nflog0
 ip link set up dev nflog0
 echo "done"
 
-echo -n "Setup iptables NFLOG target ... "
+echo -n "Setup iptables NFLOG target with group ${GROUP} ... "
 iptables -N nflog_dns_logger
 iptables -A nflog_dns_logger -j NFLOG --nflog-group ${GROUP}
 iptables -I INPUT 1 -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger
 echo "done"
 
-echo -n "Start nflog_dns ... "
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"
-"${DIR}/../nflog_dns" --group="${GROUP}" --level="${LOGLEVEL}" >"${NFLOGTEMP}" &
+ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
+echo -n "Start nflog_dns ${ARGS} ... "
+"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 
@@ -142,13 +143,13 @@ rm -f "${NFLOGTEMP}"
 
 ((fail_count > 0)) && exit 1 || echo
 
-ARGS=""
+ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
 for TYPE in "${PACKET_TYPES[@]}"
 do
 	ARGS="--${TYPE}=no ${ARGS}"
 done
 echo -n "Start nflog_dns ${ARGS} ... "
-"${DIR}/../nflog_dns" --group="${GROUP}" --level="${LOGLEVEL}" $ARGS >"${NFLOGTEMP}" &
+"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 

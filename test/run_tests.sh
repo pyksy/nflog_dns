@@ -53,6 +53,7 @@ send_packets() {
 		exec 3< <(python3 "${DIR}/py/test_recv.py" "${IP}")
 		LISTENPID="${!}"
 		read LISTENPORT <&3
+		exec 3<&-
 		echo "PID ${LISTENPID} UDP port ${LISTENPORT}"
 
 		echo -n "Send ${TYPE^^} reply packet to listener ... "
@@ -62,11 +63,13 @@ send_packets() {
 }
 
 verify_packets() {
+	# Call with any argument to negate the tests
 	for TYPE in "${PACKET_TYPES[@]}"
 	do
-		echo -n "Verify ${TYPE^^} reply was logged ... "
-		LOGSTRING="$(grep "${IP} reply ${TYPE^^} .*example\.com" "${NFLOGTEMP}")"
-		if [ -n "${LOGSTRING}" ]
+		[ -z "${1}" ] && LOGMSG="logged once" || LOGMSG="not logged"
+		echo -n "Verify ${TYPE^^} reply was ${LOGMSG} ... "
+		HITCOUNT="$(grep -c "${IP} reply ${TYPE^^} .*example\.com" "${NFLOGTEMP}")"
+		if [ ${HITCOUNT} -eq 1 ] || [ -n "${1}" -a ${HITCOUNT} -eq 0 ]
 		then
 			echo "SUCCESS"
 		else
@@ -74,6 +77,27 @@ verify_packets() {
 			((fail_count++))
 		fi
 	done
+}
+
+send_stats() {
+	echo -n "Send SIGUSR1 to nflog_dns to log packet statistics ... "
+	if kill -USR1 ${NFLOGPID}
+	then
+		echo "done"
+	else
+		echo "failed"
+	fi
+}
+
+verify_stats() {
+	echo -n "Verify package statistics ... "
+	if grep -q "received_packets=${1} invalid_packets=${2} dns_responses=${3} logged_records=${4}" "${NFLOGTEMP}"
+	then
+		echo "SUCCESS"
+	else
+			echo "FAIL"
+			((fail_count++))
+	fi
 }
 
 # Clean up iptables just in case
@@ -102,6 +126,7 @@ echo "PID ${NFLOGPID}"
 
 send_packets
 sleep 2
+send_stats
 cat "${NFLOGTEMP}"
 
 echo -n "Stop nflog_dns ... "
@@ -110,12 +135,13 @@ echo "done"
 sleep 1
 
 verify_packets
+verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} ${#PACKET_TYPES[@]}
+
 rm -f "${NFLOGTEMP}"
 
 ((fail_count > 0)) && exit 1 || echo
 
 ARGS=""
-NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"
 for TYPE in "${PACKET_TYPES[@]}"
 do
 	ARGS="--${TYPE}=no ${ARGS}"
@@ -127,17 +153,17 @@ echo "PID ${NFLOGPID}"
 
 send_packets
 sleep 2
+send_stats
 cat "${NFLOGTEMP}"
 
 echo -n "Stop nflog_dns ... "
 kill -HUP "${NFLOGPID}"
 echo "done"
+NFLOGPID=""
 sleep 1
 
-echo "NOTE: Following tests are expected to fail:"
-verify_packets
+verify_packets missing
+verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} 0
 rm -f "${NFLOGTEMP}"
 
-((fail_count == ${#PACKET_TYPES[@]})) || exit 1
-
-echo
+((fail_count > 0)) && exit 1 || echo

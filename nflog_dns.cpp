@@ -15,6 +15,7 @@
 #include <getopt.h>
 #include <errno.h>
 #include <string.h>
+#include <signal.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -26,6 +27,12 @@
 extern "C" {
 	#include <libnetfilter_log/libnetfilter_log.h>
 }
+
+struct Stats {
+    uint64_t invalid_packets = 0;
+    uint64_t dns_responses = 0;
+    uint64_t logged_records = 0;
+} packet_stats;
 
 std::string bool_to_string(bool value) {
 	return value ? "yes" : "no";
@@ -58,6 +65,18 @@ void print_help(char* prgname) {
 	std::cout << "      --ptr=BOOL           PTR record logging (default: " << bool_to_string(log_ptr) << ")" << std::endl;
 	std::cout << "      --txt=BOOL           TXT record logging (default: " << bool_to_string(log_txt) << ")" << std::endl;
 	std::cout << std::endl;
+}
+
+void signal_handler(int signum) {
+    if (signum == SIGUSR1) {
+		static auto dns_logger = spdlog::get(PROGRAM_NAME);
+		uint64_t packets_received = packet_stats.invalid_packets + packet_stats.dns_responses;
+        dns_logger->log(syslog_level, "Statistics: received_packets={} invalid_packets={} dns_responses={} logged_records={}",
+            packets_received,
+			packet_stats.invalid_packets, 
+            packet_stats.dns_responses,
+			packet_stats.logged_records);
+    }
 }
 
 bool is_number(const char* facility_arg) {
@@ -169,32 +188,52 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 		}
 	} catch (Tins::malformed_packet&) {
 		// Malformed packet, ignore
+		packet_stats.invalid_packets++;
 		return 0;
 	}
 
 	try {
 		if (dns.type() == Tins::DNS::RESPONSE) {
+			packet_stats.dns_responses++;
 			static auto dns_logger = spdlog::get(PROGRAM_NAME);
 
 			for (const auto &answer : dns.answers()) {
 				switch (answer.query_type()) {
 					case Tins::DNS::A:
-						if (log_a) dns_logger->log(syslog_level, "{} reply A {} -> {}", source, answer.dname(), answer.data());
+						if (log_a) {
+							packet_stats.logged_records++;
+							dns_logger->log(syslog_level, "{} reply A {} -> {}", source, answer.dname(), answer.data());
+						}
 						break;
 					case Tins::DNS::AAAA:
-						if (log_aaaa) dns_logger->log(syslog_level, "{} reply AAAA {} -> {}", source, answer.dname(), answer.data());
+						if (log_aaaa) {
+							packet_stats.logged_records++;
+							dns_logger->log(syslog_level, "{} reply AAAA {} -> {}", source, answer.dname(), answer.data());
+						}
 						break;
 					case Tins::DNS::CNAME:
-						if (log_cname) dns_logger->log(syslog_level, "{} reply CNAME {} -> {}", source, answer.dname(), answer.data());
+						if (log_cname) {
+							packet_stats.logged_records++;
+							dns_logger->log(syslog_level, "{} reply CNAME {} -> {}", source, answer.dname(), answer.data());
+						}
 						break;
 					case Tins::DNS::MX:
-						if (log_mx) dns_logger->log(syslog_level, "{} reply MX {} -> {}", source, answer.dname(), answer.data());
+						if (log_mx) {
+							packet_stats.logged_records++;
+							dns_logger->log(syslog_level, "{} reply MX {} -> {}", source, answer.dname(), answer.data());
+						}
 						break;
 					case Tins::DNS::PTR:
-						if (log_ptr) dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
+						if (log_ptr) {
+							packet_stats.logged_records++;
+							dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
+						}
 						break;
 					case Tins::DNS::TXT:
-						if (log_txt) dns_logger->log(syslog_level, "{} reply TXT {} -> {}", source, answer.dname(), answer.data());
+						if (log_txt) {
+							packet_stats.logged_records++;
+							dns_logger->log(syslog_level, "{} reply TXT {} -> {}", source, answer.dname(), answer.data());
+						}
 						break;
 					default:
 						break;
@@ -345,6 +384,9 @@ int main(int argc, char *argv[])
 
 	nflog_callback_register(qh, &callback, NULL);
 	int fd = nflog_fd(h);
+
+	// Setup signal for stats
+	signal(SIGUSR1, signal_handler);
 
 	// Enter packet handling loop
 	while (1) {

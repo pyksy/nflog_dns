@@ -388,6 +388,7 @@ int main(int argc, char *argv[])
 	}
 	auto dns_logger = std::make_shared<spdlog::logger>(PROGRAM_NAME, dns_logger_sink);
 	spdlog::register_logger(dns_logger);
+	dns_logger->set_level(syslog_level);
 	dns_logger->log(syslog_level, "DNS logging initialized for NFLOG group {}", group);
 
 	nflog_callback_register(qh, &callback, NULL);

@@ -55,6 +55,16 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Thu Feb 19 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.99.3-1
+- Update manpage
+- Update tests
+- Verify group and level in test
+- Fix for minimum log level
+- Add signal handler and graceful exit with stats
+- Add statistics (trigger with SIGUSR1)
+- Update readme
+- Fixes to release script
+
 * Tue Feb 10 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.99.2-1
 - .rpm package dependency fix
 - .rpm package build fixes

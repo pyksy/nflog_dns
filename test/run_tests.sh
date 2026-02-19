@@ -89,6 +89,7 @@ send_stats() {
 	fi
 }
 
+# Send SIGUSR1 to nflog_dns to immediately output packet statistics; unused as for now.
 verify_stats() {
 	echo -n "Verify package statistics ... "
 	if grep -q "received_packets=${1} invalid_packets=${2} dns_responses=${3} logged_records=${4}" "${NFLOGTEMP}"
@@ -120,19 +121,17 @@ echo "done"
 
 echo -n "Start nflog_dns ... "
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"
-"${DIR}/../nflog_dns" >"${NFLOGTEMP}" &
+"${DIR}/../nflog_dns" --level=info >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 
 send_packets
 sleep 2
-send_stats
-cat "${NFLOGTEMP}"
 
 echo -n "Stop nflog_dns ... "
 kill -HUP "${NFLOGPID}"
 echo "done"
-sleep 1
+cat "${NFLOGTEMP}"
 
 verify_packets
 verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} ${#PACKET_TYPES[@]}
@@ -147,20 +146,18 @@ do
 	ARGS="--${TYPE}=no ${ARGS}"
 done
 echo -n "Start nflog_dns ${ARGS} ... "
-"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
+"${DIR}/../nflog_dns" --level=info $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 
 send_packets
 sleep 2
-send_stats
-cat "${NFLOGTEMP}"
 
 echo -n "Stop nflog_dns ... "
 kill -HUP "${NFLOGPID}"
 echo "done"
 NFLOGPID=""
-sleep 1
+cat "${NFLOGTEMP}"
 
 verify_packets missing
 verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} 0

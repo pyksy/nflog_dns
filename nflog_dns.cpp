@@ -28,6 +28,8 @@ extern "C" {
 	#include <libnetfilter_log/libnetfilter_log.h>
 }
 
+volatile sig_atomic_t exit_program = 0;
+
 struct Stats {
     uint64_t invalid_packets = 0;
     uint64_t dns_responses = 0;
@@ -67,8 +69,7 @@ void print_help(char* prgname) {
 	std::cout << std::endl;
 }
 
-void signal_handler(int signum) {
-    if (signum == SIGUSR1) {
+void log_stats() {
 		static auto dns_logger = spdlog::get(PROGRAM_NAME);
 		uint64_t packets_received = packet_stats.invalid_packets + packet_stats.dns_responses;
         dns_logger->log(syslog_level, "Statistics: received_packets={} invalid_packets={} dns_responses={} logged_records={}",
@@ -76,6 +77,13 @@ void signal_handler(int signum) {
 			packet_stats.invalid_packets, 
             packet_stats.dns_responses,
 			packet_stats.logged_records);
+}
+
+void signal_handler(int signum) {
+    if (signum == SIGUSR1) {
+		log_stats();
+	} else if (signum == SIGTERM || signum == SIGHUP || signum == SIGINT) {
+        exit_program = 1;
     }
 }
 
@@ -385,11 +393,19 @@ int main(int argc, char *argv[])
 	nflog_callback_register(qh, &callback, NULL);
 	int fd = nflog_fd(h);
 
-	// Setup signal for stats
-	signal(SIGUSR1, signal_handler);
+	// Setup signal handlers
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+	sa.sa_handler = signal_handler;
+	sa.sa_flags = 0;  // Do NOT set SA_RESTART - we want EINTR
+	sigemptyset(&sa.sa_mask);
+	sigaction(SIGUSR1, &sa, NULL);
+	sigaction(SIGTERM, &sa, NULL);
+	sigaction(SIGHUP, &sa, NULL);
+	sigaction(SIGINT, &sa, NULL);
 
 	// Enter packet handling loop
-	while (1) {
+	while (!exit_program) {
 		rv = recv(fd, buf, sizeof(buf), 0);
 
 		if (rv > 0) {
@@ -409,6 +425,9 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+
+	dns_logger->log(syslog_level, "DNS logging stopped");
+	log_stats();
 
 	// Cleanup nflog
 	nflog_unbind_group(qh);

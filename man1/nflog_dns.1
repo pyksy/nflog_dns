@@ -102,7 +102,7 @@ sudo nft add rule inet filter input udp sport 53 log group 123
 .fi
 .RE
 .SH RUNTIME STATISTICS
-To display runtime packet statistics, send a SIGUSR1 signal to the running process:
+nflog_dns gathers statistics on received packets. To display runtime packet statistics, send a SIGUSR1 signal to the running process:
 .RS
 .nf
 sudo pkill \-USR1 nflog_dns
@@ -128,6 +128,8 @@ Example output:
 Statistics: received_packets=1523 invalid_packets=2 dns_responses=1521 logged_records=3042
 .fi
 .RE
+.PP
+Final statistics are automatically logged when nflog_dns exits.
 .SH FILES
 .TP
 .I /etc/default/nflog_dns

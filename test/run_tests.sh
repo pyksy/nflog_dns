@@ -10,6 +10,8 @@ fi
 
 IP="172.31.53.123"
 DIR="$(dirname $(realpath "${0}"))"
+LOGLEVEL="trace"
+GROUP=$((RANDOM/2+1024))
 declare -a PACKET_TYPES=(
 	a
 	aaaa
@@ -68,7 +70,7 @@ verify_packets() {
 	do
 		[ -z "${1}" ] && LOGMSG="logged once" || LOGMSG="not logged"
 		echo -n "Verify ${TYPE^^} reply was ${LOGMSG} ... "
-		HITCOUNT="$(grep -c "${IP} reply ${TYPE^^} .*example\.com" "${NFLOGTEMP}")"
+		HITCOUNT="$(grep -c "${LOGLEVEL}.* ${IP//./\.} reply ${TYPE^^} .*example\.com" "${NFLOGTEMP}")"
 		if [ ${HITCOUNT} -eq 1 ] || [ -n "${1}" -a ${HITCOUNT} -eq 0 ]
 		then
 			echo "SUCCESS"
@@ -92,7 +94,7 @@ send_stats() {
 # Send SIGUSR1 to nflog_dns to immediately output packet statistics; unused as for now.
 verify_stats() {
 	echo -n "Verify package statistics ... "
-	if grep -q "received_packets=${1} invalid_packets=${2} dns_responses=${3} logged_records=${4}" "${NFLOGTEMP}"
+	if grep -q "${LOGLEVEL}.* received_packets=${1} invalid_packets=${2} dns_responses=${3} logged_records=${4}" "${NFLOGTEMP}"
 	then
 		echo "SUCCESS"
 	else
@@ -115,13 +117,13 @@ echo "done"
 
 echo -n "Setup iptables NFLOG target ... "
 iptables -N nflog_dns_logger
-iptables -A nflog_dns_logger -j NFLOG --nflog-group 123
+iptables -A nflog_dns_logger -j NFLOG --nflog-group ${GROUP}
 iptables -I INPUT 1 -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger
 echo "done"
 
 echo -n "Start nflog_dns ... "
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"
-"${DIR}/../nflog_dns" --level=info >"${NFLOGTEMP}" &
+"${DIR}/../nflog_dns" --group="${GROUP}" --level="${LOGLEVEL}" >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 
@@ -146,7 +148,7 @@ do
 	ARGS="--${TYPE}=no ${ARGS}"
 done
 echo -n "Start nflog_dns ${ARGS} ... "
-"${DIR}/../nflog_dns" --level=info $ARGS >"${NFLOGTEMP}" &
+"${DIR}/../nflog_dns" --group="${GROUP}" --level="${LOGLEVEL}" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 

@@ -67,12 +67,18 @@ Extract DNS replies from NFLOG group
   -l, --level=LOGLEVEL     log level for syslog logging (default: info)
   -h, --help               print this help and exit
   -v, --version            show version and exit
-      --a=BOOL             A record logging (default: yes)
-      --aaaa=BOOL          AAAA record logging (default: yes)
-      --cname=BOOL         CNAME record logging (default: yes)
-      --mx=BOOL            MX record logging (default: yes)
-      --ptr=BOOL           PTR record logging (default: yes)
-      --txt=BOOL           TXT record logging (default: yes)
+      --log-a=BOOL         A record logging (default: yes)
+      --log-aaaa=BOOL      AAAA record logging (default: yes)
+      --log-cname=BOOL     CNAME record logging (default: yes)
+      --log-mx=BOOL        MX record logging (default: yes)
+      --log-ptr=BOOL       PTR record logging (default: yes)
+      --log-txt=BOOL       TXT record logging (default: yes)
+      --log-noerror=BOOL   NOERROR error logging (default: yes)
+      --log-formerr=BOOL   FORMERR error logging (default: no)
+      --log-servfail=BOOL  SERVFAIL error logging (default: no)
+      --log-nxdomain=BOOL  NXDOMAIN error logging (default: no)
+      --log-notimpl=BOOL   NOTIMPL error logging (default: no)
+      --log-refused=BOOL   REFUSED error logging (default: no)
 ```
 
 # iptables setup

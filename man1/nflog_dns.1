@@ -36,23 +36,41 @@ Display help message and exit.
 .BR \-v ", " \-\-version
 Display version information and exit.
 .TP
-.BR \-\-a=\fIBOOL\fR
-Enable or disable logging of A (IPv4 address) records (default: yes).
+.BR \-\-log\-a=\fIBOOL\fR
+Enable or disable logging of A (IPv4 address) records.
 .TP
-.BR \-\-aaaa=\fIBOOL\fR
-Enable or disable logging of AAAA (IPv6 address) records (default: yes).
+.BR \-\-log\-aaaa=\fIBOOL\fR
+Enable or disable logging of AAAA (IPv6 address) records.
 .TP
-.BR \-\-cname=\fIBOOL\fR
-Enable or disable logging of CNAME (canonical name) records (default: yes).
+.BR \-\-log\-cname=\fIBOOL\fR
+Enable or disable logging of CNAME (canonical name) records.
 .TP
-.BR \-\-mx=\fIBOOL\fR
-Enable or disable logging of MX (mail exchange) records (default: yes).
+.BR \-\-log\-mx=\fIBOOL\fR
+Enable or disable logging of MX (mail exchange) records.
 .TP
-.BR \-\-ptr=\fIBOOL\fR
-Enable or disable logging of PTR (reverse DNS) records (default: yes).
+.BR \-\-log\-ptr=\fIBOOL\fR
+Enable or disable logging of PTR (reverse DNS) records.
 .TP
-.BR \-\-txt=\fIBOOL\fR
-Enable or disable logging of TXT (text) records (default: yes).
+.BR \-\-log\-txt=\fIBOOL\fR
+Enable or disable logging of TXT (text) records.
+.TP
+.BR \-\-log\-noerror=\fIBOOL\fR
+Enable or disable logging of NOERROR (no error) replies. Disabling this disables logging any records.
+.TP
+.BR \-\-log\-formerr=\fIBOOL\fR
+Enable or disable logging of FORMERR (format error) replies.
+.TP
+.BR \-\-log\-servfail=\fIBOOL\fR
+Enable or disable logging of SERVFAIL (server failure) replies.
+.TP
+.BR \-\-log\-nxdomain=\fIBOOL\fR
+Enable or disable logging of NXDOMAIN (name error) replies.
+.TP
+.BR \-\-log\-notimpl=\fIBOOL\fR
+Enable or disable logging of NOTIMPL (unimplemented) replies.
+.TP
+.BR \-\-log\-refused=\fIBOOL\fR
+Enable or disable logging of REFUSED (operation refused) replies.
 .PP
 Boolean values can be specified as: 1, enable, on, true, yes (for true) or
 0, disable, off, false, no (for false).

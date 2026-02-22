@@ -5,6 +5,7 @@
  * nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
  */
 
+#include <resolv.h>
 #define PROGRAM_NAME "nflog_dns"
 #define DEFAULT_NFLOG_GROUP 123
 
@@ -34,6 +35,7 @@ struct Stats {
     uint64_t invalid_packets = 0;
     uint64_t dns_responses = 0;
     uint64_t logged_records = 0;
+    uint64_t logged_errors = 0;
 } packet_stats;
 
 std::string bool_to_string(bool value) {
@@ -41,12 +43,24 @@ std::string bool_to_string(bool value) {
 }
 
 enum RecordOption {
-	OPT_A = 1000,
+	// Record logging options
+	OPT_RECORDS_START = 1000,
+	OPT_A,
 	OPT_AAAA,
 	OPT_CNAME,
 	OPT_MX,
 	OPT_PTR,
-	OPT_TXT
+	OPT_TXT,
+	OPT_RECORDS_END,
+	// Error logging options
+	OPT_ERRORS_START,
+	OPT_NOERROR,
+	OPT_FORMERR,
+	OPT_SERVFAIL,
+	OPT_NXDOMAIN,
+	OPT_NOTIMPL,
+	OPT_REFUSED,
+	OPT_ERRORS_END
 };
 
 void print_help(char* prgname) {
@@ -60,22 +74,29 @@ void print_help(char* prgname) {
 	std::cout << "  -l, --level=LOGLEVEL     log level for syslog logging (default: info)" << std::endl;
 	std::cout << "  -h, --help               print this help and exit" << std::endl;
 	std::cout << "  -v, --version            show version and exit" << std::endl;
-	std::cout << "      --a=BOOL             A record logging (default: " << bool_to_string(log_a) << ")" << std::endl;
-	std::cout << "      --aaaa=BOOL          AAAA record logging (default: " << bool_to_string(log_aaaa) << ")" << std::endl;
-	std::cout << "      --cname=BOOL         CNAME record logging (default: " << bool_to_string(log_cname) << ")" << std::endl;
-	std::cout << "      --mx=BOOL            MX record logging (default: " << bool_to_string(log_mx) << ")" << std::endl;
-	std::cout << "      --ptr=BOOL           PTR record logging (default: " << bool_to_string(log_ptr) << ")" << std::endl;
-	std::cout << "      --txt=BOOL           TXT record logging (default: " << bool_to_string(log_txt) << ")" << std::endl;
+	std::cout << "      --log-a=BOOL         A record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::A)) << ")" << std::endl;
+	std::cout << "      --log-aaaa=BOOL      AAAA record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::AAAA)) << ")" << std::endl;
+	std::cout << "      --log-cname=BOOL     CNAME record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::CNAME)) << ")" << std::endl;
+	std::cout << "      --log-mx=BOOL        MX record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::MX)) << ")" << std::endl;
+	std::cout << "      --log-ptr=BOOL       PTR record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::PTR)) << ")" << std::endl;
+	std::cout << "      --log-txt=BOOL       TXT record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::TXT)) << ")" << std::endl;
+	std::cout << "      --log-noerror=BOOL   NOERROR error logging (default: " << bool_to_string(rcode_enabled(ns_r_noerror)) << ")" << std::endl;
+	std::cout << "      --log-formerr=BOOL   FORMERR error logging (default: " << bool_to_string(rcode_enabled(ns_r_formerr)) << ")" << std::endl;
+	std::cout << "      --log-servfail=BOOL  SERVFAIL error logging (default: " << bool_to_string(rcode_enabled(ns_r_servfail)) << ")" << std::endl;
+	std::cout << "      --log-nxdomain=BOOL  NXDOMAIN error logging (default: " << bool_to_string(rcode_enabled(ns_r_nxdomain)) << ")" << std::endl;
+	std::cout << "      --log-notimpl=BOOL   NOTIMPL error logging (default: " << bool_to_string(rcode_enabled(ns_r_notimpl)) << ")" << std::endl;
+	std::cout << "      --log-refused=BOOL   REFUSED error logging (default: " << bool_to_string(rcode_enabled(ns_r_refused)) << ")" << std::endl;
 	std::cout << std::endl;
 }
 
 void log_stats() {
 		static auto dns_logger = spdlog::get(PROGRAM_NAME);
 		uint64_t packets_received = packet_stats.invalid_packets + packet_stats.dns_responses;
-        dns_logger->log(syslog_level, "Statistics: received_packets={} invalid_packets={} dns_responses={} logged_records={}",
+        dns_logger->log(syslog_level, "Statistics: received_packets={} invalid_packets={} dns_responses={} logged_errors={} logged_records={}",
             packets_received,
 			packet_stats.invalid_packets, 
             packet_stats.dns_responses,
+            packet_stats.logged_errors,
 			packet_stats.logged_records);
 }
 
@@ -129,27 +150,60 @@ int parse_bool(const char *str) {
 }
 
 void set_setting(RecordOption opt, bool setting_value) {
-	switch (opt) {
-		case OPT_A:
-			log_a = setting_value;
-			break;
-		case OPT_AAAA:
-			log_aaaa = setting_value;
-			break;
-		case OPT_CNAME:
-			log_cname = setting_value;
-			break;
-        case OPT_MX:
-            log_mx = setting_value;
-            break;
-		case OPT_PTR:
-			log_ptr = setting_value;
-			break;
-		case OPT_TXT:
-			log_txt = setting_value;
-			break;
-		default:
-			break;
+	if (OPT_RECORDS_START < opt && opt < OPT_RECORDS_END) {
+		Tins::DNS::QueryType qtype;
+		switch (opt) {
+			case OPT_A: qtype = Tins::DNS::A; break;
+			case OPT_AAAA: qtype = Tins::DNS::AAAA; break;
+			case OPT_CNAME: qtype = Tins::DNS::CNAME; break;
+			case OPT_MX: qtype = Tins::DNS::MX; break;
+			case OPT_PTR: qtype = Tins::DNS::PTR; break;
+			case OPT_TXT: qtype = Tins::DNS::TXT; break;
+			default: return;
+		}
+		if (setting_value)
+			enable_qtype(qtype);
+		else
+			disable_qtype(qtype);
+	} else if (OPT_ERRORS_START < opt && opt < OPT_ERRORS_END){
+		ns_rcode rcode;
+		switch (opt) {
+		    case OPT_NOERROR: rcode = ns_r_noerror; break;
+			case OPT_FORMERR: rcode = ns_r_formerr; break;
+			case OPT_SERVFAIL: rcode = ns_r_servfail; break;
+			case OPT_NXDOMAIN: rcode = ns_r_nxdomain; break;
+			case OPT_NOTIMPL: rcode = ns_r_notimpl; break;
+			case OPT_REFUSED: rcode = ns_r_refused; break;
+			default: return;
+		}
+		if (setting_value)
+			enable_rcode(rcode);
+		else
+			disable_rcode(rcode);
+	}
+}
+
+std::string qtype_to_string(Tins::DNS::QueryType queryType) {
+	switch (queryType) {
+		case Tins::DNS::A: return "A"; break;
+		case Tins::DNS::AAAA: return "AAAA"; break;
+		case Tins::DNS::CNAME: return "CNAME"; break;
+		case Tins::DNS::MX: return "MX"; break;
+		case Tins::DNS::PTR: return "PTR"; break;
+		case Tins::DNS::TXT: return "TXT"; break;
+		default: return "(" + std::to_string(queryType) + ")"; break;
+	}
+}
+
+std::string rcode_to_string(ns_rcode rcode) {
+	switch (rcode) {
+		case ns_r_noerror: return "NOERROR"; break;
+		case ns_r_formerr: return "FORMERR"; break;
+		case ns_r_servfail: return "SERVFAIL"; break;
+		case ns_r_nxdomain: return "NXDOMAIN"; break;
+		case ns_r_notimpl: return "NOTIMPL"; break; 
+		case ns_r_refused: return "REFUSED"; break;
+		default: return "(" + std::to_string(rcode) + ")"; break;
 	}
 }
 
@@ -162,6 +216,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	uint8_t* payload;
 	payload_len = nflog_get_payload(ldata, (char **)(&payload));
 	if (!payload || payload_len < 1) {
+		packet_stats.invalid_packets++;
 		return 0;
 	}
 	Tins::RawPDU rpdu = Tins::RawPDU(payload, payload_len);
@@ -178,6 +233,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	uint8_t ip_version = (payload[0] >> 4) & 0x0F;
 	if ((ip_version == 4 && payload_len < MIN_IPV4_DNS_LENGTH) ||
 	    (ip_version == 6 && payload_len < MIN_IPV6_DNS_LENGTH)) {
+		packet_stats.invalid_packets++;
 		return 0;
 	}
 
@@ -192,6 +248,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 			source = ipv6.src_addr().to_string();
 		} else {
 			// Unknown IP version, ignore
+			packet_stats.invalid_packets++;
 			return 0;
 		}
 	} catch (Tins::malformed_packet&) {
@@ -203,52 +260,46 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	try {
 		if (dns.type() == Tins::DNS::RESPONSE) {
 			packet_stats.dns_responses++;
-			static auto dns_logger = spdlog::get(PROGRAM_NAME);
 
-			for (const auto &answer : dns.answers()) {
-				switch (answer.query_type()) {
-					case Tins::DNS::A:
-						if (log_a) {
-							packet_stats.logged_records++;
-							dns_logger->log(syslog_level, "{} reply A {} -> {}", source, answer.dname(), answer.data());
-						}
-						break;
-					case Tins::DNS::AAAA:
-						if (log_aaaa) {
-							packet_stats.logged_records++;
-							dns_logger->log(syslog_level, "{} reply AAAA {} -> {}", source, answer.dname(), answer.data());
-						}
-						break;
-					case Tins::DNS::CNAME:
-						if (log_cname) {
-							packet_stats.logged_records++;
-							dns_logger->log(syslog_level, "{} reply CNAME {} -> {}", source, answer.dname(), answer.data());
-						}
-						break;
-					case Tins::DNS::MX:
-						if (log_mx) {
-							packet_stats.logged_records++;
-							dns_logger->log(syslog_level, "{} reply MX {} -> {}", source, answer.dname(), answer.data());
-						}
-						break;
-					case Tins::DNS::PTR:
-						if (log_ptr) {
-							packet_stats.logged_records++;
-							dns_logger->log(syslog_level, "{} reply PTR {} -> {}", source, answer.dname(), answer.data());
-						}
-						break;
-					case Tins::DNS::TXT:
-						if (log_txt) {
-							packet_stats.logged_records++;
-							dns_logger->log(syslog_level, "{} reply TXT {} -> {}", source, answer.dname(), answer.data());
-						}
-						break;
-					default:
-						break;
+			// Check return code
+			ns_rcode rcode = static_cast<ns_rcode>(dns.rcode());
+			if (!rcode_enabled(rcode)) return 0; // rcode not enabled
+
+			static auto dns_logger = spdlog::get(PROGRAM_NAME);
+			if (rcode != ns_r_noerror) {
+				std::string rcode_str = rcode_to_string(rcode);
+
+				// Get query type from questions section
+				std::string qtype_str;
+				std::string qname;
+				const auto& queries = dns.queries();
+				if (!queries.empty()) {
+					Tins::DNS::QueryType qtype = queries[0].query_type();
+					qtype_str = qtype_to_string(qtype);
+					qname = queries[0].dname();
+				} else {
+					packet_stats.invalid_packets++;
+					return 0;
+				}
+
+				dns_logger->log(syslog_level, "{} reply {} {} -> {}", 
+					source, qtype_str, qname, rcode_str);
+				packet_stats.logged_errors++;
+
+			}
+
+			// Check for answers
+			for (const Tins::DNS::resource &answer : dns.answers()) {
+				if (qtype_enabled(static_cast<Tins::DNS::QueryType>(answer.query_type()))) {
+					std::string qtype_str = qtype_to_string(static_cast<Tins::DNS::QueryType>(answer.query_type()));
+					dns_logger->log(syslog_level, "{} reply {} {} -> {}", source, qtype_str, answer.dname(), answer.data());
+					packet_stats.logged_records++;
 				}
 			}
 		}
+
 	} catch (...) {
+		packet_stats.invalid_packets++;
 		// Ignore exceptions
 	}
 	return 0;
@@ -266,12 +317,18 @@ int main(int argc, char *argv[])
 	int setting_value = -1;
 
 	option longopts[] = {
-		{"a", required_argument, NULL, OPT_A},
-		{"aaaa", required_argument, NULL, OPT_AAAA},
-		{"cname", required_argument, NULL, OPT_CNAME},
-		{"mx", required_argument, NULL, OPT_MX},
-		{"ptr", required_argument, NULL, OPT_PTR},
-		{"txt", required_argument, NULL, OPT_TXT},
+		{"log-a", required_argument, NULL, OPT_A},
+		{"log-aaaa", required_argument, NULL, OPT_AAAA},
+		{"log-cname", required_argument, NULL, OPT_CNAME},
+		{"log-mx", required_argument, NULL, OPT_MX},
+		{"log-ptr", required_argument, NULL, OPT_PTR},
+		{"log-txt", required_argument, NULL, OPT_TXT},
+		{"log-noerror", required_argument, NULL, OPT_NOERROR},
+		{"log-formerr", required_argument, NULL, OPT_FORMERR},
+		{"log-servfail", required_argument, NULL, OPT_SERVFAIL},
+		{"log-nxdomain", required_argument, NULL, OPT_NXDOMAIN},
+		{"log-notimpl", required_argument, NULL, OPT_NOTIMPL},
+		{"log-refused", required_argument, NULL, OPT_REFUSED},
 		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
 		{"help", no_argument, NULL, 'h'},
@@ -289,20 +346,6 @@ int main(int argc, char *argv[])
 		}
 
 		switch (opt) {
-			case OPT_A:
-			case OPT_AAAA:
-			case OPT_CNAME:
-			case OPT_MX:
-			case OPT_PTR:
-			case OPT_TXT:
-				setting_value = parse_bool(optarg);
-				if (setting_value < 0) {
-					std::cerr << "Error: Bad --" << longopts[optindex].name << " value: " << optarg << std::endl;
-					return 1;
-				}
-				set_setting(static_cast<RecordOption>(opt), setting_value);
-				break;
-
 			case 'f':
 				syslog_facility = parse_syslog_code(optarg, facilitynames);
 				if (syslog_facility == -1) {
@@ -343,7 +386,18 @@ int main(int argc, char *argv[])
 				break;
 
 			default:
-				return 1;
+				// Try logging options
+				if (OPT_RECORDS_START < opt && opt < OPT_ERRORS_END) {
+					setting_value = parse_bool(optarg);
+					if (setting_value < 0) {
+						std::cerr << "Error: Bad --" << longopts[optindex].name << " value: " << optarg << std::endl;
+						return 1;
+					}
+					set_setting(static_cast<RecordOption>(opt), setting_value);
+				} else {
+					return 0;
+				}
+				break;
 		}
 	}
 

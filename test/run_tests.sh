@@ -21,6 +21,15 @@ declare -a PACKET_TYPES=(
 	txt
 )
 
+declare -a ERROR_TYPES=(
+	noerror
+	formerr
+	servfail
+	nxdomain
+	notimpl
+	refused
+)
+
 fail_count=0
 
 cleanup() {
@@ -47,6 +56,15 @@ cleanup() {
 }
 
 trap cleanup EXIT INT TERM
+
+verify_logging_options() {
+	echo "Verify logging options can be set to '${1}'... "
+	for LOGOPT in "${PACKET_TYPES[@]}" "${ERROR_TYPES[@]}"
+	do
+		"${DIR}/../nflog_dns" --log-"${LOGOPT}"="${1}" --help | grep -- "--log-${LOGOPT}=.*\(default: ${1}\)" || exit 1
+	done
+	echo "done"
+}
 
 send_packets() {
 	for TYPE in "${PACKET_TYPES[@]}"
@@ -94,7 +112,7 @@ send_stats() {
 # Send SIGUSR1 to nflog_dns to immediately output packet statistics; unused as for now.
 verify_stats() {
 	echo -n "Verify package statistics ... "
-	if grep -q "${LOGLEVEL}.* received_packets=${1} invalid_packets=${2} dns_responses=${3} logged_records=${4}" "${NFLOGTEMP}"
+	if grep -q "${LOGLEVEL}.* received_packets=${1} invalid_packets=${2} dns_responses=${3} logged_errors=${4} logged_records=${5}" "${NFLOGTEMP}"
 	then
 		echo "SUCCESS"
 	else
@@ -102,6 +120,10 @@ verify_stats() {
 			((fail_count++))
 	fi
 }
+
+# Verify cmdline logging options work
+verify_logging_options yes
+verify_logging_options no
 
 # Clean up iptables just in case
 iptables -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
@@ -137,7 +159,7 @@ echo "done"
 cat "${NFLOGTEMP}"
 
 verify_packets
-verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} ${#PACKET_TYPES[@]}
+verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]}
 
 rm -f "${NFLOGTEMP}"
 
@@ -146,7 +168,7 @@ rm -f "${NFLOGTEMP}"
 ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
 for TYPE in "${PACKET_TYPES[@]}"
 do
-	ARGS="--${TYPE}=no ${ARGS}"
+	ARGS="--log-${TYPE}=no ${ARGS}"
 done
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
@@ -163,7 +185,7 @@ NFLOGPID=""
 cat "${NFLOGTEMP}"
 
 verify_packets missing
-verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} 0
+verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} 0 0
 rm -f "${NFLOGTEMP}"
 
 ((fail_count > 0)) && exit 1 || echo

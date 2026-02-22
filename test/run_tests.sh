@@ -10,8 +10,8 @@ fi
 
 IP="172.31.53.123"
 DIR="$(dirname $(realpath "${0}"))"
-LOGLEVEL="trace"
 GROUP=$((RANDOM/2+1024))
+
 declare -a PACKET_TYPES=(
 	a
 	aaaa
@@ -20,17 +20,20 @@ declare -a PACKET_TYPES=(
 	ptr
 	txt
 )
-
 declare -a ERROR_TYPES=(
-	noerror
 	formerr
 	servfail
 	nxdomain
 	notimpl
 	refused
 )
-
-fail_count=0
+declare -a INVALID_TYPES=(
+	emptypacket
+	badip
+	malformed
+	noquestion
+	query
+)
 
 cleanup() {
     echo -n "Clean up ... "
@@ -64,10 +67,12 @@ verify_logging_options() {
 		"${DIR}/../nflog_dns" --log-"${LOGOPT}"="${1}" --help | grep -- "--log-${LOGOPT}=.*\(default: ${1}\)" || exit 1
 	done
 	echo "done"
+	echo
 }
 
 send_packets() {
-	for TYPE in "${PACKET_TYPES[@]}"
+	local -n array_ref=${1}
+	for TYPE in "${array_ref[@]}"
 	do
 		echo -n "Start UDP receiver ... "
 		exec 3< <(python3 "${DIR}/py/test_recv.py" "${IP}")
@@ -99,19 +104,37 @@ verify_packets() {
 	done
 }
 
-send_stats() {
+verify_errors() {
+	# Call with any argument to negate the tests
+	for TYPE in "${ERROR_TYPES[@]}"
+	do
+		[ -z "${1}" ] && LOGMSG="logged once" || LOGMSG="not logged"
+		echo -n "Verify ${TYPE^^} error was ${LOGMSG} ... "
+		HITCOUNT="$(grep -c "${LOGLEVEL}.* ${IP//./\.} reply A example\.com -> ${TYPE^^}" "${NFLOGTEMP}")"
+		if [ ${HITCOUNT} -eq 1 ] || [ -n "${1}" -a ${HITCOUNT} -eq 0 ]
+		then
+			echo "SUCCESS"
+		else
+			echo "FAIL"
+			((fail_count++))
+		fi
+	done
+}
+
+send_sigusr1() {
 	echo -n "Send SIGUSR1 to nflog_dns to log packet statistics ... "
 	if kill -USR1 ${NFLOGPID}
 	then
-		echo "done"
+		echo "SUCCESS"
 	else
-		echo "failed"
+		echo "FAIL"
+		((fail_count++))
 	fi
 }
 
 # Send SIGUSR1 to nflog_dns to immediately output packet statistics; unused as for now.
 verify_stats() {
-	echo -n "Verify package statistics ... "
+	echo -n "Verify package statistics ${@} ... "
 	if grep -q "${LOGLEVEL}.* received_packets=${1} invalid_packets=${2} dns_responses=${3} logged_errors=${4} logged_records=${5}" "${NFLOGTEMP}"
 	then
 		echo "SUCCESS"
@@ -120,6 +143,8 @@ verify_stats() {
 			((fail_count++))
 	fi
 }
+
+fail_count=0
 
 # Verify cmdline logging options work
 verify_logging_options yes
@@ -144,13 +169,35 @@ iptables -I INPUT 1 -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger
 echo "done"
 
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"
+
+LOGLEVEL="trace"
 ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 
-send_packets
+sleep 1
+send_sigusr1
+sleep 2
+cat "${NFLOGTEMP}"
+verify_stats 0 0 0 0 0
+
+echo -n "Stop nflog_dns ... "
+kill -HUP "${NFLOGPID}"
+echo "done"
+rm -f "${NFLOGTEMP}"
+
+((fail_count > 0)) && exit 1 || echo
+
+LOGLEVEL="debug"
+ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
+echo -n "Start nflog_dns ${ARGS} ... "
+"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
+NFLOGPID="${!}"
+echo "PID ${NFLOGPID}"
+
+send_packets PACKET_TYPES
 sleep 2
 
 echo -n "Stop nflog_dns ... "
@@ -159,12 +206,14 @@ echo "done"
 cat "${NFLOGTEMP}"
 
 verify_packets
+verify_errors missing
 verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]}
 
 rm -f "${NFLOGTEMP}"
 
 ((fail_count > 0)) && exit 1 || echo
 
+LOGLEVEL="info"
 ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
 for TYPE in "${PACKET_TYPES[@]}"
 do
@@ -175,7 +224,7 @@ echo -n "Start nflog_dns ${ARGS} ... "
 NFLOGPID="${!}"
 echo "PID ${NFLOGPID}"
 
-send_packets
+send_packets PACKET_TYPES
 sleep 2
 
 echo -n "Stop nflog_dns ... "
@@ -185,7 +234,76 @@ NFLOGPID=""
 cat "${NFLOGTEMP}"
 
 verify_packets missing
+verify_errors missing
 verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} 0 0
 rm -f "${NFLOGTEMP}"
 
+((fail_count > 0)) && exit 1 || echo
+
+LOGLEVEL="warning"
+ARGS="--log-noerror=no --group=${GROUP} --level=${LOGLEVEL}" 
+echo -n "Start nflog_dns ${ARGS} ... "
+"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
+NFLOGPID="${!}"
+echo "PID ${NFLOGPID}"
+
+send_packets PACKET_TYPES
+sleep 2
+
+echo -n "Stop nflog_dns ... "
+kill -HUP "${NFLOGPID}"
+echo "done"
+NFLOGPID=""
+cat "${NFLOGTEMP}"
+
+verify_packets missing
+verify_errors missing
+verify_stats ${#PACKET_TYPES[@]} 0 ${#PACKET_TYPES[@]} 0 0
+rm -f "${NFLOGTEMP}"
+
+((fail_count > 0)) && exit 1 || echo
+
+LOGLEVEL="error"
+ARGS="--log-a=yes --group=${GROUP} --level=${LOGLEVEL}" 
+for TYPE in "${ERROR_TYPES[@]}"
+do
+	ARGS="--log-${TYPE}=yes ${ARGS}"
+done
+echo -n "Start nflog_dns ${ARGS} ... "
+"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
+NFLOGPID="${!}"
+echo "PID ${NFLOGPID}"
+
+send_packets ERROR_TYPES
+sleep 2
+
+echo -n "Stop nflog_dns ... "
+kill -HUP "${NFLOGPID}"
+echo "done"
+NFLOGPID=""
+cat "${NFLOGTEMP}"
+
+verify_errors
+verify_stats ${#ERROR_TYPES[@]} 0 ${#ERROR_TYPES[@]} ${#ERROR_TYPES[@]}  0
+rm -f "${NFLOGTEMP}"
+((fail_count > 0)) && exit 1 || echo
+
+LOGLEVEL="critical"
+ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
+echo -n "Start nflog_dns ${ARGS} ... "
+"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
+NFLOGPID="${!}"
+echo "PID ${NFLOGPID}"
+
+send_packets INVALID_TYPES
+sleep 2
+
+echo -n "Stop nflog_dns ... "
+kill -HUP "${NFLOGPID}"
+echo "done"
+NFLOGPID=""
+cat "${NFLOGTEMP}"
+
+verify_stats ${#ERROR_TYPES[@]} ${#ERROR_TYPES[@]} 0 0 0
+rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo

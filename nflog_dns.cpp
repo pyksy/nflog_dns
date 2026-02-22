@@ -80,7 +80,7 @@ void print_help(char* prgname) {
 	std::cout << "      --log-mx=BOOL        MX record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::MX)) << ")" << std::endl;
 	std::cout << "      --log-ptr=BOOL       PTR record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::PTR)) << ")" << std::endl;
 	std::cout << "      --log-txt=BOOL       TXT record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::TXT)) << ")" << std::endl;
-	std::cout << "      --log-noerror=BOOL   NOERROR error logging (default: " << bool_to_string(rcode_enabled(ns_r_noerror)) << ")" << std::endl;
+	std::cout << "      --log-noerror=BOOL   NOERROR replies logging (default: " << bool_to_string(rcode_enabled(ns_r_noerror)) << ")" << std::endl;
 	std::cout << "      --log-formerr=BOOL   FORMERR error logging (default: " << bool_to_string(rcode_enabled(ns_r_formerr)) << ")" << std::endl;
 	std::cout << "      --log-servfail=BOOL  SERVFAIL error logging (default: " << bool_to_string(rcode_enabled(ns_r_servfail)) << ")" << std::endl;
 	std::cout << "      --log-nxdomain=BOOL  NXDOMAIN error logging (default: " << bool_to_string(rcode_enabled(ns_r_nxdomain)) << ")" << std::endl;

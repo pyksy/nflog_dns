@@ -73,7 +73,7 @@ Extract DNS replies from NFLOG group
       --log-mx=BOOL        MX record logging (default: yes)
       --log-ptr=BOOL       PTR record logging (default: yes)
       --log-txt=BOOL       TXT record logging (default: yes)
-      --log-noerror=BOOL   NOERROR error logging (default: yes)
+      --log-noerror=BOOL   NOERROR replies logging (default: yes)
       --log-formerr=BOOL   FORMERR error logging (default: no)
       --log-servfail=BOOL  SERVFAIL error logging (default: no)
       --log-nxdomain=BOOL  NXDOMAIN error logging (default: no)

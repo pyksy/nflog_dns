@@ -31,7 +31,7 @@ Set log level for syslog logging (default: info).
 Valid levels: trace, debug, info, warn, error, critical.
 .TP
 .BR \-h ", " \-\-help
-Display help message and exit.
+Display help message, including default logging options, and exit.
 .TP
 .BR \-v ", " \-\-version
 Display version information and exit.
@@ -55,7 +55,7 @@ Enable or disable logging of PTR (reverse DNS) records.
 Enable or disable logging of TXT (text) records.
 .TP
 .BR \-\-log\-noerror=\fIBOOL\fR
-Enable or disable logging of NOERROR (no error) replies. Disabling this disables logging any records.
+Enable or disable logging of NOERROR (no error) replies. Disabling this option will disable logging of any successful DNS replies.
 .TP
 .BR \-\-log\-formerr=\fIBOOL\fR
 Enable or disable logging of FORMERR (format error) replies.

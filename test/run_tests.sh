@@ -20,6 +20,9 @@ declare -a PACKET_TYPES=(
 	ptr
 	txt
 )
+declare -a NOERROR_TYPES=(
+	noerror
+)
 declare -a ERROR_TYPES=(
 	formerr
 	servfail
@@ -34,7 +37,6 @@ declare -a INVALID_TYPES=(
 	noquestion
 	query
 )
-
 cleanup() {
     echo -n "Clean up ... "
     # Kill nflog_dns if running
@@ -62,7 +64,7 @@ trap cleanup EXIT INT TERM
 
 verify_logging_options() {
 	echo "Verify logging options can be set to '${1}'... "
-	for LOGOPT in "${PACKET_TYPES[@]}" "${ERROR_TYPES[@]}"
+	for LOGOPT in "${PACKET_TYPES[@]}" "${NOERROR_TYPES[@]}" "${ERROR_TYPES[@]}"
 	do
 		"${DIR}/../nflog_dns" --log-"${LOGOPT}"="${1}" --help | grep -- "--log-${LOGOPT}=.*\(default: ${1}\)" || exit 1
 	done
@@ -186,6 +188,7 @@ verify_stats 0 0 0 0 0
 echo -n "Stop nflog_dns ... "
 kill -HUP "${NFLOGPID}"
 echo "done"
+NFLOGPID=""
 rm -f "${NFLOGTEMP}"
 
 ((fail_count > 0)) && exit 1 || echo
@@ -203,6 +206,7 @@ sleep 2
 echo -n "Stop nflog_dns ... "
 kill -HUP "${NFLOGPID}"
 echo "done"
+NFLOGPID=""
 cat "${NFLOGTEMP}"
 
 verify_packets
@@ -264,6 +268,33 @@ rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo
 
 LOGLEVEL="error"
+ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
+for TYPE in "${ERROR_TYPES[@]}"
+do
+	ARGS="--log-${TYPE}=no ${ARGS}"
+done
+echo -n "Start nflog_dns ${ARGS} ... "
+"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
+NFLOGPID="${!}"
+echo "PID ${NFLOGPID}"
+
+send_packets ERROR_TYPES
+sleep 2
+
+echo -n "Stop nflog_dns ... "
+kill -HUP "${NFLOGPID}"
+echo "done"
+NFLOGPID=""
+cat "${NFLOGTEMP}"
+
+verify_packets missing
+verify_errors missing
+verify_stats ${#ERROR_TYPES[@]} 0 ${#ERROR_TYPES[@]} 0 0
+rm -f "${NFLOGTEMP}"
+
+((fail_count > 0)) && exit 1 || echo
+
+LOGLEVEL="critical"
 ARGS="--log-a=yes --group=${GROUP} --level=${LOGLEVEL}" 
 for TYPE in "${ERROR_TYPES[@]}"
 do
@@ -288,7 +319,7 @@ verify_stats ${#ERROR_TYPES[@]} 0 ${#ERROR_TYPES[@]} ${#ERROR_TYPES[@]}  0
 rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo
 
-LOGLEVEL="critical"
+LOGLEVEL="trace"
 ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
@@ -304,6 +335,6 @@ echo "done"
 NFLOGPID=""
 cat "${NFLOGTEMP}"
 
-verify_stats ${#ERROR_TYPES[@]} ${#ERROR_TYPES[@]} 0 0 0
+verify_stats ${#INVALID_TYPES[@]} ${#INVALID_TYPES[@]} 0 0 0
 rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo

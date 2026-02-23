@@ -137,7 +137,7 @@ elif PACKET_TYPE == 'QUERY':
 else:
     print(f"Error: '{PACKET_TYPE}' is not a valid PACKET_TYPE. It can be")
     print(f"a reply: 'A', 'AAAA', 'CNAME', 'MX', 'PTR', 'TXT';")
-    print(f"an error: 'FORMERR', 'SERVFAIL', 'NXDOMAIN', 'NOTIMP', 'REFUSED';")
+    print(f"an error: 'FORMERR', 'SERVFAIL', 'NXDOMAIN', 'NOTIMPL', 'REFUSED';")
     print(f"invalid: 'EMPTYPACKET', 'BADIP', 'MALFORMED', 'NOQUESTION', 'QUERY'.")
     sys.exit(1)
 

@@ -221,8 +221,6 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	}
 	Tins::RawPDU rpdu = Tins::RawPDU(payload, payload_len);
 	Tins::DNS dns;
-	Tins::IP ip;
-	Tins::IPv6 ipv6;
 	std::string source;
 
 	// Minimum valid payload length (IP + UDP + DNS header)
@@ -239,11 +237,11 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 
 	try {
 		if (ip_version == 4) {
-			ip = rpdu.to<Tins::IP>();
+			Tins::IP ip = rpdu.to<Tins::IP>();
 			dns = ip.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
 			source = ip.src_addr().to_string();
 		} else if (ip_version == 6) {
-			ipv6 = rpdu.to<Tins::IPv6>();
+			Tins::IPv6 ipv6 = rpdu.to<Tins::IPv6>();
 			dns = ipv6.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
 			source = ipv6.src_addr().to_string();
 		} else {
@@ -275,6 +273,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 				const auto& queries = dns.queries();
 				if (!queries.empty()) {
 					Tins::DNS::QueryType qtype = queries[0].query_type();
+					if (!qtype_enabled(qtype)) return 0;
 					qtype_str = qtype_to_string(qtype);
 					qname = queries[0].dname();
 				} else {
@@ -395,7 +394,7 @@ int main(int argc, char *argv[])
 					}
 					set_setting(static_cast<RecordOption>(opt), setting_value);
 				} else {
-					return 0;
+					return 1;
 				}
 				break;
 		}

@@ -1,4 +1,4 @@
-.TH NFLOG_DNS 1 "2025" "nflog_dns" "User Commands"
+.TH NFLOG_DNS 8 "2025" "nflog_dns" "User Commands"
 .SH NAME
 nflog_dns \- extract and log DNS replies from NFLOG netfilter group
 .SH SYNOPSIS
@@ -55,7 +55,7 @@ Enable or disable logging of PTR (reverse DNS) records.
 Enable or disable logging of TXT (text) records.
 .TP
 .BR \-\-log\-noerror=\fIBOOL\fR
-Enable or disable logging of NOERROR (no error) replies. Disabling this option will disable logging of any successful DNS replies.
+Enable or disable logging of NOERROR (no error) replies. When disabled, successful DNS replies are not logged regardless of individual record type settings.
 .TP
 .BR \-\-log\-formerr=\fIBOOL\fR
 Enable or disable logging of FORMERR (format error) replies.
@@ -67,7 +67,7 @@ Enable or disable logging of SERVFAIL (server failure) replies.
 Enable or disable logging of NXDOMAIN (name error) replies.
 .TP
 .BR \-\-log\-notimpl=\fIBOOL\fR
-Enable or disable logging of NOTIMPL (unimplemented) replies.
+Enable or disable logging of NOTIMPL (not implemented) replies.
 .TP
 .BR \-\-log\-refused=\fIBOOL\fR
 Enable or disable logging of REFUSED (operation refused) replies.
@@ -93,7 +93,7 @@ sudo nflog_dns \-\-syslog \-\-facility=daemon \-\-level=warn
 Log only A and AAAA records from NFLOG group 100:
 .RS
 .nf
-sudo nflog_dns \-g 100 \-\-cname=no \-\-mx=no \-\-ptr=no \-\-txt=no
+sudo nflog_dns \-g 100 \-\-log\-cname=no \-\-log\-mx=no \-\-log\-ptr=no \-\-log\-txt=no
 .fi
 .RE
 .SH IPTABLES SETUP
@@ -143,11 +143,24 @@ DNS records logged (accounting for record type filters)
 Example output:
 .RS
 .nf
-Statistics: received_packets=1523 invalid_packets=2 dns_responses=1521 logged_records=3042
+Statistics: received_packets=1523 invalid_packets=2 dns_responses=1441 logged_errors=80 logged_records=3042
 .fi
 .RE
 .PP
 Final statistics are automatically logged when nflog_dns exits.
+.SH SIGNALS
+.TP
+.B SIGTERM
+Gracefully stop nflog_dns. Final statistics are logged before exit.
+.TP
+.B SIGHUP
+Same as SIGTERM. Used by the init system to stop the service.
+.TP
+.B SIGINT
+Same as SIGTERM. Triggered by Ctrl+C when running interactively.
+.TP
+.B SIGUSR1
+Log current packet statistics without interrupting operation.
 .SH FILES
 .TP
 .I /etc/default/nflog_dns

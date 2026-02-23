@@ -18,10 +18,10 @@ INSTALL_SYSTEMD ?= 1
 SOURCES = config.cpp nflog_dns.cpp
 HEADERS = config.h version.h
 
+all: nflog_dns
+
 nflog_dns: $(SOURCES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(LDFLAGS) $(SOURCES) $(LIBS) -o $@
-
-all: nflog_dns
 
 deb:
 	dpkg-buildpackage -us -uc -b
@@ -71,8 +71,8 @@ install-bin-strip:
 	install -s -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
 
 install-man:
-	install -Dm644 "man1/nflog_dns.1" "$(DESTDIR)$(PREFIX)/share/man/man1/nflog_dns.1"
-	gzip -f "$(DESTDIR)$(PREFIX)/share/man/man1/nflog_dns.1"
+	install -Dm644 "man8/nflog_dns.8" "$(DESTDIR)$(PREFIX)/share/man/man8/nflog_dns.8"
+	gzip -f "$(DESTDIR)$(PREFIX)/share/man/man8/nflog_dns.8"
 
 install-init:
 ifeq ($(INSTALL_SYSVINIT),1)
@@ -89,7 +89,7 @@ endif
 CONFIG_FILES := default/nflog_dns
 install-config:
 	$(foreach file, $(CONFIG_FILES), \
-		test -e "$(DESTDIR)$(ETCDIR)/$(file)" || install -v -Dm644 "$(file)" "$(DESTDIR)$(ETCDIR)/$(file)";)
+		test -e "$(DESTDIR)$(ETCDIR)/$(file)" || install -v -Dm644 "$(file)" "$(DESTDIR)$(ETCDIR)/$(file)" || exit 1;)
 
 install-files: install-init install-systemd install-config
 
@@ -101,7 +101,7 @@ uninstall-bin:
 	rm -f "$(DESTDIR)$(SBINDIR)/nflog_dns"
 
 uninstall-man:
-	rm -f "$(DESTDIR)$(PREFIX)/share/man/man1/nflog_dns.1.gz"
+	rm -f "$(DESTDIR)$(PREFIX)/share/man/man8/nflog_dns.8.gz"
 
 uninstall-init:
 ifeq ($(INSTALL_SYSVINIT),1)
@@ -121,7 +121,7 @@ uninstall-files: uninstall-init uninstall-systemd uninstall-config
 
 uninstall: uninstall-bin uninstall-man uninstall-files
 
-.PHONY: all deb rpm \
+.PHONY: all nflog_dns deb rpm \
 	clean distclean \
 	run-tests test check \
 	install-bin install-bin-strip \

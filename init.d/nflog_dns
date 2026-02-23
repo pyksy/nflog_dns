@@ -26,7 +26,7 @@ source /lib/lsb/init-functions
 [ -x "${DAEMON}" ] || exit 5
 
 check_running() {
-	status_of_proc "${DAEMON}" "${DESC}" > /dev/null && return 0 || return 1
+	status_of_proc "${DAEMON}" "${NAME}" > /dev/null && return 0 || return 1
 }
 
 start_nflog_dns() {
@@ -80,12 +80,7 @@ case "${1}" in
 	;;
 	restart)
 		stop_nflog_dns
-		# Wait for process to actually exit
-		for i in {1..10}; do
-			status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" >/dev/null 2>&1 || break
-			sleep 1
-		done
-		start_nflog_dns
+		start_nflog_dns || exit ${?}
 	;;
 	status)
 		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}"

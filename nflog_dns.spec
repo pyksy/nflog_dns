@@ -41,7 +41,7 @@ The tool binds to an NFLOG group and logs received DNS response records
 %license LICENSE
 %doc README.md
 %{_sbindir}/nflog_dns
-%{_mandir}/man1/nflog_dns.1.gz
+%{_mandir}/man8/nflog_dns.8.gz
 %{_unitdir}/nflog_dns.service
 %config(noreplace) %{_sysconfdir}/default/nflog_dns
 

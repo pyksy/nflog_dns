@@ -74,25 +74,18 @@ echo '#define PROGRAM_VERSION "'"${RELEASE}"'"' | tee version.h
 
 # Update DEB changelog
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-rm -f debian/changelog.dch
 if [ -n "$LAST_TAG" ]; then
 	echo "Extracting changes since $LAST_TAG..."
 
-	# Create new changelog entry
-	dch -v ${RELEASE}-1 --distribution unstable "" || exit 1
+	mapfile -t COMMITS < <(git log ${LAST_TAG}..HEAD --pretty=format:"%s" --no-merges | grep -v "^Release version ")
 
-	# Get commit messages since last tag and add them
-	git log ${LAST_TAG}..HEAD --pretty=format:"%s" --no-merges | while IFS= read -r line
-	do
-		# Skip empty lines
-		if [ -n "$line" ]; then
-			dch --append "$line" || exit 1
-		fi
-	done
-
-	# If no commits found, add a generic entry
-	if ! git log ${LAST_TAG}..HEAD --oneline --no-merges | grep -q .; then
-		dch --append "No changes found." || exit 1
+	if [ ${#COMMITS[@]} -eq 0 ]; then
+		dch -v ${RELEASE}-1 --distribution unstable "No changes found." || exit 1
+	else
+		dch -v ${RELEASE}-1 --distribution unstable "${COMMITS[-1]}" || exit 1
+		for (( i=${#COMMITS[@]}-2; i>=0; i-- )); do
+			[ -n "${COMMITS[$i]}" ] && { dch --append "${COMMITS[$i]}" || exit 1; }
+		done
 	fi
 else
 	echo "Initial release."
@@ -110,9 +103,9 @@ if [ -f nflog_dns.spec ]; then
 
 	# Get commits or use default
 	if [ -n "$LAST_TAG" ] && git log ${LAST_TAG}..HEAD --oneline --no-merges | grep -q .; then
-	    CHANGES=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+		CHANGES=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
 	else
-	    CHANGES="- Release version ${RELEASE}"
+		CHANGES="- Release version ${RELEASE}"
 	fi
 
 	# Insert into spec file

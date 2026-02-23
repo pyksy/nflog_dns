@@ -1,5 +1,6 @@
 nflog-dns (0.999.1-1) unstable; urgency=medium
 
+  * Misc fixes
 
  -- Antti Kultanen <antti.kultanen@molukki.com>  Mon, 23 Feb 2026 21:27:45 +0200
 
@@ -7,6 +8,7 @@ nflog-dns (0.999.0-1) unstable; urgency=medium
 
   * Update manpage
   * Update tests
+  * Add DNS error logging and overhaul the options and settings parsing
 
  -- Antti Kultanen <antti.kultanen@molukki.com>  Mon, 23 Feb 2026 00:19:00 +0200
 
@@ -19,6 +21,7 @@ nflog-dns (0.99.3-1) unstable; urgency=medium
   * Add signal handler and graceful exit with stats
   * Add statistics (trigger with SIGUSR1)
   * Update readme
+  * Fixes to release script
 
  -- Antti Kultanen <antti.kultanen@molukki.com>  Thu, 19 Feb 2026 23:17:27 +0200
 
@@ -37,6 +40,7 @@ nflog-dns (0.99.2-1) unstable; urgency=medium
   * Fix TXT copypasta error
   * Add nftables examples
   * Add man page
+  * Verify payload minimum length
 
  -- Antti Kultanen <antti.kultanen@molukki.com>  Tue, 10 Feb 2026 22:04:29 +0200
 
@@ -44,6 +48,7 @@ nflog-dns (0.99.1-1) unstable; urgency=medium
 
   * Parse IP packet version from payload instead of always trying and
     catching v4 first
+  * Update readme
 
  -- Antti Kultanen <antti.kultanen@molukki.com>  Sun, 08 Feb 2026 20:22:21 +0200
 
@@ -59,6 +64,7 @@ nflog-dns (0.99.0-1) unstable; urgency=medium
   * Fix RPM .spec
   * Autogenerate RPM dependencies
   * misc RPM fixes
+  * Update tests
 
  -- Antti Kultanen <antti.kultanen@molukki.com>  Sat, 07 Feb 2026 10:51:48 +0200
 
@@ -75,6 +81,7 @@ nflog-dns (0.9.999-1) unstable; urgency=medium
   * Repair debian/changelog
   * Fixes to release script
   * Add .gitignore
+  * Minor fixes
 
  -- Antti Kultanen <antti.kultanen@molukki.com>  Wed, 14 Jan 2026 12:15:34 +0200
 

@@ -1,3 +1,10 @@
+nflog-dns (0.999.2-1) unstable; urgency=medium
+
+  * Really fix the release script and add missing debian/changelog
+    entries
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Mon, 23 Feb 2026 22:04:51 +0200
+
 nflog-dns (0.999.1-1) unstable; urgency=medium
 
   * Misc fixes

@@ -1,3 +1,8 @@
+nflog-dns (0.999.1-1) unstable; urgency=medium
+
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Mon, 23 Feb 2026 21:27:45 +0200
+
 nflog-dns (0.999.0-1) unstable; urgency=medium
 
   * Update manpage

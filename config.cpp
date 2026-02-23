@@ -13,13 +13,13 @@ std::unordered_set<Tins::DNS::QueryType> enabled_qtypes = {
     Tins::DNS::PTR,
     Tins::DNS::TXT
 };
-bool qtype_enabled(Tins::DNS::QueryType qtype) {
+bool qtype_enabled(const Tins::DNS::QueryType qtype) {
     return enabled_qtypes.find(qtype) != enabled_qtypes.end();
 }
-void enable_qtype(Tins::DNS::QueryType qtype) {
+void enable_qtype(const Tins::DNS::QueryType qtype) {
     enabled_qtypes.insert(qtype);
 }
-void disable_qtype(Tins::DNS::QueryType qtype) {
+void disable_qtype(const Tins::DNS::QueryType qtype) {
     enabled_qtypes.erase(qtype);
 }
 
@@ -32,12 +32,12 @@ std::unordered_set<ns_rcode> enabled_rcodes = {
     // ns_r_notimpl
     // ns_r_refused
 };
-bool rcode_enabled(ns_rcode rcode) {
+bool rcode_enabled(const ns_rcode rcode) {
     return enabled_rcodes.find(rcode) != enabled_rcodes.end();
 }
-void enable_rcode(ns_rcode rcode) {
+void enable_rcode(const ns_rcode rcode) {
     enabled_rcodes.insert(rcode);
 }
-void disable_rcode(ns_rcode rcode) {
+void disable_rcode(const ns_rcode rcode) {
     enabled_rcodes.erase(rcode);
 }

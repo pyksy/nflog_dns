@@ -38,7 +38,7 @@ struct Stats {
     uint64_t logged_errors = 0;
 } packet_stats;
 
-std::string bool_to_string(bool value) {
+std::string bool_to_string(const bool value) {
 	return value ? "yes" : "no";
 }
 
@@ -149,7 +149,7 @@ int parse_bool(const char *str) {
 	return -1;
 }
 
-void set_setting(RecordOption opt, bool setting_value) {
+void set_setting(const RecordOption opt, const bool setting_value) {
 	if (OPT_RECORDS_START < opt && opt < OPT_RECORDS_END) {
 		Tins::DNS::QueryType qtype;
 		switch (opt) {
@@ -183,7 +183,7 @@ void set_setting(RecordOption opt, bool setting_value) {
 	}
 }
 
-std::string qtype_to_string(Tins::DNS::QueryType queryType) {
+std::string qtype_to_string(const Tins::DNS::QueryType queryType) {
 	switch (queryType) {
 		case Tins::DNS::A: return "A"; break;
 		case Tins::DNS::AAAA: return "AAAA"; break;
@@ -195,7 +195,7 @@ std::string qtype_to_string(Tins::DNS::QueryType queryType) {
 	}
 }
 
-std::string rcode_to_string(ns_rcode rcode) {
+std::string rcode_to_string(const ns_rcode rcode) {
 	switch (rcode) {
 		case ns_r_noerror: return "NOERROR"; break;
 		case ns_r_formerr: return "FORMERR"; break;
@@ -212,14 +212,13 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	struct nflog_data *ldata,
 	void *data __attribute__((unused)))
 {
-	uint32_t payload_len;
 	uint8_t* payload;
-	payload_len = nflog_get_payload(ldata, (char **)(&payload));
+	const uint32_t payload_len = nflog_get_payload(ldata, (char **)(&payload));
 	if (!payload || payload_len < 1) {
 		packet_stats.invalid_packets++;
 		return 0;
 	}
-	Tins::RawPDU rpdu = Tins::RawPDU(payload, payload_len);
+	const Tins::RawPDU rpdu = Tins::RawPDU(payload, payload_len);
 	Tins::DNS dns;
 	std::string source;
 
@@ -249,7 +248,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 			packet_stats.invalid_packets++;
 			return 0;
 		}
-	} catch (Tins::malformed_packet&) {
+	} catch (const std::exception&) {
 		// Malformed packet, ignore
 		packet_stats.invalid_packets++;
 		return 0;
@@ -260,7 +259,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 			packet_stats.dns_responses++;
 
 			// Check return code
-			ns_rcode rcode = static_cast<ns_rcode>(dns.rcode());
+			const ns_rcode rcode = static_cast<ns_rcode>(dns.rcode());
 			if (!rcode_enabled(rcode)) return 0; // rcode not enabled
 
 			static auto dns_logger = spdlog::get(PROGRAM_NAME);
@@ -272,7 +271,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 				std::string qname;
 				const auto& queries = dns.queries();
 				if (!queries.empty()) {
-					Tins::DNS::QueryType qtype = queries[0].query_type();
+					const Tins::DNS::QueryType qtype = queries[0].query_type();
 					if (!qtype_enabled(qtype)) return 0;
 					qtype_str = qtype_to_string(qtype);
 					qname = queries[0].dname();
@@ -290,7 +289,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 			// Check for answers
 			for (const Tins::DNS::resource &answer : dns.answers()) {
 				if (qtype_enabled(static_cast<Tins::DNS::QueryType>(answer.query_type()))) {
-					std::string qtype_str = qtype_to_string(static_cast<Tins::DNS::QueryType>(answer.query_type()));
+					const std::string qtype_str = qtype_to_string(static_cast<Tins::DNS::QueryType>(answer.query_type()));
 					dns_logger->log(syslog_level, "{} reply {} {} -> {}", source, qtype_str, answer.dname(), answer.data());
 					packet_stats.logged_records++;
 				}
@@ -315,7 +314,7 @@ int main(int argc, char *argv[])
 	int optindex = 0;
 	int setting_value = -1;
 
-	option longopts[] = {
+	const option longopts[] = {
 		{"log-a", required_argument, NULL, OPT_A},
 		{"log-aaaa", required_argument, NULL, OPT_AAAA},
 		{"log-cname", required_argument, NULL, OPT_CNAME},
@@ -445,7 +444,7 @@ int main(int argc, char *argv[])
 	dns_logger->log(syslog_level, "DNS logging initialized for NFLOG group {}", group);
 
 	nflog_callback_register(qh, &callback, NULL);
-	int fd = nflog_fd(h);
+	const int fd = nflog_fd(h);
 
 	// Setup signal handlers
 	struct sigaction sa;

@@ -29,7 +29,8 @@ extern "C" {
 	#include <libnetfilter_log/libnetfilter_log.h>
 }
 
-volatile sig_atomic_t exit_program = 0;
+volatile sig_atomic_t exit_program_flag = 0;
+volatile sig_atomic_t log_stats_flag = 0;
 
 struct Stats {
     uint64_t invalid_packets = 0;
@@ -102,9 +103,9 @@ void log_stats() {
 
 void signal_handler(int signum) {
     if (signum == SIGUSR1) {
-		log_stats();
+		log_stats_flag = 1;
 	} else if (signum == SIGTERM || signum == SIGHUP || signum == SIGINT) {
-        exit_program = 1;
+        exit_program_flag = 1;
     }
 }
 
@@ -213,7 +214,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	void *data __attribute__((unused)))
 {
 	uint8_t* payload;
-	const uint32_t payload_len = nflog_get_payload(ldata, (char **)(&payload));
+	const int payload_len = nflog_get_payload(ldata, (char **)(&payload));
 	if (!payload || payload_len < 1) {
 		packet_stats.invalid_packets++;
 		return 0;
@@ -228,8 +229,8 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 
 	// Get IP version from payload and verify minimum length
 	uint8_t ip_version = (payload[0] >> 4) & 0x0F;
-	if ((ip_version == 4 && payload_len < MIN_IPV4_DNS_LENGTH) ||
-	    (ip_version == 6 && payload_len < MIN_IPV6_DNS_LENGTH)) {
+	if ((ip_version == 4 && static_cast<size_t>(payload_len) < MIN_IPV4_DNS_LENGTH) ||
+	    (ip_version == 6 && static_cast<size_t>(payload_len) < MIN_IPV6_DNS_LENGTH)) {
 		packet_stats.invalid_packets++;
 		return 0;
 	}
@@ -248,7 +249,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 			packet_stats.invalid_packets++;
 			return 0;
 		}
-	} catch (const std::exception&) {
+	} catch (...) {
 		// Malformed packet, ignore
 		packet_stats.invalid_packets++;
 		return 0;
@@ -458,8 +459,13 @@ int main(int argc, char *argv[])
 	sigaction(SIGINT, &sa, NULL);
 
 	// Enter packet handling loop
-	while (!exit_program) {
+	while (!exit_program_flag) {
 		rv = recv(fd, buf, sizeof(buf), 0);
+
+		if (log_stats_flag) {
+			log_stats_flag = 0;
+			log_stats();
+		}
 
 		if (rv > 0) {
 			nflog_handle_packet(h, buf, rv);	

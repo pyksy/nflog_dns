@@ -1,1 +1,8 @@
 nflog_dns
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/nflog-dns/
+debian/nflog-dns.substvars
+debian/files
+debian/nflog-dns.postrm.debhelper
+nflog_dns.spec.new

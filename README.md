@@ -31,6 +31,7 @@ nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries
 1. sudo ./start.sh
 2. sudo ./nflog_dns
 3. Make some DNS queries and observe the extracted names and IPs
+4. sudo ./stop.sh
 
 # build deb package
 

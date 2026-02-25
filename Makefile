@@ -57,10 +57,13 @@ clean: clean-bin clean-deb clean-rpm
 
 distclean: clean
 
-run-tests:
-	bash ./test/run_tests.sh
+run-tests-ipv4:
+	bash ./test/run_tests.sh ipv4
 
-test: run-tests
+run-tests-ipv6:
+	bash ./test/run_tests.sh ipv6
+
+test: run-tests-ipv4 run-tests-ipv6
 
 check: test
 
@@ -121,9 +124,9 @@ uninstall-files: uninstall-init uninstall-systemd uninstall-config
 
 uninstall: uninstall-bin uninstall-man uninstall-files
 
-.PHONY: all nflog_dns deb rpm \
+.PHONY: all deb rpm \
 	clean distclean \
-	run-tests test check \
+	run-tests-ipv4 run-tests-ipv6 test check \
 	install-bin install-bin-strip \
 	install-man \
 	install-init install-systemd install-config install-files \

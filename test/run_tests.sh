@@ -8,7 +8,19 @@ if [[ "${EUID}" -ne 0 ]]; then
 	exit 1
 fi
 
-IP="172.31.53.123"
+if [ "${1}" = "ipv4" ] || [ "${1}" = "4" ]
+then
+	IP="172.31.53.123"
+	IPTABLES="iptables"
+elif [ "${1}" = "ipv6" ] || [ "${1}" = "6" ]
+then
+	IP="fd53::1"
+	IPTABLES="ip6tables"
+else
+	echo "Usage: $0 <ipv4|ipv6>"
+	exit 1
+fi
+
 DIR="$(dirname $(realpath "${0}"))"
 GROUP=$((RANDOM/2+1024))
 
@@ -47,15 +59,15 @@ cleanup() {
     rm -f "${NFLOGTEMP}" 2>/dev/null
 	echo "done"
 
-	echo -n "Tear down iptables ... "
-    iptables -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
-    iptables -F nflog_dns_logger 2>/dev/null
-    iptables -X nflog_dns_logger 2>/dev/null
+	echo -n "Tear down ${IPTABLES} ... "
+    ${IPTABLES} -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
+    ${IPTABLES} -F nflog_dns_logger 2>/dev/null
+    ${IPTABLES} -X nflog_dns_logger 2>/dev/null
 	echo "done"
 
 	echo -n "Tear down dummy interface ... "
     ip link set down dev nflog0 2>/dev/null
-    ip addr del "${IP}"/32 dev nflog0 2>/dev/null
+    ip addr del "${IP}" dev nflog0 2>/dev/null
     ip link del nflog0 2>/dev/null
 	echo "done"
 }
@@ -153,21 +165,21 @@ verify_logging_options yes
 verify_logging_options no
 
 # Clean up iptables just in case
-iptables -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
-iptables -F nflog_dns_logger 2>/dev/null
-iptables -X nflog_dns_logger 2>/dev/null
+${IPTABLES} -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
+${IPTABLES} -F nflog_dns_logger 2>/dev/null
+${IPTABLES} -X nflog_dns_logger 2>/dev/null
 ip link del nflog0 2>/dev/null
 
-echo -n "Setup dummy interface nflog0 ... "
+echo -n "Setup dummy interface nflog0 with IPv${1: -1} address ... "
 ip link add nflog0 type dummy
-ip addr add "${IP}"/32 dev nflog0
+ip addr add "${IP}" dev nflog0
 ip link set up dev nflog0
 echo "done"
 
-echo -n "Setup iptables NFLOG target with group ${GROUP} ... "
-iptables -N nflog_dns_logger
-iptables -A nflog_dns_logger -j NFLOG --nflog-group ${GROUP}
-iptables -I INPUT 1 -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger
+echo -n "Setup ${IPTABLES} NFLOG target with group ${GROUP} ... "
+${IPTABLES} -N nflog_dns_logger
+${IPTABLES} -A nflog_dns_logger -j NFLOG --nflog-group ${GROUP}
+${IPTABLES} -I INPUT 1 -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger
 echo "done"
 
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"

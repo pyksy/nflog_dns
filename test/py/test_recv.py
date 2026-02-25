@@ -12,8 +12,15 @@ if len(sys.argv) != 2:
 
 BIND_ADDRESS = sys.argv[1]
 
+# Detect address family
+try:
+    socket.inet_pton(socket.AF_INET6, BIND_ADDRESS)
+    family = socket.AF_INET6
+except socket.error:
+    family = socket.AF_INET
+
 # Create UDP socket
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s = socket.socket(family, socket.SOCK_DGRAM)
 
 # Bind to the given address and port 0 (ephemeral)
 s.bind((BIND_ADDRESS, 0))

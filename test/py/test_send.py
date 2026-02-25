@@ -18,6 +18,13 @@ except ValueError:
     sys.exit(1)
 PACKET_TYPE = sys.argv[3].upper()
 
+# Detect address family
+try:
+    socket.inet_pton(socket.AF_INET6, DEST_IP)
+    family = socket.AF_INET6
+except socket.error:
+    family = socket.AF_INET
+
 # Replies
 if PACKET_TYPE == 'A' or PACKET_TYPE == 'NOERROR':
     # example.com A 127.0.0.1
@@ -142,7 +149,7 @@ else:
     sys.exit(1)
 
 # Create UDP socket
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s = socket.socket(family, socket.SOCK_DGRAM)
 
 # Bind to source port 53 (requires root)
 s.bind((DEST_IP, 53))

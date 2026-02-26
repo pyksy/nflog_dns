@@ -15,8 +15,8 @@ LDFLAGS ?=
 LIBS ?= $(shell pkg-config --libs libnetfilter_log libtins fmt spdlog)
 INSTALL_SYSVINIT ?= 1
 INSTALL_SYSTEMD ?= 1
-SOURCES = config.cpp nflog_dns.cpp
-HEADERS = config.h version.h
+SOURCES = config.cpp utils.cpp nflog_dns.cpp
+HEADERS = config.h utils.h version.h
 
 all: nflog_dns
 

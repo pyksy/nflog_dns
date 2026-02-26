@@ -5,11 +5,8 @@
  * nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
  */
 
-#include <resolv.h>
 #define PROGRAM_NAME "nflog_dns"
 #define DEFAULT_NFLOG_GROUP 123
-
-#define	SYSLOG_NAMES
 
 #define NFLOG_BUFFER_SIZE 65536
 
@@ -23,6 +20,7 @@
 #include <tins/tins.h>
 #include <iostream>
 #include "config.h"
+#include "utils.h"
 #include "version.h"
 
 extern "C" {
@@ -31,38 +29,6 @@ extern "C" {
 
 volatile sig_atomic_t exit_program_flag = 0;
 volatile sig_atomic_t log_stats_flag = 0;
-
-struct Stats {
-    uint64_t invalid_packets = 0;
-    uint64_t dns_responses = 0;
-    uint64_t logged_records = 0;
-    uint64_t logged_errors = 0;
-} packet_stats;
-
-std::string bool_to_string(const bool value) {
-	return value ? "yes" : "no";
-}
-
-enum RecordOption {
-	// Record logging options
-	OPT_RECORDS_START = 1000,
-	OPT_A,
-	OPT_AAAA,
-	OPT_CNAME,
-	OPT_MX,
-	OPT_PTR,
-	OPT_TXT,
-	OPT_RECORDS_END,
-	// Error logging options
-	OPT_ERRORS_START,
-	OPT_NOERROR,
-	OPT_FORMERR,
-	OPT_SERVFAIL,
-	OPT_NXDOMAIN,
-	OPT_NOTIMPL,
-	OPT_REFUSED,
-	OPT_ERRORS_END
-};
 
 void print_help(char* prgname) {
 	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
@@ -90,17 +56,6 @@ void print_help(char* prgname) {
 	std::cout << std::endl;
 }
 
-void log_stats() {
-		static auto dns_logger = spdlog::get(PROGRAM_NAME);
-		uint64_t packets_received = packet_stats.invalid_packets + packet_stats.dns_responses;
-        dns_logger->log(syslog_level, "Statistics: received_packets={} invalid_packets={} dns_responses={} logged_errors={} logged_records={}",
-            packets_received,
-			packet_stats.invalid_packets, 
-            packet_stats.dns_responses,
-            packet_stats.logged_errors,
-			packet_stats.logged_records);
-}
-
 void signal_handler(int signum) {
     if (signum == SIGUSR1) {
 		log_stats_flag = 1;
@@ -109,109 +64,10 @@ void signal_handler(int signum) {
     }
 }
 
-bool is_number(const char* facility_arg) {
-	// Check if number was given
-	char* temp;
-	unsigned long number = strtoul(facility_arg, &temp, 10);
-	return facility_arg != temp && *temp == '\0' && number <= USHRT_MAX;
-}
-
-int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table) {
-	if (is_number(facility_arg)) {
-		return atoi(facility_arg);
-	}
-
-	// Try matching string to given syslog code table
-   for (int i=0; syslog_code_table[i].c_name != NULL; i++) {
-        if (strcasecmp(facility_arg, syslog_code_table[i].c_name) == 0) {
-            return syslog_code_table[i].c_val;
-        }
-    }
-
-	// No match, return error
-	return -1;
-}
-
-int parse_bool(const char *str) {
-	if (strcasecmp(str, "1") == 0 ||
-		strcasecmp(str, "enable") == 0 ||
-		strcasecmp(str, "on") == 0 ||
-		strcasecmp(str, "true") == 0 ||
-		strcasecmp(str, "yes") == 0)
-		return 1;
-	if (strcasecmp(str, "0") == 0 ||
-		strcasecmp(str, "disable") == 0 ||
-		strcasecmp(str, "off") == 0 ||
-		strcasecmp(str, "false") == 0 ||
-		strcasecmp(str, "no") == 0)
-		return 0;
-
-	// Cannot parse, return error
-	return -1;
-}
-
-void set_setting(const RecordOption opt, const bool setting_value) {
-	if (OPT_RECORDS_START < opt && opt < OPT_RECORDS_END) {
-		Tins::DNS::QueryType qtype;
-		switch (opt) {
-			case OPT_A: qtype = Tins::DNS::A; break;
-			case OPT_AAAA: qtype = Tins::DNS::AAAA; break;
-			case OPT_CNAME: qtype = Tins::DNS::CNAME; break;
-			case OPT_MX: qtype = Tins::DNS::MX; break;
-			case OPT_PTR: qtype = Tins::DNS::PTR; break;
-			case OPT_TXT: qtype = Tins::DNS::TXT; break;
-			default: return;
-		}
-		if (setting_value)
-			enable_qtype(qtype);
-		else
-			disable_qtype(qtype);
-	} else if (OPT_ERRORS_START < opt && opt < OPT_ERRORS_END){
-		ns_rcode rcode;
-		switch (opt) {
-		    case OPT_NOERROR: rcode = ns_r_noerror; break;
-			case OPT_FORMERR: rcode = ns_r_formerr; break;
-			case OPT_SERVFAIL: rcode = ns_r_servfail; break;
-			case OPT_NXDOMAIN: rcode = ns_r_nxdomain; break;
-			case OPT_NOTIMPL: rcode = ns_r_notimpl; break;
-			case OPT_REFUSED: rcode = ns_r_refused; break;
-			default: return;
-		}
-		if (setting_value)
-			enable_rcode(rcode);
-		else
-			disable_rcode(rcode);
-	}
-}
-
-std::string qtype_to_string(const Tins::DNS::QueryType queryType) {
-	switch (queryType) {
-		case Tins::DNS::A: return "A"; break;
-		case Tins::DNS::AAAA: return "AAAA"; break;
-		case Tins::DNS::CNAME: return "CNAME"; break;
-		case Tins::DNS::MX: return "MX"; break;
-		case Tins::DNS::PTR: return "PTR"; break;
-		case Tins::DNS::TXT: return "TXT"; break;
-		default: return "(" + std::to_string(queryType) + ")"; break;
-	}
-}
-
-std::string rcode_to_string(const ns_rcode rcode) {
-	switch (rcode) {
-		case ns_r_noerror: return "NOERROR"; break;
-		case ns_r_formerr: return "FORMERR"; break;
-		case ns_r_servfail: return "SERVFAIL"; break;
-		case ns_r_nxdomain: return "NXDOMAIN"; break;
-		case ns_r_notimpl: return "NOTIMPL"; break; 
-		case ns_r_refused: return "REFUSED"; break;
-		default: return "(" + std::to_string(rcode) + ")"; break;
-	}
-}
-
 static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 	struct nfgenmsg *nfmsg __attribute__((unused)),
 	struct nflog_data *ldata,
-	void *data __attribute__((unused)))
+	void *data)
 {
 	uint8_t* payload;
 	const int payload_len = nflog_get_payload(ldata, (char **)(&payload));
@@ -219,88 +75,9 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 		packet_stats.invalid_packets++;
 		return 0;
 	}
-	const Tins::RawPDU rpdu = Tins::RawPDU(payload, payload_len);
-	Tins::DNS dns;
-	std::string source;
+	spdlog::logger* dns_logger = static_cast<spdlog::logger*>(data);
+	process_dns_packet(payload, payload_len, *dns_logger);
 
-	// Minimum valid payload length (IP + UDP + DNS header)
-	const size_t MIN_IPV4_DNS_LENGTH = 40;  // 20 + 8 + 12
-	const size_t MIN_IPV6_DNS_LENGTH = 60;  // 40 + 8 + 12
-
-	// Get IP version from payload and verify minimum length
-	uint8_t ip_version = (payload[0] >> 4) & 0x0F;
-	if ((ip_version == 4 && static_cast<size_t>(payload_len) < MIN_IPV4_DNS_LENGTH) ||
-	    (ip_version == 6 && static_cast<size_t>(payload_len) < MIN_IPV6_DNS_LENGTH)) {
-		packet_stats.invalid_packets++;
-		return 0;
-	}
-
-	try {
-		if (ip_version == 4) {
-			Tins::IP ip = rpdu.to<Tins::IP>();
-			dns = ip.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
-			source = ip.src_addr().to_string();
-		} else if (ip_version == 6) {
-			Tins::IPv6 ipv6 = rpdu.to<Tins::IPv6>();
-			dns = ipv6.rfind_pdu<Tins::RawPDU>().to<Tins::DNS>();
-			source = ipv6.src_addr().to_string();
-		} else {
-			// Unknown IP version, ignore
-			packet_stats.invalid_packets++;
-			return 0;
-		}
-	} catch (...) {
-		// Malformed packet, ignore
-		packet_stats.invalid_packets++;
-		return 0;
-	}
-
-	try {
-		if (dns.type() == Tins::DNS::RESPONSE) {
-			packet_stats.dns_responses++;
-
-			// Check return code
-			const ns_rcode rcode = static_cast<ns_rcode>(dns.rcode());
-			if (!rcode_enabled(rcode)) return 0; // rcode not enabled
-
-			static auto dns_logger = spdlog::get(PROGRAM_NAME);
-			if (rcode != ns_r_noerror) {
-				std::string rcode_str = rcode_to_string(rcode);
-
-				// Get query type from questions section
-				std::string qtype_str;
-				std::string qname;
-				const auto& queries = dns.queries();
-				if (!queries.empty()) {
-					const Tins::DNS::QueryType qtype = queries[0].query_type();
-					if (!qtype_enabled(qtype)) return 0;
-					qtype_str = qtype_to_string(qtype);
-					qname = queries[0].dname();
-				} else {
-					packet_stats.invalid_packets++;
-					return 0;
-				}
-
-				dns_logger->log(syslog_level, "{} reply {} {} -> {}", 
-					source, qtype_str, qname, rcode_str);
-				packet_stats.logged_errors++;
-
-			}
-
-			// Check for answers
-			for (const Tins::DNS::resource &answer : dns.answers()) {
-				if (qtype_enabled(static_cast<Tins::DNS::QueryType>(answer.query_type()))) {
-					const std::string qtype_str = qtype_to_string(static_cast<Tins::DNS::QueryType>(answer.query_type()));
-					dns_logger->log(syslog_level, "{} reply {} {} -> {}", source, qtype_str, answer.dname(), answer.data());
-					packet_stats.logged_records++;
-				}
-			}
-		}
-
-	} catch (...) {
-		packet_stats.invalid_packets++;
-		// Ignore exceptions
-	}
 	return 0;
 }
 
@@ -444,7 +221,7 @@ int main(int argc, char *argv[])
 	dns_logger->set_level(syslog_level);
 	dns_logger->log(syslog_level, "DNS logging initialized for NFLOG group {}", group);
 
-	nflog_callback_register(qh, &callback, NULL);
+	nflog_callback_register(qh, &callback, static_cast<void*>(dns_logger.get()));
 	const int fd = nflog_fd(h);
 
 	// Setup signal handlers
@@ -464,7 +241,7 @@ int main(int argc, char *argv[])
 
 		if (log_stats_flag) {
 			log_stats_flag = 0;
-			log_stats();
+			log_stats(*dns_logger);
 		}
 
 		if (rv > 0) {
@@ -486,7 +263,7 @@ int main(int argc, char *argv[])
 	}
 
 	dns_logger->log(syslog_level, "DNS logging stopped");
-	log_stats();
+	log_stats(*dns_logger);
 
 	// Cleanup nflog
 	nflog_unbind_group(qh);

@@ -1,9 +1,36 @@
+/*
+ * Copyright Antti Kultanen <antti.kultanen@molukki.com>
+ *
+ * nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
+ */
+
 #pragma once
 
 #include <arpa/nameser.h>
 #include <unordered_set>
 #include <spdlog/common.h>
 #include <tins/dns.h>
+
+enum RecordOption {
+	// Record logging options
+	OPT_RECORDS_START = 1000,
+	OPT_A,
+	OPT_AAAA,
+	OPT_CNAME,
+	OPT_MX,
+	OPT_PTR,
+	OPT_TXT,
+	OPT_RECORDS_END,
+	// Error logging options
+	OPT_ERRORS_START,
+	OPT_NOERROR,
+	OPT_FORMERR,
+	OPT_SERVFAIL,
+	OPT_NXDOMAIN,
+	OPT_NOTIMPL,
+	OPT_REFUSED,
+	OPT_ERRORS_END
+};
 
 // Defaults
 extern spdlog::level::level_enum syslog_level;

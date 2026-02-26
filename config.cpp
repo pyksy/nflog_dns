@@ -1,3 +1,9 @@
+/*
+ * Copyright Antti Kultanen <antti.kultanen@molukki.com>
+ *
+ * nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
+ */
+
 #include "config.h"
 
 // Defaults

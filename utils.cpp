@@ -24,6 +24,7 @@ std::string bool_to_string(const bool value) {
 
 bool is_number(const char* facility_arg) {
 	// Check if number was given
+    if (!facility_arg || !isdigit((unsigned char)facility_arg[0])) return false;
 	char* temp;
 	unsigned long number = strtoul(facility_arg, &temp, 10);
 	return facility_arg != temp && *temp == '\0' && number <= USHRT_MAX;

@@ -17,6 +17,7 @@ INSTALL_SYSVINIT ?= 1
 INSTALL_SYSTEMD ?= 1
 SOURCES = config.cpp utils.cpp nflog_dns.cpp
 HEADERS = config.h utils.h version.h
+TEST_SOURCES = test/unit_test.cpp config.cpp utils.cpp
 
 all: nflog_dns
 
@@ -41,7 +42,7 @@ debug: LDFLAGS += -fsanitize=address -fsanitize=undefined
 debug: nflog_dns
 
 clean-bin:
-	rm -f nflog_dns
+	rm -f nflog_dns unit_test
 
 clean-deb:
 	@if [ -f debian/debhelper-build-stamp ]; then dh_clean; fi
@@ -57,13 +58,16 @@ clean: clean-bin clean-deb clean-rpm
 
 distclean: clean
 
-run-tests-ipv4:
-	bash ./test/run_tests.sh ipv4
+test-unit: $(TEST_SOURCES) $(HEADERS)
+	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(LDFLAGS) $(TEST_SOURCES) $(LIBS) -o unit_test
+	./unit_test
+	rm -f unit_test
 
-run-tests-ipv6:
+test-endtoend:
+	bash ./test/run_tests.sh ipv4
 	bash ./test/run_tests.sh ipv6
 
-test: run-tests-ipv4 run-tests-ipv6
+test: test-unit test-endtoend
 
 check: test
 
@@ -126,7 +130,7 @@ uninstall: uninstall-bin uninstall-man uninstall-files
 
 .PHONY: all deb rpm \
 	clean distclean \
-	run-tests-ipv4 run-tests-ipv6 test check \
+	test-unit test-endtoend-ipv4 test-endtoend-ipv6 test check \
 	install-bin install-bin-strip \
 	install-man \
 	install-init install-systemd install-config install-files \

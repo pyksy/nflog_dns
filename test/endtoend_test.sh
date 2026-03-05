@@ -3,11 +3,6 @@
 # Copyright Antti Kultanen <antti.kultanen@molukki.com>
 # nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
 
-if [[ "${EUID}" -ne 0 ]]; then
-	echo "This script must be run as root" >&2
-	exit 1
-fi
-
 if [ "${1}" = "ipv4" ] || [ "${1}" = "4" ]
 then
 	IP="172.31.53.123"
@@ -21,34 +16,8 @@ else
 	exit 1
 fi
 
-DIR="$(dirname $(realpath "${0}"))"
-GROUP=$((RANDOM/2+1024))
+source common.sh
 
-declare -a PACKET_TYPES=(
-	a
-	aaaa
-	cname
-	mx
-	ptr
-	txt
-)
-declare -a NOERROR_TYPES=(
-	noerror
-)
-declare -a ERROR_TYPES=(
-	formerr
-	servfail
-	nxdomain
-	notimpl
-	refused
-)
-declare -a INVALID_TYPES=(
-	emptypacket
-	badip
-	malformed
-	noquestion
-	query
-)
 cleanup() {
     echo -n "Clean up ... "
     # Kill nflog_dns if running
@@ -71,18 +40,7 @@ cleanup() {
     ip link del nflog0 2>/dev/null
 	echo "done"
 }
-
 trap cleanup EXIT INT TERM
-
-verify_logging_options() {
-	echo "Verify logging options can be set to '${1}'... "
-	for LOGOPT in "${PACKET_TYPES[@]}" "${NOERROR_TYPES[@]}" "${ERROR_TYPES[@]}"
-	do
-		"${DIR}/../nflog_dns" --log-"${LOGOPT}"="${1}" --help | grep -- "--log-${LOGOPT}=.*\(default: ${1}\)" || exit 1
-	done
-	echo "done"
-	echo
-}
 
 send_packets() {
 	local -n array_ref=${1}
@@ -158,13 +116,7 @@ verify_stats() {
 	fi
 }
 
-fail_count=0
-
-# Verify cmdline logging options work
-verify_logging_options yes
-verify_logging_options no
-
-# Clean up iptables just in case
+# Clean up iptables and interface just in case
 ${IPTABLES} -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
 ${IPTABLES} -F nflog_dns_logger 2>/dev/null
 ${IPTABLES} -X nflog_dns_logger 2>/dev/null

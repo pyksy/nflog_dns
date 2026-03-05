@@ -63,11 +63,10 @@ test-unit: $(TEST_SOURCES) $(HEADERS)
 	./unit_test
 	rm -f unit_test
 
-test-endtoend:
-	bash ./test/run_tests.sh ipv4
-	bash ./test/run_tests.sh ipv6
+test-integration:
+	bash ./test/integration_test.sh
 
-test: test-unit test-endtoend
+test: test-unit test-integration
 
 check: test
 
@@ -130,7 +129,7 @@ uninstall: uninstall-bin uninstall-man uninstall-files
 
 .PHONY: all deb rpm \
 	clean distclean \
-	test-unit test-endtoend-ipv4 test-endtoend-ipv6 test check \
+	test-unit test-integration test check \
 	install-bin install-bin-strip \
 	install-man \
 	install-init install-systemd install-config install-files \

@@ -1,3 +1,15 @@
+nflog-dns (1.0.0-1) unstable; urgency=medium
+
+  * Minor code and other fixes
+  * Add IPv6 testset
+  * Split utility functions to separate file
+  * Add unit tests (based on doctest)
+  * Add dependabot
+  * Split tests
+  * Bump the actions group with 3 updates
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Mon, 09 Mar 2026 15:42:35 +0200
+
 nflog-dns (0.999.3-1) unstable; urgency=medium
 
   * Minor code cleanups

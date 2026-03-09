@@ -55,6 +55,15 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Mon Mar 09 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.0.0-1
+- Bump the actions group with 3 updates
+- Split tests
+- Add dependabot
+- Add unit tests (based on doctest)
+- Split utility functions to separate file
+- Add IPv6 testset
+- Minor code and other fixes
+
 * Mon Feb 23 2026 Antti Kultanen <antti.kultanen@molukki.com> - 0.999.3-1
 - Minor code cleanups
 

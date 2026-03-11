@@ -55,6 +55,12 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Thu Mar 12 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.0.1-1
+- Update manpage
+- Update readme
+- Update manpage
+- Update readme
+
 * Mon Mar 09 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.0.0-1
 - Bump the actions group with 3 updates
 - Split tests

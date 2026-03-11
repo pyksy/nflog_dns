@@ -1,4 +1,4 @@
-.TH NFLOG_DNS 8 "2025" "nflog_dns" "User Commands"
+.TH NFLOG_DNS 8 "2025" "nflog_dns" "System Administration Commands"
 .SH NAME
 nflog_dns \- extract and log DNS replies from NFLOG netfilter group
 .SH SYNOPSIS
@@ -7,12 +7,13 @@ nflog_dns \- extract and log DNS replies from NFLOG netfilter group
 .SH DESCRIPTION
 .B nflog_dns
 captures DNS reply packets from a Linux netfilter NFLOG group and logs the DNS
-resource records (A, AAAA, CNAME, MX, PTR, TXT) to syslog or standard output.
+resource records (A, AAAA, CNAME, MX, PTR, TXT) and DNS errors (FORMERR,
+SERVFAIL, NXDOMAIN, NOTIMPL, REFUSED) to syslog or standard output.
 The program binds to an NFLOG group and processes incoming DNS response packets,
-extracting domain names and their resolved values.
+extracting domain names and their resolved values, or error responses.
 .PP
-This tool is designed to work with iptables/ip6tables rules that send DNS reply
-packets to an NFLOG group for logging purposes.
+This tool is designed to work with iptables/ip6tables/nftables rules that send
+DNS reply packets to an NFLOG group for logging purposes.
 .SH OPTIONS
 .TP
 .BR \-g ", " \-\-group=\fINUM\fR
@@ -55,7 +56,9 @@ Enable or disable logging of PTR (reverse DNS) records.
 Enable or disable logging of TXT (text) records.
 .TP
 .BR \-\-log\-noerror=\fIBOOL\fR
-Enable or disable logging of NOERROR (no error) replies. When disabled, successful DNS replies are not logged regardless of individual record type settings.
+Enable or disable logging of NOERROR (no error) replies. When disabled,
+successful DNS replies are not logged regardless of individual record type
+settings.
 .TP
 .BR \-\-log\-formerr=\fIBOOL\fR
 Enable or disable logging of FORMERR (format error) replies.
@@ -93,7 +96,15 @@ sudo nflog_dns \-\-syslog \-\-facility=daemon \-\-level=warn
 Log only A and AAAA records from NFLOG group 100:
 .RS
 .nf
-sudo nflog_dns \-g 100 \-\-log\-cname=no \-\-log\-mx=no \-\-log\-ptr=no \-\-log\-txt=no
+sudo nflog_dns \-g 100 \-\-log\-a=yes \-\-log\-aaaa=yes \-\-log\-cname=no
+\-\-log\-mx=no \-\-log\-ptr=no \-\-log\-txt=no
+.fi
+.RE
+.PP
+Log name error and server failure error replies:
+.RS
+.nf
+sudo nflog_dns \-\-log\-nxdomain=yes \-\-log\-servfail=yes
 .fi
 .RE
 .SH IPTABLES SETUP
@@ -120,7 +131,8 @@ sudo nft add rule inet filter input udp sport 53 log group 123
 .fi
 .RE
 .SH RUNTIME STATISTICS
-nflog_dns gathers statistics on received packets. To display runtime packet statistics, send a SIGUSR1 signal to the running process:
+nflog_dns gathers statistics on received packets. To display runtime packet
+statistics, send a SIGUSR1 signal to the running process:
 .RS
 .nf
 sudo pkill \-USR1 nflog_dns
@@ -136,6 +148,8 @@ Total packets received from NFLOG
 Invalid/malformed packets
 .IP \(bu 2
 Valid DNS response packets
+.IP \(bu 2
+DNS error replies logged (accounting for error type filters)
 .IP \(bu 2
 DNS records logged (accounting for record type filters)
 .RE
@@ -202,7 +216,7 @@ Report bugs to: <https://github.com/pyksy/nflog_dns/issues>
 .SH COPYRIGHT
 Copyright \(co 2015 Andreas Jaggi.
 .br
-Copyright \(co 2025- Antti Kultanen.
+Copyright \(co 2025 Antti Kultanen.
 .br
 License GPLv2+: GNU GPL version 2 or later <https://gnu.org/licenses/gpl.html>.
 .br
@@ -211,7 +225,7 @@ There is NO WARRANTY, to the extent permitted by law.
 .SH SEE ALSO
 .BR iptables (8),
 .BR ip6tables (8),
-.BR syslogd (8),
-.BR systemd (1)
+.BR nft (8),
+.BR syslogd (8)
 .PP
 Full documentation: <https://github.com/pyksy/nflog_dns>

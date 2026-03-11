@@ -3,37 +3,37 @@
 DNS packet syslogging using iptables NFLOG, written in C++. This program
 parses DNS reply packets and logs the details (any combination of
 A, AAAA, CNAME, MX, PTR, TXT records and FORMERR, SERVFAIL, NXDOMAIN,
-NOTIMPL, REFUSED errors) to syslog or console.
+NOTIMPL, REFUSED errors) to syslog or console (stdout).
 
-# .deb/.rpm packages
+## .deb/.rpm packages
 
 Prebuilt .deb/.rpm packages for popular distributions can be downloaded from the Releases page.
 
-# requirements
+## Requirements
 
 nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries
 
-# compile (Debian based distributions)
+## Compile (Debian based distributions)
 
 1. sudo apt-get install build-essential libtins-dev libnetfilter-log-dev libspdlog-dev
 2. make
 
-# compile (RPM based distributions)
+## Compile (RPM based distributions)
 
 1. sudo dnf install gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel
 2. make
 
-# run tests (Debian based distributions)
+## Run tests (Debian based distributions)
 
 1. sudo apt-get install doctest-dev
 2. sudo make test
 
-# run tests (RPM based distributions)
+## Run tests (RPM based distributions)
 
 1. sudo dnf install doctest-devel
 2. sudo make test
 
-# quickstart
+## Quickstart
 
 1. Compile nflog_dns as above
 2. sudo ./start.sh
@@ -41,37 +41,37 @@ nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries
 4. Make some DNS queries and observe the extracted DNS replies
 5. sudo ./stop.sh
 
-# install
+## Install
 
 1. Compile nflog_dns as above
 2. Optional: Edit the PREFIX in Makefile. By default installs to /usr/local
 3. sudo make install
 
-# enable sysvinit service
+## Enable sysvinit service
 
 1. Install nflog_dns as above
 2. Edit options in /etc/default/nflog_dns to suit your needs
 3. sudo update-rc.d nflog_dns defaults
 4. sudo service nflog_dns start
 
-# enable systemd service
+## Enable systemd service
 
 1. Install nflog_dns as above
 2. Edit options in /etc/default/nflog_dns to suit your needs
 3. sudo systemctl enable nflog_dns.service
 4. sudo systemctl start nflog_dns.service
 
-# build deb package
+## Build deb package
 
 1. sudo apt-get install debhelper-compat lsb-release (plus compile dependencies from above)
 2. make deb
 
-# build rpm package
+## Build rpm package
 
 1. sudo dnf install rpm-build rpmdevtools (plus compile dependencies from above)
 2. make rpm
 
-# usage
+## Usage
 
 ```
 % nflog_dns -h
@@ -99,7 +99,7 @@ Extract DNS replies from NFLOG group
       --log-refused=BOOL   REFUSED error logging (default: no)
 ```
 
-# iptables setup
+## iptables setup
 
 Add an iptables rule to send packets to NFLOG group 123:
 
@@ -113,7 +113,7 @@ sudo iptables -A INPUT -p udp --sport 53 -j NFLOG --nflog-group 123
 sudo ip6tables -A INPUT -p udp --sport 53 -j NFLOG --nflog-group 123
 ```
 
-# nftables setup
+## nftables setup
 
 Add an nftables rule to send packets to NFLOG group 123:
 
@@ -121,11 +121,11 @@ Add an nftables rule to send packets to NFLOG group 123:
 sudo nft add rule inet filter input udp sport 53 log group 123
 ```
 
-# known issues
+## Known issues
 
 [A bug in libtins ip6.arpa PTR reply parsing](https://github.com/mfontanini/libtins/issues/551)
 prevents logging IPv6 reverse DNS lookups.
 
-# create a new release
+## Create a new release
 
 1. Run the create_release.sh script

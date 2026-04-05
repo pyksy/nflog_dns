@@ -157,14 +157,22 @@ jobs:
               zypper -n ref
               zypper -n in gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel python3 rpm-build rpmdevtools rpmlint systemd-rpm-macros systemd
 
+          - name: Ubuntu 26.04
+            image: ubuntu:26.04
+            pkgtype: deb
+            install: |
+              ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+              echo "Etc/UTC" > /etc/timezone
+              apt-get update
+              apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
           - name: Ubuntu 24.04
             image: ubuntu:24.04
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
-          - name: Ubuntu 22.04
-            image: ubuntu:22.04
-            pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+            install: |
+              ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+              echo "Etc/UTC" > /etc/timezone
+              apt-get update
+              apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
 
     runs-on: ubuntu-latest
     container:
@@ -243,7 +251,7 @@ jobs:
 
     - name: Verify DEB package installation
       if: ${{ matrix.pkgtype == 'deb' }}
-      run: dpkg -i artifacts/*.deb
+      run: dpkg -i artifacts/*.*deb
 
     - name: Run the installed binary
       if: ${{ matrix.pkgtype == 'deb' }}
@@ -251,7 +259,7 @@ jobs:
 
     - name: Verify DEB package re-installation
       if: ${{ matrix.pkgtype == 'deb' }}
-      run: dpkg -i artifacts/*.deb
+      run: dpkg -i artifacts/*.*deb
 
     - name: Verify DEB package removal
       if: ${{ matrix.pkgtype == 'deb' }}
@@ -376,10 +384,10 @@ jobs:
             image: debian:13
           - name: Debian 12
             image: debian:12
+          - name: Ubuntu 26.04
+            image: ubuntu:26.04
           - name: Ubuntu 24.04
             image: ubuntu:24.04
-          - name: Ubuntu 22.04
-            image: ubuntu:22.04
 
     runs-on: [ self-hosted, ARM64 ]
     container:
@@ -463,13 +471,13 @@ jobs:
           Prebuilt installation packages available for:
           - AMD64 / x86_64:
             - Debian 12, 13
-            - Ubuntu 22.04, 24.04
+            - Ubuntu 24.04, 26.04
             - Devuan 5.0, 6.0
             - Fedora 42, 43
             - openSUSE Leap 16.0, Tumbleweed
           - ARM64:
             - Debian 12, 13
-            - Ubuntu 22.04, 24.04
+            - Ubuntu 24.04, 26.04
           
           To verify the download:
               sha256sum -c SHA256SUMS.txt

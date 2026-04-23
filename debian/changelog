@@ -1,3 +1,10 @@
+nflog-dns (1.0.2-1) unstable; urgency=medium
+
+  * Add Ubuntu 26.04 build, drop Ubuntu 22.04 build. Update CI.
+  * Bump softprops/action-gh-release from 2 to 3
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Thu, 23 Apr 2026 10:12:11 +0300
+
 nflog-dns (1.0.1-1) unstable; urgency=medium
 
   * Update readme

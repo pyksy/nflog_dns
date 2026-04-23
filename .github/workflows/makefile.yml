@@ -20,8 +20,8 @@ concurrency:
 jobs:
   # Do integration testing, requires full VM
   ubuntu-full:
-    name: Ubuntu 24.04 QA tests
-    runs-on: ubuntu-24.04
+    name: Ubuntu 26.04 QA tests
+    runs-on: ubuntu-26.04
     timeout-minutes: 60
 
     permissions:

@@ -30,7 +30,7 @@ jobs:
       checks: write
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
@@ -185,7 +185,7 @@ jobs:
     - name: Install dependencies
       run: ${{ matrix.install }}
 
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Inject distribution into package version
       run: |
@@ -307,7 +307,7 @@ jobs:
 
     name: ${{ matrix.name }} amd64 build
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install Devuan keyring
         run: |
@@ -400,7 +400,7 @@ jobs:
     name: ${{ matrix.name }} arm64 build
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Install build dependencies
         run: |
@@ -449,7 +449,7 @@ jobs:
       contents: write
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download all artifacts
         uses: actions/download-artifact@v8

@@ -1,3 +1,11 @@
+nflog-dns (1.0.3-1) unstable; urgency=medium
+
+  * Bump actions/checkout from 6 to 7 in the actions group
+  * Run QA tests on Ubuntu 26.04
+  * Add Fedora 44 build, drop Fedora 42
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Fri, 14 Aug 2026 15:01:20 +0300
+
 nflog-dns (1.0.2-1) unstable; urgency=medium
 
   * Add Ubuntu 26.04 build, drop Ubuntu 22.04 build. Update CI.

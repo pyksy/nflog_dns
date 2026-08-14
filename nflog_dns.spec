@@ -55,6 +55,11 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Fri Aug 14 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.0.3-1
+- Add Fedora 44 build, drop Fedora 42
+- Run QA tests on Ubuntu 26.04
+- Bump actions/checkout from 6 to 7 in the actions group
+
 * Thu Apr 23 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.0.2-1
 - Bump softprops/action-gh-release from 2 to 3
 - Add Ubuntu 26.04 build, drop Ubuntu 22.04 build. Update CI.

@@ -7,13 +7,16 @@
 
 #define PROGRAM_NAME "nflog_dns"
 #define DEFAULT_NFLOG_GROUP 123
-
+#define UNPRIVILEGED_USER "nobody"
 #define NFLOG_BUFFER_SIZE 65536
 
 #include <getopt.h>
 #include <errno.h>
 #include <string.h>
+#include <grp.h>
+#include <pwd.h>
 #include <signal.h>
+#include <unistd.h>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/syslog_sink.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
@@ -29,6 +32,7 @@ extern "C" {
 
 volatile sig_atomic_t exit_program_flag = 0;
 volatile sig_atomic_t log_stats_flag = 0;
+const char* unprivileged_user = UNPRIVILEGED_USER;
 
 void print_help(char* prgname) {
 	std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
@@ -40,6 +44,7 @@ void print_help(char* prgname) {
 	std::cout << "  -f, --facility=FACILITY  facility for syslog logging (default: user)" << std::endl;
 	std::cout << "  -l, --level=LOGLEVEL     log level for syslog logging (default: info)" << std::endl;
 	std::cout << "  -h, --help               print this help and exit" << std::endl;
+	std::cout << "  -u, --user=USER          user after dropping privileges (default: " << UNPRIVILEGED_USER << ")" << std::endl;
 	std::cout << "  -v, --version            show version and exit" << std::endl;
 	std::cout << "      --log-a=BOOL         A record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::A)) << ")" << std::endl;
 	std::cout << "      --log-aaaa=BOOL      AAAA record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::AAAA)) << ")" << std::endl;
@@ -110,12 +115,13 @@ int main(int argc, char *argv[])
 		{"help", no_argument, NULL, 'h'},
 		{"level", required_argument, NULL, 'l'},
 		{"syslog", no_argument, NULL, 's'},
+		{"user", required_argument, NULL, 'u'},
 		{"version", no_argument, NULL, 'v'},
 		{0, 0, 0, 0}
 	};
 
 	while (true) {
-		const int opt = getopt_long(argc, argv, "f:g:hl:sv", longopts, &optindex);
+		const int opt = getopt_long(argc, argv, "f:g:hl:su:v", longopts, &optindex);
 
 		if (opt == -1) {
 			break;
@@ -154,6 +160,10 @@ int main(int argc, char *argv[])
 
 			case 's':
 				use_syslog = true;
+				break;
+
+			case 'u':
+				unprivileged_user = optarg;
 				break;
 
 			case 'v':
@@ -223,6 +233,27 @@ int main(int argc, char *argv[])
 	dns_logger->log(syslog_level, "DNS logging initialized for NFLOG group {}", group);
 
 	nflog_callback_register(qh, &callback, static_cast<void*>(dns_logger.get()));
+
+	// Root no longer needed after setup, drop privileges
+    if (geteuid() == 0) {
+		const struct passwd* pw = getpwnam(unprivileged_user);
+		if (!pw) {
+			std::cerr << "Error: Cannot find user " << unprivileged_user << std::endl;
+			nflog_unbind_group(qh);
+			nflog_close(h);
+			return 1;
+		}
+
+		if (initgroups(pw->pw_name, pw->pw_gid) < 0 ||
+			setgid(pw->pw_gid) < 0 ||
+			setuid(pw->pw_uid) < 0) {
+			std::cerr << "Error: Cannot drop to user " << unprivileged_user << ": " << strerror(errno) << std::endl;
+			nflog_unbind_group(qh);
+			nflog_close(h);
+			return 1;
+		}
+	}
+
 	const int fd = nflog_fd(h);
 
 	// Setup signal handlers

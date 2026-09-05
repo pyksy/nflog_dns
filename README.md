@@ -84,6 +84,7 @@ Extract DNS replies from NFLOG group
   -f, --facility=FACILITY  facility for syslog logging (default: user)
   -l, --level=LOGLEVEL     log level for syslog logging (default: info)
   -h, --help               print this help and exit
+  -u, --user=USER          user after dropping privileges (default: nobody)
   -v, --version            show version and exit
       --log-a=BOOL         A record logging (default: yes)
       --log-aaaa=BOOL      AAAA record logging (default: yes)

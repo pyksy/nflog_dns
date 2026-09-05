@@ -13,6 +13,8 @@ fi
 DIR="$(dirname $(realpath "${0}"))"
 cd "${DIR}"
 
+echo "TEST: user_test.sh"
+bash user_test.sh
 echo "TEST: optarg_test.sh"
 bash optarg_test.sh
 echo

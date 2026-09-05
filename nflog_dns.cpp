@@ -188,6 +188,7 @@ int main(int argc, char *argv[])
 		nflog_close(h);
 		return 1;
 	}
+	// Note that AF_INET socket does receive both IPv4 and IPv6 packets.
 	if (nflog_bind_pf(h, AF_INET) < 0) {
 		std::cerr << "Error: nflog_bind_pf() failed" << std::endl;
 		nflog_close(h);
@@ -238,6 +239,7 @@ int main(int argc, char *argv[])
 	// Enter packet handling loop
 	while (!exit_program_flag) {
 		rv = recv(fd, buf, sizeof(buf), 0);
+		const int errno_recv = errno;
 
 		if (log_stats_flag) {
 			log_stats_flag = 0;
@@ -252,7 +254,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 		if (rv < 0) {
-			if (errno == EINTR) {
+			if (errno_recv == EINTR) {
 				// Signal interrupted, try again
 				continue;
 			} else {

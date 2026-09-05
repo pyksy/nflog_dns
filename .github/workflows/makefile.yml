@@ -46,7 +46,7 @@ jobs:
 
     - name: Run clang-tidy
       run: |
-        clang-tidy config.cpp nflog_dns.cpp -- -std=c++11 $(pkg-config --cflags libnetfilter_log libtins fmt spdlog)
+        clang-tidy config.cpp nflog_dns.cpp utils.cpp -- -std=c++11 $(pkg-config --cflags libnetfilter_log libtins fmt spdlog)
 
     - name: Compile binary
       run: make

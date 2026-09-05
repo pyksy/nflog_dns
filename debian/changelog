@@ -1,3 +1,10 @@
+nflog-dns (1.0.4-1) unstable; urgency=medium
+
+  * Add utils.cpp to clang-tidy linter. Fix minor issue with errno check
+  * Drop root privileges after setting up dns logging
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Sat, 05 Sep 2026 16:05:14 +0300
+
 nflog-dns (1.0.3-1) unstable; urgency=medium
 
   * Bump actions/checkout from 6 to 7 in the actions group

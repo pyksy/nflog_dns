@@ -55,6 +55,10 @@ The tool binds to an NFLOG group and logs received DNS response records
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Sat Sep 05 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.0.4-1
+- Drop root privileges after setting up dns logging
+- Add utils.cpp to clang-tidy linter. Fix minor issue with errno check
+
 * Fri Aug 14 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.0.3-1
 - Add Fedora 44 build, drop Fedora 42
 - Run QA tests on Ubuntu 26.04

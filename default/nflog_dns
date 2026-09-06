@@ -2,4 +2,4 @@
 # To get help with options, run nflog_dns --help
 #
 
-OPTIONS="--syslog --facility=user --level=info"
+OPTIONS="--syslog --facility=user --level=info --user=nobody"

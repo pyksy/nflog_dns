@@ -94,6 +94,14 @@ jobs:
     - name: Run the installed binary
       run: nflog_dns --version
 
+    - name: Verify daemon runs as _nflog-dns user
+      run: |
+        NFPID="$(systemctl show -p MainPID --value nflog_dns.service)"
+        NFLOG_USER="$(ps -o user= -p "${NFPID}")"
+        ps -p "${NFPID}" -f
+        sudo kill -HUP "${NFPID}"
+        [[ "${NFLOG_USER}" == "_nflog-dns" ]] || exit 1
+
     - name: Stop and disable nflog_dns systemd service
       run: |
         sudo systemctl stop nflog_dns.service
@@ -127,7 +135,7 @@ jobs:
           - name: Debian 13
             image: debian:13
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release adduser
           - name: Debian 12
             image: debian:12
             pkgtype: deb
@@ -331,7 +339,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo chroot ../devuan-${{ matrix.release }} apt-get update
-          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release adduser
 
       - name: Inject distribution into package version
         run: |
@@ -406,7 +414,7 @@ jobs:
         run: |
           rm -f /etc/apt/apt.conf.d/docker-clean
           apt-get update
-          apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release
+          apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential debhelper-compat lsb-release adduser
 
       - name: Inject distribution into package version
         run: |

@@ -10,7 +10,7 @@ source common.sh
 FAIL_COUNT=0
 
 check_result() {
-	if [ "$1" -eq 0 ]
+	if [ "${1}" -eq 0 ]
 	then
 		echo "SUCCESS"
 	else
@@ -25,36 +25,36 @@ echo -n "Verify nflog_dns implicitly drops privileges to user 'nobody'... "
 NFLOGPID="${!}"
 sleep 1
 NFLOG_USER="$(ps -o user= -p ${NFLOGPID})"
-kill -HUP ${NFLOGPID}
+kill -HUP "${NFLOGPID}"
 [[ "${NFLOG_USER}" == "nobody" ]]
-check_result $?
+check_result "${?}"
 
 echo -n "Verify nflog_dns explicitly drops privileges to user 'nobody'... "
 "${DIR}/../nflog_dns" --user=nobody >/dev/null &
 NFLOGPID="${!}"
 sleep 1
 NFLOG_USER="$(ps -o user= -p ${NFLOGPID})"
-kill -HUP ${NFLOGPID}
+kill -HUP "${NFLOGPID}"
 [[ "${NFLOG_USER}" == "nobody" ]]
-check_result $?
+check_result "${?}"
 
 echo -n "Verify nflog_dns explicitly runs as 'root'... "
 "${DIR}/../nflog_dns" --user=root >/dev/null &
 NFLOGPID="${!}"
 sleep 1
 NFLOG_USER="$(ps -o user= -p ${NFLOGPID})"
-kill -HUP ${NFLOGPID}
+kill -HUP "${NFLOGPID}"
 [[ "${NFLOG_USER}" == "root" ]]
-check_result $?
+check_result "${?}"
 
 RANDOM_USER="nflog_$(tr -dc 'a-z0-9' < /dev/urandom | head -c 10)"
 echo -n "Verify nflog_dns refuses to drop privileges to non-existing user '${RANDOM_USER}'... "
 "${DIR}/../nflog_dns" --user="${RANDOM_USER}" >/dev/null 2>&1 &
 NFLOGPID="${!}"
 sleep 1
-if ps -p ${NFLOGPID} >/dev/null
+if ps -p "${NFLOGPID}" >/dev/null
 then
-	kill -HUP ${NFLOGPID}
+	kill -HUP "${NFLOGPID}"
 	check_result 1
 else
 	check_result 0
@@ -63,4 +63,4 @@ fi
 echo "done"
 echo
 
-exit $FAIL_COUNT
+exit "${FAIL_COUNT}"

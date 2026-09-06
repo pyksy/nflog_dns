@@ -15,7 +15,7 @@ Rules-Requires-Root: no
 
 Package: nflog-dns
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}, adduser
 Description: Extract and log DNS replies from NFLOG group
  A tool to extract and log DNS replies from Netfilter NFLOG groups.
  The tool binds to an NFLOG group and logs received DNS response records

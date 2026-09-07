@@ -194,19 +194,19 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	if (nflog_unbind_pf(h, AF_INET) < 0) {
-		std::cerr << "Error: nflog_unbind_pf() failed" << std::endl;
+		std::cerr << "Error: nflog_unbind_pf() failed (" << strerror(errno) << ")" << std::endl;
 		nflog_close(h);
 		return 1;
 	}
 	// Note that AF_INET socket does receive both IPv4 and IPv6 packets.
 	if (nflog_bind_pf(h, AF_INET) < 0) {
-		std::cerr << "Error: nflog_bind_pf() failed" << std::endl;
+		std::cerr << "Error: nflog_bind_pf() failed (" << strerror(errno) << ")" << std::endl;
 		nflog_close(h);
 		return 1;
 	}
 	qh = nflog_bind_group(h, group);
 	if (!qh) {
-		std::cerr << "Error: nflog_bind_group() failed, no handle for group " << group << " -- is " << PROGRAM_NAME << " already running?" << std::endl;
+		std::cerr << "Error: nflog_bind_group() failed, no handle for group " << group << " (" << strerror(errno) << ") -- is " << PROGRAM_NAME << " already running?" << std::endl;
 		nflog_close(h);
 		return 1;
 	}

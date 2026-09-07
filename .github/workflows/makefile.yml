@@ -132,6 +132,195 @@ jobs:
         make clean
         [ -z "$(git status --porcelain)" ] || exit 1
 
+  # Smoke test in chrooted Fedora
+  fedora-smoke:
+    name: Fedora 44 QA tests
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+
+    permissions:
+      security-events: write
+      contents: read
+      checks: write
+
+    steps:
+    - uses: actions/checkout@v7
+
+    - name: Install dependencies
+      run: |
+        sudo rm -f /var/lib/man-db/auto-update
+        sudo apt-get update
+        sudo apt-get -y --no-install-recommends install dnf systemd-container libnetfilter-log1
+        systemd-nspawn --version
+        dnf --version
+        sudo modprobe nfnetlink nfnetlink_log ip_tables ip6_tables iptable_filter ip6table_filter
+        sudo mkdir /tmp/fedora-root
+
+    - name: Install Fedora chroot
+      run: |
+        sudo dnf \
+          --installroot=/tmp/fedora-root \
+          --releasever=44 \
+          --setopt=cachedir=/tmp/fedora-dnf-cache \
+          --setopt=keepcache=True \
+          --setopt=install_weak_deps=False \
+          --setopt=tsflags=nodocs \
+          --repofrompath=fedora,https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/ \
+          --repofrompath=updates,https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/ \
+          --setopt=fedora.gpgcheck=1 \
+          --setopt=updates.gpgcheck=1 \
+          --setopt=fedora.gpgkey=https://fedoraproject.org/fedora.pgp \
+          --setopt=updates.gpgkey=https://fedoraproject.org/fedora.pgp \
+          -y \
+          install \
+          fedora-release \
+          dnf \
+          systemd \
+          passwd \
+          iproute \
+          procps-ng \
+          findutils \
+          coreutils \
+          util-linux \
+          hostname \
+          gcc-c++ \
+          make \
+          libpcap-devel \
+          libtins-devel \
+          libnetfilter_log-devel \
+          spdlog-devel \
+          python3 \
+          rpm-build \
+          rpmdevtools \
+          rpmlint \
+          systemd-rpm-macros \
+          systemd \
+          doctest-devel \
+          iptables-nft \
+          git
+
+    - name: Setup Fedora 44 chroot
+      run: |
+        sudo systemd-firstboot \
+          --root=/tmp/fedora-root \
+          --hostname=fedora44 \
+          --locale=C.UTF-8 \
+          --timezone=UTC
+        sudo systemd-machine-id-setup --root=/tmp/fedora-root
+        sudo cp -f /etc/resolv.conf /tmp/fedora-root/etc/resolv.conf
+
+    - name: Copy source to chroot
+      run: sudo cp -r ../nflog_dns /tmp/fedora-root/root
+
+    - name: Compile binary
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          make -C /root/nflog_dns all
+
+    - name: Run tests
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --capability=CAP_NET_ADMIN \
+          --quiet \
+          -- \
+          make -C /root/nflog_dns test
+
+    - name: Verify installation
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          make -C /root/nflog_dns install
+
+    - name: Run the installed binary
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          nflog_dns --version
+
+    - name: Verify uninstallation
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          make -C /root/nflog_dns uninstall
+
+    - name: Verify clean
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          /bin/bash -c 'make -C /root/nflog_dns clean && git -C /root/nflog_dns status --porcelain'
+
+    - name: Verify RPM package build
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          make -C /root/nflog_dns rpm
+
+    - name: Verify RPM package installation
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          /bin/bash -c 'rpm -i /root/rpmbuild/RPMS/x86_64/*.rpm'
+
+    - name: Run the installed binary
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          nflog_dns --version
+
+    - name: Verify _nflog-dns user exists after RPM install
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          getent passwd _nflog-dns
+
+    - name: Verify RPM removal
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          rpm -e nflog_dns
+
+    - name: Verify clean
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          /bin/bash -c 'make -C /root/nflog_dns clean && git -C /root/nflog_dns status --porcelain'
+
   # Build packages, uses containers
   containers-amd64:
     strategy:
@@ -454,10 +643,10 @@ jobs:
           path: artifacts/*_arm64.*deb
 
   create-release:
+    if: startsWith(github.ref, 'refs/tags/')
     name: Create GitHub Release
     needs: [ ubuntu-full, containers-amd64, chroot-amd64, containers-arm64 ]
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
 
     permissions:
       contents: write

@@ -7,16 +7,17 @@ License:        GPL-2.0-or-later
 URL:            https://github.com/pyksy/nflog_dns
 Source0:        %{name}-%{version}.tar.gz
 
-BuildRequires: gcc-c++
-BuildRequires: make
-BuildRequires: pkg-config
-BuildRequires: gzip
-BuildRequires: libtins-devel
-BuildRequires: libnetfilter_log-devel
-BuildRequires: spdlog-devel
-BuildRequires: libpcap-devel
-BuildRequires: fmt-devel
-BuildRequires: systemd-rpm-macros
+BuildRequires:  gcc-c++
+BuildRequires:  make
+BuildRequires:  pkg-config
+BuildRequires:  gzip
+BuildRequires:  libtins-devel
+BuildRequires:  libnetfilter_log-devel
+BuildRequires:  spdlog-devel
+BuildRequires:  libpcap-devel
+BuildRequires:  fmt-devel
+BuildRequires:  systemd-rpm-macros
+Requires:       shadow-utils
 %{?systemd_requires}
 
 %description
@@ -32,6 +33,7 @@ The tool binds to an NFLOG group and logs received DNS response records
 
 %install
 %make_install PREFIX=%{_prefix} ETCDIR=%{_sysconfdir} SBINDIR=%{_sbindir} INSTALL_SYSVINIT=0
+sed -i 's/--user=nobody/--user=_nflog-dns/' %{buildroot}%{_sysconfdir}/default/nflog_dns
 
 %check
 # Tests require root and cannot be run during rpm build
@@ -47,6 +49,12 @@ The tool binds to an NFLOG group and logs received DNS response records
 
 %post
 %systemd_post nflog_dns.service
+
+%pre
+getent group _nflog-dns >/dev/null || groupadd -r _nflog-dns
+getent passwd _nflog-dns >/dev/null \
+    || useradd -r -M -g _nflog-dns -d /nonexistent -s %{_sbindir}/nologin \
+        -c "nflog-dns daemon account" _nflog-dns
 
 %preun
 %systemd_preun nflog_dns.service

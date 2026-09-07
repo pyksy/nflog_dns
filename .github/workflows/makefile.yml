@@ -118,8 +118,14 @@ jobs:
     - name: Verify DEB package removal
       run: sudo dpkg -r nflog-dns nflog-dns-dbgsym
 
+    - name: Verify _nflog-dns user exists after DEB removal
+      run: getent passwd "_nflog-dns"
+
     - name: Verify DEB package purge
       run: sudo dpkg -P nflog-dns
+
+    - name: Verify _nflog-dns user is removed after DEB purge
+      run: getent passwd "_nflog-dns" && false || true
 
     - name: Verify clean
       run: |

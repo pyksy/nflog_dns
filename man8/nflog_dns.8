@@ -47,11 +47,17 @@ option adds further types to the selection already made, so
 .B \-\-qtype=A,AAAA \-\-qtype=MX,TXT
 selects all four types.
 .IP
+Special type
+.B ALL
+(i.e.
+.BR \-\-rcode=ALL ")"
+selects all valid qtypes.
+.IP
 Valid types are: A, NS, MD, MF, CNAME, SOA, MB, MG, MR, NULL, WKS, PTR,
 HINFO, MINFO, MX, TXT, RP, AFSDB, X25, ISDN, RT, NSAP, NSAP\-PTR, SIG, KEY,
 PX, GPOS, AAAA, LOC, NXT, EID, NIMLOC, SRV, ATMA, NAPTR, KX, CERT, A6,
 DNAME, SINK, OPT, APL, DS, SSHFP, IPSECKEY, RRSIG, NSEC, DNSKEY, DHCID,
-NSEC3, NSEC3PARAM.
+NSEC3, NSEC3PARAM, or ALL to select everything.
 .TP
 .BR \-r ", " \-\-rcode=\fIRCODE\fR,...
 Comma\-separated, case\-insensitive list of DNS reply codes to log (default:
@@ -59,8 +65,8 @@ NOERROR). Follows the same replace\-then\-accumulate rule as
 .BR \-\-qtype .
 .IP
 Valid codes are: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED,
-YXDOMAIN, YXRRSET, NXRRSET, NOTAUTH, NOTZONE.
-.PP
+YXDOMAIN, YXRRSET, NXRRSET, NOTAUTH, NOTZONE, or ALL.
+.IP
 Note that running with a custom
 .B \-\-rcode
 list that omits

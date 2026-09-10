@@ -42,6 +42,17 @@ void enable_qtypes(const char* arg)
             continue;
         }
 
+        // "all" enables every qtype.
+        if (qtype == "ALL") {
+            for (std::unordered_map<Tins::DNS::QueryType, std::string>::const_iterator it =
+                     dns_qtypes.begin();
+                 it != dns_qtypes.end();
+                 ++it) {
+                enabled_qtypes.insert(it->first);
+            }
+            break;
+        }
+
         bool found = false;
         for (std::unordered_map<Tins::DNS::QueryType, std::string>::const_iterator it =
                  dns_qtypes.begin();
@@ -83,7 +94,7 @@ void enable_rcodes(const char* arg)
     while (start < input.size()) {
         std::size_t comma = input.find(',', start);
 
-        std::string name = input.substr(
+        std::string rcode = input.substr(
             start,
             comma == std::string::npos
                 ? std::string::npos
@@ -91,23 +102,33 @@ void enable_rcodes(const char* arg)
         );
 
         // Convert to uppercase.
-        for (std::size_t i = 0; i < name.size(); ++i) {
-            name[i] = static_cast<char>(
-                std::toupper(static_cast<unsigned char>(name[i]))
+        for (std::size_t i = 0; i < rcode.size(); ++i) {
+            rcode[i] = static_cast<char>(
+                std::toupper(static_cast<unsigned char>(rcode[i]))
             );
         }
 
-        if (name.empty()) {
+        if (rcode.empty()) {
             continue;
         }
 
-        bool found = false;
+        // "all" enables every rcode.
+        if (rcode == "ALL") {
+            for (std::unordered_map<ns_rcode, std::string>::const_iterator it =
+                     dns_rcodes.begin();
+                 it != dns_rcodes.end();
+                 ++it) {
+                enabled_rcodes.insert(it->first);
+            }
+            break;
+        }
 
+        bool found = false;
         for (std::unordered_map<ns_rcode, std::string>::const_iterator it =
                  dns_rcodes.begin();
              it != dns_rcodes.end();
              ++it) {
-            if (it->second == name) {
+            if (it->second == rcode) {
                 enabled_rcodes.insert(it->first);
                 found = true;
                 break;
@@ -115,7 +136,7 @@ void enable_rcodes(const char* arg)
         }
 
         if (!found) {
-            throw std::invalid_argument("unknown DNS rcode: " + name);
+            throw std::invalid_argument("unknown DNS rcode: " + rcode);
         }
 
         if (comma == std::string::npos)

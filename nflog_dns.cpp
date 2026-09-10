@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
 		{"help", no_argument, NULL, 'h'},
-		{"level", required_argument, NULL, 'l'},
+		{"loglevel", required_argument, NULL, 'l'},
 		{"qtype", required_argument, NULL, 'q'},
 		{"rcode", required_argument, NULL, 'r'},
 		{"syslog", no_argument, NULL, 's'},

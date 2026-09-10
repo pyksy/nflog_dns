@@ -1,7 +1,7 @@
 [Unit]
 Description=NFLOG DNS Logger
 After=network.target
-Documentation=man:nflog_dns(1)
+Documentation=man:nflog_dns(8)
 
 [Service]
 Type=simple

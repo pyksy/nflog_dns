@@ -39,7 +39,7 @@ void enable_qtypes(const char* arg)
 
         // Skip empty
         if (qtype.empty()) {
-            break;
+            continue;
         }
 
         bool found = false;
@@ -98,7 +98,7 @@ void enable_rcodes(const char* arg)
         }
 
         if (name.empty()) {
-            break;
+            continue;
         }
 
         bool found = false;

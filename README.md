@@ -15,7 +15,7 @@ nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries
 
 ## Compile (Debian based distributions)
 
-1. sudo apt-get install build-essential libtins-dev libnetfilter-log-dev libspdlog-dev
+1. sudo apt-get install build-essential libtins-dev libnetfilter-log-dev libspdlog-dev libfmt-dev
 2. make
 
 ## Compile (RPM based distributions)
@@ -79,26 +79,17 @@ Usage: nflog_dns [OPTION]...
 
 Extract DNS replies from NFLOG group
 
-  -g, --group=NUM          NFLOG group to bind (default: 123)
-  -s, --syslog             log replies to syslog instead of stdout
   -f, --facility=FACILITY  facility for syslog logging (default: user)
-  -l, --level=LOGLEVEL     log level for syslog logging (default: info)
+  -g, --group=NUM          NFLOG group to bind (default: 123)
   -h, --help               print this help and exit
+  -l, --loglevel=LOGLEVEL  log level for syslog logging (default: info)
+  -q, --qtype=QTYPE,...    log QTYPE type DNS replies (default: A,AAAA)
+  -r, --rcode=RCODE,...    log RCODE return code replies (default: NOERROR)
+  -s, --syslog             log replies to syslog instead of stdout
   -u, --user=USER          user after dropping privileges (default: nobody)
   -v, --version            show version and exit
-      --log-a=BOOL         A record logging (default: yes)
-      --log-aaaa=BOOL      AAAA record logging (default: yes)
-      --log-cname=BOOL     CNAME record logging (default: yes)
-      --log-mx=BOOL        MX record logging (default: yes)
-      --log-ptr=BOOL       PTR record logging (default: yes)
-      --log-txt=BOOL       TXT record logging (default: yes)
-      --log-noerror=BOOL   NOERROR replies logging (default: yes)
-      --log-formerr=BOOL   FORMERR error logging (default: no)
-      --log-servfail=BOOL  SERVFAIL error logging (default: no)
-      --log-nxdomain=BOOL  NXDOMAIN error logging (default: no)
-      --log-notimpl=BOOL   NOTIMPL error logging (default: no)
-      --log-refused=BOOL   REFUSED error logging (default: no)
 ```
+See nflog_dns.8 manpage for further information, including explanation of command line options.
 
 ## iptables setup
 

@@ -39,25 +39,15 @@ void print_help(char* prgname) {
 	std::cout << std::endl;
 	std::cout << "Extract DNS replies from NFLOG group" << std::endl;
 	std::cout << std::endl;
-	std::cout << "  -g, --group=NUM          NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
-	std::cout << "  -s, --syslog             log replies to syslog instead of stdout" << std::endl;
 	std::cout << "  -f, --facility=FACILITY  facility for syslog logging (default: user)" << std::endl;
-	std::cout << "  -l, --level=LOGLEVEL     log level for syslog logging (default: info)" << std::endl;
+	std::cout << "  -g, --group=NUM          NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
 	std::cout << "  -h, --help               print this help and exit" << std::endl;
+	std::cout << "  -l, --loglevel=LOGLEVEL  log level for syslog logging (default: info)" << std::endl;
+	std::cout << "  -q, --qtype=QTYPE,...    log QTYPE type DNS replies (default: A,AAAA)" << std::endl;
+	std::cout << "  -r, --rcode=RCODE,...    log RCODE return code replies (default: NOERROR)" << std::endl;
+	std::cout << "  -s, --syslog             log replies to syslog instead of stdout" << std::endl;
 	std::cout << "  -u, --user=USER          user after dropping privileges (default: " << UNPRIVILEGED_USER << ")" << std::endl;
 	std::cout << "  -v, --version            show version and exit" << std::endl;
-	std::cout << "      --log-a=BOOL         A record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::A)) << ")" << std::endl;
-	std::cout << "      --log-aaaa=BOOL      AAAA record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::AAAA)) << ")" << std::endl;
-	std::cout << "      --log-cname=BOOL     CNAME record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::CNAME)) << ")" << std::endl;
-	std::cout << "      --log-mx=BOOL        MX record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::MX)) << ")" << std::endl;
-	std::cout << "      --log-ptr=BOOL       PTR record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::PTR)) << ")" << std::endl;
-	std::cout << "      --log-txt=BOOL       TXT record logging (default: " << bool_to_string(qtype_enabled(Tins::DNS::TXT)) << ")" << std::endl;
-	std::cout << "      --log-noerror=BOOL   NOERROR replies logging (default: " << bool_to_string(rcode_enabled(ns_r_noerror)) << ")" << std::endl;
-	std::cout << "      --log-formerr=BOOL   FORMERR error logging (default: " << bool_to_string(rcode_enabled(ns_r_formerr)) << ")" << std::endl;
-	std::cout << "      --log-servfail=BOOL  SERVFAIL error logging (default: " << bool_to_string(rcode_enabled(ns_r_servfail)) << ")" << std::endl;
-	std::cout << "      --log-nxdomain=BOOL  NXDOMAIN error logging (default: " << bool_to_string(rcode_enabled(ns_r_nxdomain)) << ")" << std::endl;
-	std::cout << "      --log-notimpl=BOOL   NOTIMPL error logging (default: " << bool_to_string(rcode_enabled(ns_r_notimpl)) << ")" << std::endl;
-	std::cout << "      --log-refused=BOOL   REFUSED error logging (default: " << bool_to_string(rcode_enabled(ns_r_refused)) << ")" << std::endl;
 	std::cout << std::endl;
 }
 
@@ -95,25 +85,14 @@ int main(int argc, char *argv[])
 	uint16_t group = DEFAULT_NFLOG_GROUP;
 	int syslog_facility = LOG_USER;
 	int optindex = 0;
-	int setting_value = -1;
 
 	const option longopts[] = {
-		{"log-a", required_argument, NULL, OPT_A},
-		{"log-aaaa", required_argument, NULL, OPT_AAAA},
-		{"log-cname", required_argument, NULL, OPT_CNAME},
-		{"log-mx", required_argument, NULL, OPT_MX},
-		{"log-ptr", required_argument, NULL, OPT_PTR},
-		{"log-txt", required_argument, NULL, OPT_TXT},
-		{"log-noerror", required_argument, NULL, OPT_NOERROR},
-		{"log-formerr", required_argument, NULL, OPT_FORMERR},
-		{"log-servfail", required_argument, NULL, OPT_SERVFAIL},
-		{"log-nxdomain", required_argument, NULL, OPT_NXDOMAIN},
-		{"log-notimpl", required_argument, NULL, OPT_NOTIMPL},
-		{"log-refused", required_argument, NULL, OPT_REFUSED},
 		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
 		{"help", no_argument, NULL, 'h'},
 		{"level", required_argument, NULL, 'l'},
+		{"qtype", required_argument, NULL, 'q'},
+		{"rcode", required_argument, NULL, 'r'},
 		{"syslog", no_argument, NULL, 's'},
 		{"user", required_argument, NULL, 'u'},
 		{"version", no_argument, NULL, 'v'},
@@ -121,7 +100,7 @@ int main(int argc, char *argv[])
 	};
 
 	while (true) {
-		const int opt = getopt_long(argc, argv, "f:g:hl:su:v", longopts, &optindex);
+		const int opt = getopt_long(argc, argv, "f:g:hl:q:r:su:v", longopts, &optindex);
 
 		if (opt == -1) {
 			break;
@@ -132,7 +111,7 @@ int main(int argc, char *argv[])
 				syslog_facility = parse_syslog_code(optarg, facilitynames);
 				if (syslog_facility == -1) {
 					std::cerr << "Error: Bad syslog facility name: " << optarg << std::endl;
-					return 1;
+					return EXIT_FAILURE;
 				}
 				break;
 
@@ -141,20 +120,46 @@ int main(int argc, char *argv[])
 					group = atoi(optarg);
 				} else {
 					std::cerr << "Error: Bad group number: " << optarg << std::endl;
-					return 1;
+					return EXIT_FAILURE;
 				}
 				break;
 
 			case 'h':
 				print_help(argv[0]);
-				return 0;
+				return EXIT_SUCCESS;
 				break;
 
 			case 'l':
 				syslog_level = spdlog::level::from_str(optarg);
 				if (syslog_level == spdlog::level::off) {
 					std::cerr << "Error: Bad syslog level: " << optarg << std::endl;
-					return 1;
+					return EXIT_FAILURE;
+				}
+				break;
+
+			case 'q':
+				if (use_default_qtypes) {
+					clear_qtypes();
+					use_default_qtypes = false;
+				}
+				try {
+					enable_qtypes(optarg);
+				} catch (const std::invalid_argument& e) {
+					std::cerr << "Error: Invalid qtype: " << e.what() << std::endl;
+					return EXIT_FAILURE;
+				}
+				break;
+
+			case 'r':
+				if (use_default_rcodes) {
+					clear_rcodes();
+					use_default_rcodes = false;
+				}
+				try {
+					enable_rcodes(optarg);
+				} catch (const std::invalid_argument& e) {
+					std::cerr << "Error: Invalid rcode: " << e.what() << std::endl;
+					return EXIT_FAILURE;
 				}
 				break;
 
@@ -172,17 +177,7 @@ int main(int argc, char *argv[])
 				break;
 
 			default:
-				// Try logging options
-				if (OPT_RECORDS_START < opt && opt < OPT_ERRORS_END) {
-					setting_value = parse_bool(optarg);
-					if (setting_value < 0) {
-						std::cerr << "Error: Bad --" << longopts[optindex].name << " value: " << optarg << std::endl;
-						return 1;
-					}
-					set_setting(static_cast<RecordOption>(opt), setting_value);
-				} else {
-					return 1;
-				}
+				return 1;
 				break;
 		}
 	}

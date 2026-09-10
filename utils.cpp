@@ -64,62 +64,26 @@ int parse_bool(const char *str) {
 	return -1;
 }
 
-void set_setting(const RecordOption opt, const bool setting_value) {
-	if (OPT_RECORDS_START < opt && opt < OPT_RECORDS_END) {
-		Tins::DNS::QueryType qtype;
-		switch (opt) {
-			case OPT_A: qtype = Tins::DNS::A; break;
-			case OPT_AAAA: qtype = Tins::DNS::AAAA; break;
-			case OPT_CNAME: qtype = Tins::DNS::CNAME; break;
-			case OPT_MX: qtype = Tins::DNS::MX; break;
-			case OPT_PTR: qtype = Tins::DNS::PTR; break;
-			case OPT_TXT: qtype = Tins::DNS::TXT; break;
-			default: return;
-		}
-		if (setting_value)
-			enable_qtype(qtype);
-		else
-			disable_qtype(qtype);
-	} else if (OPT_ERRORS_START < opt && opt < OPT_ERRORS_END){
-		ns_rcode rcode;
-		switch (opt) {
-		    case OPT_NOERROR: rcode = ns_r_noerror; break;
-			case OPT_FORMERR: rcode = ns_r_formerr; break;
-			case OPT_SERVFAIL: rcode = ns_r_servfail; break;
-			case OPT_NXDOMAIN: rcode = ns_r_nxdomain; break;
-			case OPT_NOTIMPL: rcode = ns_r_notimpl; break;
-			case OPT_REFUSED: rcode = ns_r_refused; break;
-			default: return;
-		}
-		if (setting_value)
-			enable_rcode(rcode);
-		else
-			disable_rcode(rcode);
-	}
+std::string qtype_to_string(Tins::DNS::QueryType qtype)
+{
+    std::unordered_map<Tins::DNS::QueryType, std::string>::const_iterator it =
+        dns_qtypes.find(qtype);
+
+    if (it != dns_qtypes.end())
+        return it->second;
+
+    return "UNKNOWN";
 }
 
- std::string qtype_to_string(const Tins::DNS::QueryType queryType) {
-	switch (queryType) {
-		case Tins::DNS::A: return "A"; break;
-		case Tins::DNS::AAAA: return "AAAA"; break;
-		case Tins::DNS::CNAME: return "CNAME"; break;
-		case Tins::DNS::MX: return "MX"; break;
-		case Tins::DNS::PTR: return "PTR"; break;
-		case Tins::DNS::TXT: return "TXT"; break;
-		default: return "(" + std::to_string(queryType) + ")"; break;
-	}
-}
+std::string rcode_to_string(ns_rcode rcode)
+{
+    std::unordered_map<ns_rcode, std::string>::const_iterator it =
+        dns_rcodes.find(rcode);
 
-std::string rcode_to_string(const ns_rcode rcode) {
-	switch (rcode) {
-		case ns_r_noerror: return "NOERROR"; break;
-		case ns_r_formerr: return "FORMERR"; break;
-		case ns_r_servfail: return "SERVFAIL"; break;
-		case ns_r_nxdomain: return "NXDOMAIN"; break;
-		case ns_r_notimpl: return "NOTIMPL"; break;
-		case ns_r_refused: return "REFUSED"; break;
-		default: return "(" + std::to_string(rcode) + ")"; break;
-	}
+    if (it != dns_rcodes.end())
+        return it->second;
+
+    return "UNKNOWN";
 }
 
 void log_stats(spdlog::logger& dns_logger) {
@@ -131,7 +95,6 @@ void log_stats(spdlog::logger& dns_logger) {
         packet_stats.logged_errors,
         packet_stats.logged_records);
 }
-
 
 void process_dns_packet(const uint8_t* payload,
                         const int payload_len,

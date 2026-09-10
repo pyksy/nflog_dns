@@ -32,6 +32,10 @@ int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table);
 
 int parse_bool(const char *str);
 
+std::string qtype_to_string(const Tins::DNS::QueryType queryType);
+
+std::string rcode_to_string(const ns_rcode rcode);
+
 bool parse_qtype(const char *str, Tins::DNS::QueryType& qtype);
 
 void log_stats(spdlog::logger& dns_logger);

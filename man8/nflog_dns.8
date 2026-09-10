@@ -1,4 +1,4 @@
-.TH NFLOG_DNS 8 "2025" "nflog_dns" "System Administration Commands"
+.TH NFLOG_DNS 8 "2026" "nflog_dns" "System Administration Commands"
 .SH NAME
 nflog_dns \- extract and log DNS replies from NFLOG netfilter group
 .SH SYNOPSIS
@@ -6,80 +6,79 @@ nflog_dns \- extract and log DNS replies from NFLOG netfilter group
 [\fIOPTION\fR]...
 .SH DESCRIPTION
 .B nflog_dns
-captures DNS reply packets from a Linux netfilter NFLOG group and logs the DNS
-resource records (A, AAAA, CNAME, MX, PTR, TXT) and DNS errors (FORMERR,
-SERVFAIL, NXDOMAIN, NOTIMPL, REFUSED) to syslog or standard output.
-The program binds to an NFLOG group and processes incoming DNS response packets,
-extracting domain names and their resolved values, or error responses.
+captures DNS reply packets from a Linux netfilter NFLOG group and logs their
+resource records and reply codes to syslog or standard output. The program
+binds to an NFLOG group and processes incoming DNS response packets,
+extracting domain names and their resolved values, or logging the DNS reply
+code when a query was not answered successfully.
+.PP
+The
+.B \-\-qtype
+and
+.B \-\-rcode
+options select which DNS record types and reply codes are logged; see
+.B OPTIONS
+below for the full lists.
 .PP
 This tool is designed to work with iptables/ip6tables/nftables rules that send
 DNS reply packets to an NFLOG group for logging purposes.
 .SH OPTIONS
 .TP
+.BR \-f ", " \-\-facility=\fIFACILITY\fR
+Set syslog facility for logging (default: user).
+Valid facilities include: auth, authpriv, cron, daemon, ftp, kern, local0\-local7,
+lpr, mail, news, syslog, user, uucp.
+.TP
 .BR \-g ", " \-\-group=\fINUM\fR
 Bind to NFLOG group \fINUM\fR (default: 123).
 .TP
-.BR \-s ", " \-\-syslog
-Log DNS replies to syslog instead of standard output.
+.BR \-h ", " \-\-help
+Display help message and exit.
 .TP
-.BR \-f ", " \-\-facility=\fIFACILITY\fR
-Set syslog facility for logging (default: user).
-Valid facilities include: auth, authpriv, cron, daemon, ftp, kern, local0-local7,
-lpr, mail, news, syslog, user, uucp.
-.TP
-.BR \-l ", " \-\-level=\fILEVEL\fR
+.BR \-l ", " \-\-loglevel=\fILOGLEVEL\fR
 Set log level for syslog logging (default: info).
 Valid levels: trace, debug, info, warn, error, critical.
 .TP
-.BR \-h ", " \-\-help
-Display help message, including default logging options, and exit.
+.BR \-q ", " \-\-qtype=\fIQTYPE\fR,...
+Comma\-separated, case\-insensitive list of DNS record (query) types to log
+from successful replies (default: A,AAAA). The first use of this option on
+the command line replaces the default selection entirely; repeating the
+option adds further types to the selection already made, so
+.B \-\-qtype=A,AAAA \-\-qtype=MX,TXT
+selects all four types.
+.IP
+Valid types are: A, NS, MD, MF, CNAME, SOA, MB, MG, MR, NULL, WKS, PTR,
+HINFO, MINFO, MX, TXT, RP, AFSDB, X25, ISDN, RT, NSAP, NSAP\-PTR, SIG, KEY,
+PX, GPOS, AAAA, LOC, NXT, EID, NIMLOC, SRV, ATMA, NAPTR, KX, CERT, A6,
+DNAME, SINK, OPT, APL, DS, SSHFP, IPSECKEY, RRSIG, NSEC, DNSKEY, DHCID,
+NSEC3, NSEC3PARAM.
+.TP
+.BR \-r ", " \-\-rcode=\fIRCODE\fR,...
+Comma\-separated, case\-insensitive list of DNS reply codes to log (default:
+NOERROR). Follows the same replace\-then\-accumulate rule as
+.BR \-\-qtype .
+.IP
+Valid codes are: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED,
+YXDOMAIN, YXRRSET, NXRRSET, NOTAUTH, NOTZONE.
+.PP
+Note that running with a custom
+.B \-\-rcode
+list that omits
+.B NOERROR
+(e.g.
+.BR \-\-rcode=NXDOMAIN ")"
+turns off all successful\-reply record logging and
+.B \-\-qtype
+selection will be ignored.
+.TP
+.BR \-s ", " \-\-syslog
+Log DNS replies to syslog instead of standard output.
 .TP
 .BR \-u ", " \-\-user=\fIUSER\fR
 Run as \fIUSER\fR after dropping root privileges (default: nobody).
 .TP
 .BR \-v ", " \-\-version
 Display version information and exit.
-.TP
-.BR \-\-log\-a=\fIBOOL\fR
-Enable or disable logging of A (IPv4 address) records.
-.TP
-.BR \-\-log\-aaaa=\fIBOOL\fR
-Enable or disable logging of AAAA (IPv6 address) records.
-.TP
-.BR \-\-log\-cname=\fIBOOL\fR
-Enable or disable logging of CNAME (canonical name) records.
-.TP
-.BR \-\-log\-mx=\fIBOOL\fR
-Enable or disable logging of MX (mail exchange) records.
-.TP
-.BR \-\-log\-ptr=\fIBOOL\fR
-Enable or disable logging of PTR (reverse DNS) records.
-.TP
-.BR \-\-log\-txt=\fIBOOL\fR
-Enable or disable logging of TXT (text) records.
-.TP
-.BR \-\-log\-noerror=\fIBOOL\fR
-Enable or disable logging of NOERROR (no error) replies. When disabled,
-successful DNS replies are not logged regardless of individual record type
-settings.
-.TP
-.BR \-\-log\-formerr=\fIBOOL\fR
-Enable or disable logging of FORMERR (format error) replies.
-.TP
-.BR \-\-log\-servfail=\fIBOOL\fR
-Enable or disable logging of SERVFAIL (server failure) replies.
-.TP
-.BR \-\-log\-nxdomain=\fIBOOL\fR
-Enable or disable logging of NXDOMAIN (name error) replies.
-.TP
-.BR \-\-log\-notimpl=\fIBOOL\fR
-Enable or disable logging of NOTIMPL (not implemented) replies.
-.TP
-.BR \-\-log\-refused=\fIBOOL\fR
-Enable or disable logging of REFUSED (operation refused) replies.
-.PP
-Boolean values can be specified as: 1, enable, on, true, yes (for true) or
-0, disable, off, false, no (for false).
 .SH EXAMPLES
 .PP
 Run nflog_dns with default settings (output to stdout):
@@ -92,21 +91,35 @@ sudo nflog_dns
 Log to syslog with daemon facility and warning level:
 .RS
 .nf
-sudo nflog_dns \-\-syslog \-\-facility=daemon \-\-level=warn
+sudo nflog_dns \-\-syslog \-\-facility=daemon \-\-loglevel=warn
 .fi
 .RE
 .PP
-Log only A and AAAA records from NFLOG group 100:
+Log A, AAAA and PTR records from NFLOG group 100:
 .RS
 .nf
-sudo nflog_dns \-g 100 \-\-log\-a=yes \-\-log\-aaaa=yes \-\-log\-cname=no \-\-log\-mx=no \-\-log\-ptr=no \-\-log\-txt=no
+sudo nflog_dns \-g 100 \-\-qtype=A,AAAA,PTR
 .fi
 .RE
 .PP
-Log name error and server failure error replies:
+Also log MX and TXT records, in addition to the default A and AAAA records:
 .RS
 .nf
-sudo nflog_dns \-\-log\-nxdomain=yes \-\-log\-servfail=yes
+sudo nflog_dns \-\-qtype=A,AAAA \-\-qtype=MX,TXT
+.fi
+.RE
+.PP
+Log successful replies as well as NXDOMAIN and SERVFAIL errors:
+.RS
+.nf
+sudo nflog_dns \-\-rcode=NOERROR,NXDOMAIN,SERVFAIL
+.fi
+.RE
+.PP
+Log only NXDOMAIN and SERVFAIL errors, without logging any successful replies:
+.RS
+.nf
+sudo nflog_dns \-\-rcode=NXDOMAIN,SERVFAIL
 .fi
 .RE
 .SH IPTABLES SETUP
@@ -151,9 +164,9 @@ Invalid/malformed packets
 .IP \(bu 2
 Valid DNS response packets
 .IP \(bu 2
-DNS error replies logged (accounting for error type filters)
+DNS error replies logged (accounting for the \-\-rcode/\-\-qtype filters)
 .IP \(bu 2
-DNS records logged (accounting for record type filters)
+DNS records logged (accounting for the \-\-qtype/\-\-rcode filters)
 .RE
 .PP
 Example output:

@@ -193,7 +193,8 @@ int main(int argc, char *argv[])
 		nflog_close(h);
 		return 1;
 	}
-	// Note that AF_INET socket does receive both IPv4 and IPv6 packets.
+	// Note that AF_INET socket does receive both IPv4 and IPv6 packets;
+	// no need to open AF_INET6 socket here (or anywhere).
 	if (nflog_bind_pf(h, AF_INET) < 0) {
 		std::cerr << "Error: nflog_bind_pf() failed (" << strerror(errno) << ")" << std::endl;
 		nflog_close(h);

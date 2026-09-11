@@ -10,6 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/ostream_sink.h>
 #include <sstream>
+#include <stdexcept>
 
 #include "../config.h"
 #include "../utils.h"
@@ -18,22 +19,13 @@
 // Helpers
 // ============================================================================
 
-// Reset config state to defaults before each test that touches it
+// Reset config state to the application defaults before each test that
+// touches it: A and AAAA qtypes, NOERROR rcode.
 static void reset_config() {
-    // Reset qtypes to all enabled
-    enable_qtype(Tins::DNS::A);
-    enable_qtype(Tins::DNS::AAAA);
-    enable_qtype(Tins::DNS::CNAME);
-    enable_qtype(Tins::DNS::MX);
-    enable_qtype(Tins::DNS::PTR);
-    enable_qtype(Tins::DNS::TXT);
-    // Reset rcodes: only NOERROR enabled by default
-    enable_rcode(ns_r_noerror);
-    disable_rcode(ns_r_formerr);
-    disable_rcode(ns_r_servfail);
-    disable_rcode(ns_r_nxdomain);
-    disable_rcode(ns_r_notimpl);
-    disable_rcode(ns_r_refused);
+    clear_qtypes();
+    enable_qtypes("A,AAAA");
+    clear_rcodes();
+    enable_rcodes("NOERROR");
 }
 
 // Reset stats to zero
@@ -179,18 +171,26 @@ TEST_CASE("parse_syslog_code - invalid input") {
 // ============================================================================
 
 TEST_CASE("qtype_to_string - known types") {
-    CHECK(qtype_to_string(Tins::DNS::A)     == "A");
-    CHECK(qtype_to_string(Tins::DNS::AAAA)  == "AAAA");
-    CHECK(qtype_to_string(Tins::DNS::CNAME) == "CNAME");
-    CHECK(qtype_to_string(Tins::DNS::MX)    == "MX");
-    CHECK(qtype_to_string(Tins::DNS::PTR)   == "PTR");
-    CHECK(qtype_to_string(Tins::DNS::TXT)   == "TXT");
+    CHECK(qtype_to_string(Tins::DNS::A)           == "A");
+    CHECK(qtype_to_string(Tins::DNS::AAAA)        == "AAAA");
+    CHECK(qtype_to_string(Tins::DNS::CNAME)       == "CNAME");
+    CHECK(qtype_to_string(Tins::DNS::MX)          == "MX");
+    CHECK(qtype_to_string(Tins::DNS::PTR)         == "PTR");
+    CHECK(qtype_to_string(Tins::DNS::TXT)         == "TXT");
+    CHECK(qtype_to_string(Tins::DNS::NS)          == "NS");
+    CHECK(qtype_to_string(Tins::DNS::SOA)         == "SOA");
+    CHECK(qtype_to_string(Tins::DNS::SRV)         == "SRV");
+    CHECK(qtype_to_string(Tins::DNS::DNSKEY)      == "DNSKEY");
+    CHECK(qtype_to_string(Tins::DNS::NSEC3PARAM)  == "NSEC3PARAM");
+    CHECK(qtype_to_string(Tins::DNS::NSAP_PTR)    == "NSAP-PTR");
+    CHECK(qtype_to_string(Tins::DNS::CERTIFICATE) == "CERT");
+    CHECK(qtype_to_string(Tins::DNS::DNAM)        == "DNAME");
 }
 
 TEST_CASE("qtype_to_string - unknown type") {
-    // Unknown types should return numeric representation
+    // Unknown types now return "UNKNOWN" (was "(9999)" before the lookup-table rework)
     const std::string result = qtype_to_string(static_cast<Tins::DNS::QueryType>(9999));
-    CHECK(result == "(9999)");
+    CHECK(result == "UNKNOWN");
 }
 
 // ============================================================================
@@ -202,90 +202,226 @@ TEST_CASE("rcode_to_string - known rcodes") {
     CHECK(rcode_to_string(ns_r_formerr)  == "FORMERR");
     CHECK(rcode_to_string(ns_r_servfail) == "SERVFAIL");
     CHECK(rcode_to_string(ns_r_nxdomain) == "NXDOMAIN");
-    CHECK(rcode_to_string(ns_r_notimpl)  == "NOTIMPL");
+    CHECK(rcode_to_string(ns_r_notimpl)  == "NOTIMP"); // was "NOTIMPL" before this release
     CHECK(rcode_to_string(ns_r_refused)  == "REFUSED");
+    CHECK(rcode_to_string(ns_r_yxdomain) == "YXDOMAIN");
+    CHECK(rcode_to_string(ns_r_yxrrset)  == "YXRRSET");
+    CHECK(rcode_to_string(ns_r_nxrrset)  == "NXRRSET");
+    CHECK(rcode_to_string(ns_r_notauth)  == "NOTAUTH");
+    CHECK(rcode_to_string(ns_r_notzone)  == "NOTZONE");
 }
 
 TEST_CASE("rcode_to_string - unknown rcode") {
+    // Unknown rcodes now return "UNKNOWN" (was "(99)" before the lookup-table rework)
     const std::string result = rcode_to_string(static_cast<ns_rcode>(99));
-    CHECK(result == "(99)");
+    CHECK(result == "UNKNOWN");
 }
 
 // ============================================================================
-// qtype_enabled / enable_qtype / disable_qtype
+// enable_qtypes / qtype_enabled / clear_qtypes
 // ============================================================================
 
 TEST_CASE("qtype_enabled - defaults") {
     reset_config();
-    CHECK(qtype_enabled(Tins::DNS::A)     == true);
-    CHECK(qtype_enabled(Tins::DNS::AAAA)  == true);
-    CHECK(qtype_enabled(Tins::DNS::CNAME) == true);
-    CHECK(qtype_enabled(Tins::DNS::MX)    == true);
-    CHECK(qtype_enabled(Tins::DNS::PTR)   == true);
-    CHECK(qtype_enabled(Tins::DNS::TXT)   == true);
+    CHECK(qtype_enabled(Tins::DNS::A)           == true);
+    CHECK(qtype_enabled(Tins::DNS::AAAA)        == true);
+    CHECK(qtype_enabled(Tins::DNS::CNAME)       == false);
+    CHECK(qtype_enabled(Tins::DNS::MX)          == false);
+    CHECK(qtype_enabled(Tins::DNS::PTR)         == false);
+    CHECK(qtype_enabled(Tins::DNS::TXT)         == false);
+    CHECK(qtype_enabled(Tins::DNS::NS)          == false);
+    CHECK(qtype_enabled(Tins::DNS::SOA)         == false);
+    CHECK(qtype_enabled(Tins::DNS::SRV)         == false);
+    CHECK(qtype_enabled(Tins::DNS::DNSKEY)      == false);
+    CHECK(qtype_enabled(Tins::DNS::NSEC3PARAM)  == false);
+    CHECK(qtype_enabled(Tins::DNS::NSAP_PTR)    == false);
+    CHECK(qtype_enabled(Tins::DNS::CERTIFICATE) == false);
+    CHECK(qtype_enabled(Tins::DNS::DNAM)        == false);
 }
 
-TEST_CASE("qtype_enabled - disable and re-enable") {
+TEST_CASE("enable_qtypes - single type") {
     reset_config();
-
-    disable_qtype(Tins::DNS::A);
-    CHECK(qtype_enabled(Tins::DNS::A) == false);
-
-    enable_qtype(Tins::DNS::A);
-    CHECK(qtype_enabled(Tins::DNS::A) == true);
-}
-
-TEST_CASE("qtype_enabled - disable one does not affect others") {
-    reset_config();
-
-    disable_qtype(Tins::DNS::MX);
-    CHECK(qtype_enabled(Tins::DNS::A)     == true);
-    CHECK(qtype_enabled(Tins::DNS::AAAA)  == true);
-    CHECK(qtype_enabled(Tins::DNS::CNAME) == true);
-    CHECK(qtype_enabled(Tins::DNS::MX)    == false);
-    CHECK(qtype_enabled(Tins::DNS::PTR)   == true);
-    CHECK(qtype_enabled(Tins::DNS::TXT)   == true);
-
-    reset_config();
-}
-
-TEST_CASE("qtype_enabled - disable all") {
-    reset_config();
-
-    disable_qtype(Tins::DNS::A);
-    disable_qtype(Tins::DNS::AAAA);
-    disable_qtype(Tins::DNS::CNAME);
-    disable_qtype(Tins::DNS::MX);
-    disable_qtype(Tins::DNS::PTR);
-    disable_qtype(Tins::DNS::TXT);
-
-    CHECK(qtype_enabled(Tins::DNS::A)     == false);
-    CHECK(qtype_enabled(Tins::DNS::AAAA)  == false);
-    CHECK(qtype_enabled(Tins::DNS::CNAME) == false);
-    CHECK(qtype_enabled(Tins::DNS::MX)    == false);
-    CHECK(qtype_enabled(Tins::DNS::PTR)   == false);
-    CHECK(qtype_enabled(Tins::DNS::TXT)   == false);
-
+    clear_qtypes();
+    enable_qtypes("MX");
+    CHECK(qtype_enabled(Tins::DNS::MX)          == true);
+    CHECK(qtype_enabled(Tins::DNS::A)           == false);
+    CHECK(qtype_enabled(Tins::DNS::AAAA)        == false);
+    CHECK(qtype_enabled(Tins::DNS::CNAME)       == false);
+    CHECK(qtype_enabled(Tins::DNS::PTR)         == false);
+    CHECK(qtype_enabled(Tins::DNS::TXT)         == false);
+    CHECK(qtype_enabled(Tins::DNS::NS)          == false);
+    CHECK(qtype_enabled(Tins::DNS::SOA)         == false);
+    CHECK(qtype_enabled(Tins::DNS::SRV)         == false);
+    CHECK(qtype_enabled(Tins::DNS::DNSKEY)      == false);
+    CHECK(qtype_enabled(Tins::DNS::NSEC3PARAM)  == false);
+    CHECK(qtype_enabled(Tins::DNS::NSAP_PTR)    == false);
+    CHECK(qtype_enabled(Tins::DNS::CERTIFICATE) == false);
+    CHECK(qtype_enabled(Tins::DNS::DNAM)        == false);
     reset_config();
 }
 
-TEST_CASE("qtype_enabled - idempotent enable") {
+TEST_CASE("enable_qtypes - comma separated list") {
     reset_config();
-    enable_qtype(Tins::DNS::A);
-    enable_qtype(Tins::DNS::A);
-    CHECK(qtype_enabled(Tins::DNS::A) == true);
+    clear_qtypes();
+    enable_qtypes("A,MX,PTR");
+    CHECK(qtype_enabled(Tins::DNS::A)           == true);
+    CHECK(qtype_enabled(Tins::DNS::MX)          == true);
+    CHECK(qtype_enabled(Tins::DNS::PTR)         == true);
+    CHECK(qtype_enabled(Tins::DNS::AAAA)        == false);
+    CHECK(qtype_enabled(Tins::DNS::TXT)         == false);
+    CHECK(qtype_enabled(Tins::DNS::NS)          == false);
+    CHECK(qtype_enabled(Tins::DNS::SOA)         == false);
+    CHECK(qtype_enabled(Tins::DNS::SRV)         == false);
+    CHECK(qtype_enabled(Tins::DNS::DNSKEY)      == false);
+    CHECK(qtype_enabled(Tins::DNS::NSEC3PARAM)  == false);
+    CHECK(qtype_enabled(Tins::DNS::NSAP_PTR)    == false);
+    CHECK(qtype_enabled(Tins::DNS::CERTIFICATE) == false);
+    CHECK(qtype_enabled(Tins::DNS::DNAM)        == false);
+    reset_config();
 }
 
-TEST_CASE("qtype_enabled - idempotent disable") {
+TEST_CASE("enable_qtypes - case insensitive") {
     reset_config();
-    disable_qtype(Tins::DNS::A);
-    disable_qtype(Tins::DNS::A);
+    clear_qtypes();
+    enable_qtypes("a,mx,PtR");
+    CHECK(qtype_enabled(Tins::DNS::A)           == true);
+    CHECK(qtype_enabled(Tins::DNS::MX)          == true);
+    CHECK(qtype_enabled(Tins::DNS::PTR)         == true);
+    CHECK(qtype_enabled(Tins::DNS::AAAA)        == false);
+    CHECK(qtype_enabled(Tins::DNS::TXT)         == false);
+    CHECK(qtype_enabled(Tins::DNS::NS)          == false);
+    CHECK(qtype_enabled(Tins::DNS::SOA)         == false);
+    CHECK(qtype_enabled(Tins::DNS::SRV)         == false);
+    CHECK(qtype_enabled(Tins::DNS::DNSKEY)      == false);
+    CHECK(qtype_enabled(Tins::DNS::NSEC3PARAM)  == false);
+    CHECK(qtype_enabled(Tins::DNS::NSAP_PTR)    == false);
+    CHECK(qtype_enabled(Tins::DNS::CERTIFICATE) == false);
+    CHECK(qtype_enabled(Tins::DNS::DNAM)        == false);
+    reset_config();
+}
+
+TEST_CASE("enable_qtypes - accumulates across multiple calls") {
+    reset_config();
+    clear_qtypes();
+    enable_qtypes("A");
+    enable_qtypes("MX");
+    enable_qtypes("PTR,TXT");
+    CHECK(qtype_enabled(Tins::DNS::A)           == true);
+    CHECK(qtype_enabled(Tins::DNS::MX)          == true);
+    CHECK(qtype_enabled(Tins::DNS::PTR)         == true);
+    CHECK(qtype_enabled(Tins::DNS::TXT)         == true);
+    CHECK(qtype_enabled(Tins::DNS::AAAA)        == false);
+    CHECK(qtype_enabled(Tins::DNS::NS)          == false);
+    CHECK(qtype_enabled(Tins::DNS::SOA)         == false);
+    CHECK(qtype_enabled(Tins::DNS::SRV)         == false);
+    CHECK(qtype_enabled(Tins::DNS::DNSKEY)      == false);
+    CHECK(qtype_enabled(Tins::DNS::NSEC3PARAM)  == false);
+    CHECK(qtype_enabled(Tins::DNS::NSAP_PTR)    == false);
+    CHECK(qtype_enabled(Tins::DNS::CERTIFICATE) == false);
+    CHECK(qtype_enabled(Tins::DNS::DNAM)        == false);
+    reset_config();
+}
+
+TEST_CASE("enable_qtypes - duplicate entries are idempotent") {
+    reset_config();
+    clear_qtypes();
+    enable_qtypes("A");
+    enable_qtypes("A");
+    CHECK(qtype_enabled(Tins::DNS::A)           == true);
+    CHECK(qtype_enabled(Tins::DNS::AAAA)        == false);
+    CHECK(qtype_enabled(Tins::DNS::PTR)         == false);
+    CHECK(qtype_enabled(Tins::DNS::MX)          == false);
+    CHECK(qtype_enabled(Tins::DNS::TXT)         == false);
+    CHECK(qtype_enabled(Tins::DNS::NS)          == false);
+    CHECK(qtype_enabled(Tins::DNS::SOA)         == false);
+    CHECK(qtype_enabled(Tins::DNS::SRV)         == false);
+    CHECK(qtype_enabled(Tins::DNS::DNSKEY)      == false);
+    CHECK(qtype_enabled(Tins::DNS::NSEC3PARAM)  == false);
+    CHECK(qtype_enabled(Tins::DNS::NSAP_PTR)    == false);
+    CHECK(qtype_enabled(Tins::DNS::CERTIFICATE) == false);
+    CHECK(qtype_enabled(Tins::DNS::DNAM)        == false);
+    CHECK(enabled_qtypes.size() == 1);
+    reset_config();
+}
+
+TEST_CASE("enable_qtypes - more record types") {
+    reset_config();
+    clear_qtypes();
+    enable_qtypes("NS,SOA,SRV,DNSKEY,NSEC3PARAM,NSAP-PTR");
+    CHECK(qtype_enabled(Tins::DNS::A)          == false);
+    CHECK(qtype_enabled(Tins::DNS::AAAA)       == false);
+    CHECK(qtype_enabled(Tins::DNS::PTR)        == false);
+    CHECK(qtype_enabled(Tins::DNS::MX)         == false);
+    CHECK(qtype_enabled(Tins::DNS::TXT)        == false);
+    CHECK(qtype_enabled(Tins::DNS::NS)         == true);
+    CHECK(qtype_enabled(Tins::DNS::SOA)        == true);
+    CHECK(qtype_enabled(Tins::DNS::SRV)        == true);
+    CHECK(qtype_enabled(Tins::DNS::DNSKEY)     == true);
+    CHECK(qtype_enabled(Tins::DNS::NSEC3PARAM) == true);
+    CHECK(qtype_enabled(Tins::DNS::NSAP_PTR)   == true);
+    reset_config();
+}
+
+TEST_CASE("enable_qtypes - enable with keyword ALL") {
+    reset_config();
+    clear_qtypes();
+    enable_qtypes("ALL");
+    CHECK(qtype_enabled(Tins::DNS::A)           == true);
+    CHECK(qtype_enabled(Tins::DNS::AAAA)        == true);
+    CHECK(qtype_enabled(Tins::DNS::PTR)         == true);
+    CHECK(qtype_enabled(Tins::DNS::MX)          == true);
+    CHECK(qtype_enabled(Tins::DNS::TXT)         == true);
+    CHECK(qtype_enabled(Tins::DNS::NS)          == true);
+    CHECK(qtype_enabled(Tins::DNS::SOA)         == true);
+    CHECK(qtype_enabled(Tins::DNS::SRV)         == true);
+    CHECK(qtype_enabled(Tins::DNS::DNSKEY)      == true);
+    CHECK(qtype_enabled(Tins::DNS::NSEC3PARAM)  == true);
+    CHECK(qtype_enabled(Tins::DNS::NSAP_PTR)    == true);
+    CHECK(qtype_enabled(Tins::DNS::CERTIFICATE) == true);
+    CHECK(qtype_enabled(Tins::DNS::DNAM)        == true);
+    CHECK(enabled_qtypes.size() == dns_qtypes.size());
+    reset_config();
+}
+
+
+TEST_CASE("enable_qtypes - unknown type throws") {
+    reset_config();
+    CHECK_THROWS_AS(enable_qtypes("BOGUS"), std::invalid_argument);
+    reset_config();
+}
+
+TEST_CASE("enable_qtypes - stops at first unknown type, leaving later entries unprocessed") {
+    // Documents current behavior: parsing is left-to-right and not transactional.
+    // Entries before the bad token are already applied when the throw happens.
+    reset_config();
+    clear_qtypes();
+    CHECK_THROWS_AS(enable_qtypes("A,BOGUS,MX"), std::invalid_argument);
+    CHECK(qtype_enabled(Tins::DNS::A)  == true);
+    CHECK(qtype_enabled(Tins::DNS::MX) == false);
+    reset_config();
+}
+
+TEST_CASE("enable_qtypes - empty entries from stray commas are skipped, not fatal") {
+    reset_config();
+    clear_qtypes();
+    enable_qtypes(",A,,MX,"); // leading, doubled, and trailing commas
+    CHECK(qtype_enabled(Tins::DNS::A)  == true);
+    CHECK(qtype_enabled(Tins::DNS::MX) == true);
+    CHECK(enabled_qtypes.size() == 2);
+    reset_config();
+}
+
+TEST_CASE("clear_qtypes - empties the enabled set") {
+    reset_config();
+    CHECK_FALSE(enabled_qtypes.empty());
+    clear_qtypes();
+    CHECK(enabled_qtypes.empty());
     CHECK(qtype_enabled(Tins::DNS::A) == false);
     reset_config();
 }
 
 // ============================================================================
-// rcode_enabled / enable_rcode / disable_rcode
+// enable_rcodes / rcode_enabled / clear_rcodes
 // ============================================================================
 
 TEST_CASE("rcode_enabled - defaults") {
@@ -298,114 +434,116 @@ TEST_CASE("rcode_enabled - defaults") {
     CHECK(rcode_enabled(ns_r_refused)  == false);
 }
 
-TEST_CASE("rcode_enabled - enable and disable") {
+TEST_CASE("enable_rcodes - single code accumulates onto current selection") {
     reset_config();
-
-    enable_rcode(ns_r_nxdomain);
+    enable_rcodes("NXDOMAIN");
     CHECK(rcode_enabled(ns_r_nxdomain) == true);
-
-    disable_rcode(ns_r_nxdomain);
-    CHECK(rcode_enabled(ns_r_nxdomain) == false);
-
+    CHECK(rcode_enabled(ns_r_noerror)  == true); // default NOERROR untouched
     reset_config();
 }
 
-TEST_CASE("rcode_enabled - enable one does not affect others") {
+TEST_CASE("enable_rcodes - comma separated list") {
     reset_config();
-
-    enable_rcode(ns_r_servfail);
-    CHECK(rcode_enabled(ns_r_noerror)  == true);
-    CHECK(rcode_enabled(ns_r_formerr)  == false);
+    clear_rcodes();
+    enable_rcodes("FORMERR,SERVFAIL,NXDOMAIN");
+    CHECK(rcode_enabled(ns_r_formerr)  == true);
     CHECK(rcode_enabled(ns_r_servfail) == true);
-    CHECK(rcode_enabled(ns_r_nxdomain) == false);
-    CHECK(rcode_enabled(ns_r_notimpl)  == false);
-    CHECK(rcode_enabled(ns_r_refused)  == false);
-
+    CHECK(rcode_enabled(ns_r_nxdomain) == true);
+    CHECK(rcode_enabled(ns_r_noerror)  == false);
     reset_config();
 }
 
-TEST_CASE("rcode_enabled - enable all") {
+TEST_CASE("enable_rcodes - case insensitive") {
     reset_config();
+    clear_rcodes();
+    enable_rcodes("nxdomain,ServFail");
+    CHECK(rcode_enabled(ns_r_nxdomain) == true);
+    CHECK(rcode_enabled(ns_r_servfail) == true);
+    reset_config();
+}
 
-    enable_rcode(ns_r_noerror);
-    enable_rcode(ns_r_formerr);
-    enable_rcode(ns_r_servfail);
-    enable_rcode(ns_r_nxdomain);
-    enable_rcode(ns_r_notimpl);
-    enable_rcode(ns_r_refused);
+TEST_CASE("enable_rcodes - accumulates across multiple calls") {
+    reset_config();
+    clear_rcodes();
+    enable_rcodes("NOERROR");
+    enable_rcodes("FORMERR");
+    enable_rcodes("SERVFAIL,NXDOMAIN");
+    CHECK(rcode_enabled(ns_r_noerror)  == true);
+    CHECK(rcode_enabled(ns_r_formerr)  == true);
+    CHECK(rcode_enabled(ns_r_servfail) == true);
+    CHECK(rcode_enabled(ns_r_nxdomain) == true);
+    reset_config();
+}
 
+TEST_CASE("enable_rcodes - all standard rcodes") {
+    reset_config();
+    clear_rcodes();
+    enable_rcodes("NOERROR,FORMERR,SERVFAIL,NXDOMAIN,NOTIMP,REFUSED,"
+                  "YXDOMAIN,YXRRSET,NXRRSET,NOTAUTH,NOTZONE");
     CHECK(rcode_enabled(ns_r_noerror)  == true);
     CHECK(rcode_enabled(ns_r_formerr)  == true);
     CHECK(rcode_enabled(ns_r_servfail) == true);
     CHECK(rcode_enabled(ns_r_nxdomain) == true);
     CHECK(rcode_enabled(ns_r_notimpl)  == true);
     CHECK(rcode_enabled(ns_r_refused)  == true);
-
+    CHECK(rcode_enabled(ns_r_yxdomain) == true);
+    CHECK(rcode_enabled(ns_r_yxrrset)  == true);
+    CHECK(rcode_enabled(ns_r_nxrrset)  == true);
+    CHECK(rcode_enabled(ns_r_notauth)  == true);
+    CHECK(rcode_enabled(ns_r_notzone)  == true);
     reset_config();
 }
 
-TEST_CASE("rcode_enabled - disable noerror") {
+TEST_CASE("enable_rcodes - enable with keyword ALL") {
     reset_config();
-    disable_rcode(ns_r_noerror);
+    clear_rcodes();
+    enable_rcodes("ALL");
+    CHECK(rcode_enabled(ns_r_noerror)  == true);
+    CHECK(rcode_enabled(ns_r_formerr)  == true);
+    CHECK(rcode_enabled(ns_r_servfail) == true);
+    CHECK(rcode_enabled(ns_r_nxdomain) == true);
+    CHECK(rcode_enabled(ns_r_notimpl)  == true);
+    CHECK(rcode_enabled(ns_r_refused)  == true);
+    CHECK(rcode_enabled(ns_r_yxdomain) == true);
+    CHECK(rcode_enabled(ns_r_yxrrset)  == true);
+    CHECK(rcode_enabled(ns_r_nxrrset)  == true);
+    CHECK(rcode_enabled(ns_r_notauth)  == true);
+    CHECK(rcode_enabled(ns_r_notzone)  == true);
+    CHECK(enabled_rcodes.size() == dns_rcodes.size());
+    reset_config();
+}
+
+TEST_CASE("enable_rcodes - unknown code throws") {
+    reset_config();
+    CHECK_THROWS_AS(enable_rcodes("BOGUS"), std::invalid_argument);
+    reset_config();
+}
+
+TEST_CASE("enable_rcodes - stops at first unknown code, leaving later entries unprocessed") {
+    reset_config();
+    clear_rcodes();
+    CHECK_THROWS_AS(enable_rcodes("NXDOMAIN,BOGUS,SERVFAIL"), std::invalid_argument);
+    CHECK(rcode_enabled(ns_r_nxdomain) == true);
+    CHECK(rcode_enabled(ns_r_servfail) == false);
+    reset_config();
+}
+
+TEST_CASE("enable_rcodes - empty entries from stray commas are skipped, not fatal") {
+    reset_config();
+    clear_rcodes();
+    enable_rcodes(",NXDOMAIN,,SERVFAIL,"); // leading, doubled, and trailing commas
+    CHECK(rcode_enabled(ns_r_nxdomain) == true);
+    CHECK(rcode_enabled(ns_r_servfail) == true);
+    CHECK(enabled_rcodes.size() == 2);
+    reset_config();
+}
+
+TEST_CASE("clear_rcodes - empties the enabled set") {
+    reset_config();
+    CHECK_FALSE(enabled_rcodes.empty());
+    clear_rcodes();
+    CHECK(enabled_rcodes.empty());
     CHECK(rcode_enabled(ns_r_noerror) == false);
-    reset_config();
-}
-
-// ============================================================================
-// set_setting
-// ============================================================================
-
-TEST_CASE("set_setting - enable/disable record qtypes") {
-    reset_config();
-
-    set_setting(OPT_A,     false); CHECK(qtype_enabled(Tins::DNS::A)     == false);
-    set_setting(OPT_AAAA,  false); CHECK(qtype_enabled(Tins::DNS::AAAA)  == false);
-    set_setting(OPT_CNAME, false); CHECK(qtype_enabled(Tins::DNS::CNAME) == false);
-    set_setting(OPT_MX,    false); CHECK(qtype_enabled(Tins::DNS::MX)    == false);
-    set_setting(OPT_PTR,   false); CHECK(qtype_enabled(Tins::DNS::PTR)   == false);
-    set_setting(OPT_TXT,   false); CHECK(qtype_enabled(Tins::DNS::TXT)   == false);
-
-    set_setting(OPT_A,     true);  CHECK(qtype_enabled(Tins::DNS::A)     == true);
-    set_setting(OPT_AAAA,  true);  CHECK(qtype_enabled(Tins::DNS::AAAA)  == true);
-    set_setting(OPT_CNAME, true);  CHECK(qtype_enabled(Tins::DNS::CNAME) == true);
-    set_setting(OPT_MX,    true);  CHECK(qtype_enabled(Tins::DNS::MX)    == true);
-    set_setting(OPT_PTR,   true);  CHECK(qtype_enabled(Tins::DNS::PTR)   == true);
-    set_setting(OPT_TXT,   true);  CHECK(qtype_enabled(Tins::DNS::TXT)   == true);
-
-    reset_config();
-}
-
-TEST_CASE("set_setting - enable/disable error rcodes") {
-    reset_config();
-
-    set_setting(OPT_NOERROR,  false); CHECK(rcode_enabled(ns_r_noerror)  == false);
-    set_setting(OPT_FORMERR,  true);  CHECK(rcode_enabled(ns_r_formerr)  == true);
-    set_setting(OPT_SERVFAIL, true);  CHECK(rcode_enabled(ns_r_servfail) == true);
-    set_setting(OPT_NXDOMAIN, true);  CHECK(rcode_enabled(ns_r_nxdomain) == true);
-    set_setting(OPT_NOTIMPL,  true);  CHECK(rcode_enabled(ns_r_notimpl)  == true);
-    set_setting(OPT_REFUSED,  true);  CHECK(rcode_enabled(ns_r_refused)  == true);
-
-    set_setting(OPT_NOERROR,  true);  CHECK(rcode_enabled(ns_r_noerror)  == true);
-    set_setting(OPT_FORMERR,  false); CHECK(rcode_enabled(ns_r_formerr)  == false);
-    set_setting(OPT_SERVFAIL, false); CHECK(rcode_enabled(ns_r_servfail) == false);
-    set_setting(OPT_NXDOMAIN, false); CHECK(rcode_enabled(ns_r_nxdomain) == false);
-    set_setting(OPT_NOTIMPL,  false); CHECK(rcode_enabled(ns_r_notimpl)  == false);
-    set_setting(OPT_REFUSED,  false); CHECK(rcode_enabled(ns_r_refused)  == false);
-
-    reset_config();
-}
-
-TEST_CASE("set_setting - boundary values OPT_RECORDS_START and OPT_RECORDS_END are not valid") {
-    reset_config();
-    // These boundary sentinels should be no-ops
-    set_setting(OPT_RECORDS_START, true);
-    set_setting(OPT_RECORDS_END,   true);
-    set_setting(OPT_ERRORS_START,  true);
-    set_setting(OPT_ERRORS_END,    true);
-    // Config should be unchanged from defaults
-    CHECK(qtype_enabled(Tins::DNS::A)    == true);
-    CHECK(rcode_enabled(ns_r_noerror)    == true);
-    CHECK(rcode_enabled(ns_r_nxdomain)   == false);
     reset_config();
 }
 
@@ -558,10 +696,11 @@ TEST_CASE("process_dns_packet - valid A reply log output contains expected field
     CHECK(output.find("127.0.0.1")     != std::string::npos);
 }
 
-TEST_CASE("process_dns_packet - A reply with A disabled does not log record") {
+TEST_CASE("process_dns_packet - A reply with A not in --qtype does not log record") {
     reset_config();
     reset_stats();
-    disable_qtype(Tins::DNS::A);
+    clear_qtypes();
+    enable_qtypes("AAAA"); // enable something, but not A
     std::ostringstream oss;
     auto logger = make_test_logger(oss);
 
@@ -574,10 +713,10 @@ TEST_CASE("process_dns_packet - A reply with A disabled does not log record") {
     reset_config();
 }
 
-TEST_CASE("process_dns_packet - A reply with NOERROR disabled does not log") {
+TEST_CASE("process_dns_packet - A reply with NOERROR not in --rcode does not log") {
     reset_config();
     reset_stats();
-    disable_rcode(ns_r_noerror);
+    clear_rcodes(); // no rcodes enabled, so NOERROR is not enabled
     std::ostringstream oss;
     auto logger = make_test_logger(oss);
 
@@ -590,10 +729,31 @@ TEST_CASE("process_dns_packet - A reply with NOERROR disabled does not log") {
     reset_config();
 }
 
-TEST_CASE("process_dns_packet - NXDOMAIN reply with nxdomain disabled does not log error") {
+TEST_CASE("process_dns_packet - rcode list without NOERROR suppresses all record logging") {
+    // Documents current behavior: rcode_enabled(NOERROR) gates the entire
+    // "check for answers" loop, not just an error line, so a --rcode list
+    // that omits NOERROR silently disables all successful-reply record
+    // logging regardless of --qtype. Flagged in project review notes.
     reset_config();
     reset_stats();
-    // ns_r_nxdomain is disabled by default
+    clear_rcodes();
+    enable_rcodes("NXDOMAIN"); // NOERROR intentionally left out
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_A_REPLY.data(), (int)PKT_A_REPLY.size(), *logger);
+
+    CHECK(packet_stats.dns_responses  == 1);
+    CHECK(packet_stats.logged_records == 0);
+    CHECK(oss.str().empty());
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet - NXDOMAIN reply with nxdomain not in --rcode does not log error") {
+    reset_config();
+    reset_stats();
+    // ns_r_nxdomain is not enabled by default
     std::ostringstream oss;
     auto logger = make_test_logger(oss);
 
@@ -604,10 +764,10 @@ TEST_CASE("process_dns_packet - NXDOMAIN reply with nxdomain disabled does not l
     CHECK(oss.str().empty());
 }
 
-TEST_CASE("process_dns_packet - NXDOMAIN reply with nxdomain enabled logs error") {
+TEST_CASE("process_dns_packet - NXDOMAIN reply with nxdomain in --rcode logs error") {
     reset_config();
     reset_stats();
-    enable_rcode(ns_r_nxdomain);
+    enable_rcodes("NXDOMAIN");
     std::ostringstream oss;
     auto logger = make_test_logger(oss);
 
@@ -621,6 +781,27 @@ TEST_CASE("process_dns_packet - NXDOMAIN reply with nxdomain enabled logs error"
     CHECK(output.find("NXDOMAIN")     != std::string::npos);
     CHECK(output.find("example.com")  != std::string::npos);
     CHECK(output.find("172.31.53.123") != std::string::npos);
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet - error for a query type not in --qtype is not logged") {
+    // Documents current behavior: for non-NOERROR replies, an error line is
+    // only logged if the *original query's* type is also enabled via
+    // --qtype, even though --qtype is nominally about successful answers.
+    reset_config();
+    reset_stats();
+    clear_qtypes();
+    enable_qtypes("MX"); // PKT_NXDOMAIN_REPLY queried type A, not MX
+    enable_rcodes("NXDOMAIN");
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_NXDOMAIN_REPLY.data(), (int)PKT_NXDOMAIN_REPLY.size(), *logger);
+
+    CHECK(packet_stats.dns_responses == 1);
+    CHECK(packet_stats.logged_errors == 0);
+    CHECK(oss.str().empty());
 
     reset_config();
 }
@@ -667,7 +848,7 @@ TEST_CASE("process_dns_packet - DNS query (not response) is not counted") {
 TEST_CASE("process_dns_packet - NXDOMAIN with no questions increments invalid_packets") {
     reset_config();
     reset_stats();
-    enable_rcode(ns_r_nxdomain);
+    enable_rcodes("NXDOMAIN");
     std::ostringstream oss;
     auto logger = make_test_logger(oss);
 

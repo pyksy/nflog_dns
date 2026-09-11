@@ -39,6 +39,7 @@ void enable_qtypes(const char* arg)
 
         // Skip empty
         if (qtype.empty()) {
+            start = comma + 1;
             continue;
         }
 
@@ -109,6 +110,7 @@ void enable_rcodes(const char* arg)
         }
 
         if (rcode.empty()) {
+            start = comma + 1;
             continue;
         }
 

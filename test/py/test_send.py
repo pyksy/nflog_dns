@@ -82,8 +82,8 @@ elif PACKET_TYPE == 'NXDOMAIN':
         '1234818300010000000000000'
         '76578616d706c6503636f6d0000010001'
     )
-elif PACKET_TYPE == 'NOTIMPL':
-    # example.com A query -> NOTIMP/NOTIMPL (RCODE=4)
+elif PACKET_TYPE == 'NOTIMP':
+    # example.com A query -> NOTIMP (RCODE=4)
     packet = bytes.fromhex(
         '1234818400010000000000000'
         '76578616d706c6503636f6d0000010001'
@@ -93,6 +93,31 @@ elif PACKET_TYPE == 'REFUSED':
     packet = bytes.fromhex(
         '1234818500010000000000000'
         '76578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'YXDOMAIN':
+    # example.com A query -> YXDOMAIN (RCODE=6)
+    packet = bytes.fromhex(
+        '123481860001000000000000076578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'YXRRSET':
+    # example.com A query -> YXRRSET (RCODE=7)
+    packet = bytes.fromhex(
+        '123481870001000000000000076578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'NXRRSET':
+    # example.com A query -> NXRRSET (RCODE=8)
+    packet = bytes.fromhex(
+        '123481880001000000000000076578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'NOTAUTH':
+    # example.com A query -> NOTAUTH (RCODE=9)
+    packet = bytes.fromhex(
+        '123481890001000000000000076578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'NOTZONE':
+    # example.com A query -> NOTZONE (RCODE=10)
+    packet = bytes.fromhex(
+        '1234818a0001000000000000076578616d706c6503636f6d0000010001'
     )
 
 # Invalids
@@ -144,7 +169,8 @@ elif PACKET_TYPE == 'QUERY':
 else:
     print(f"Error: '{PACKET_TYPE}' is not a valid PACKET_TYPE. It can be")
     print(f"a reply: 'A', 'AAAA', 'CNAME', 'MX', 'PTR', 'TXT';")
-    print(f"an error: 'FORMERR', 'SERVFAIL', 'NXDOMAIN', 'NOTIMPL', 'REFUSED';")
+    print(f"an error: 'FORMERR', 'SERVFAIL', 'NXDOMAIN', 'NOTIMP', 'REFUSED',")
+    print(f"          'YXDOMAIN', 'YXRRSET', 'NXRRSET', 'NOTAUTH', 'NOTZONE';")
     print(f"invalid: 'EMPTYPACKET', 'BADIP', 'MALFORMED', 'NOQUESTION', 'QUERY'.")
     sys.exit(1)
 

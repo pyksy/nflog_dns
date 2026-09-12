@@ -137,7 +137,7 @@ echo "done"
 NFLOGTEMP="$(mktemp "/tmp/nflog_XXXXXXXX.temp")"
 
 LOGLEVEL="trace"
-ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
+ARGS="--group=${GROUP} --loglevel=${LOGLEVEL}" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
@@ -158,7 +158,7 @@ rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo
 
 LOGLEVEL="debug"
-ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
+ARGS="--group=${GROUP} --loglevel=${LOGLEVEL} --qtype=ALL" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
@@ -182,11 +182,7 @@ rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo
 
 LOGLEVEL="info"
-ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
-for TYPE in "${PACKET_TYPES[@]}"
-do
-	ARGS="--log-${TYPE}=no ${ARGS}"
-done
+ARGS="--group=${GROUP} --loglevel=${LOGLEVEL} --qtype=" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
@@ -209,7 +205,7 @@ rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo
 
 LOGLEVEL="warning"
-ARGS="--log-noerror=no --group=${GROUP} --level=${LOGLEVEL}" 
+ARGS="--rcode= --group=${GROUP} --loglevel=${LOGLEVEL}" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
@@ -232,11 +228,7 @@ rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo
 
 LOGLEVEL="error"
-ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
-for TYPE in "${ERROR_TYPES[@]}"
-do
-	ARGS="--log-${TYPE}=no ${ARGS}"
-done
+ARGS="--group=${GROUP} --loglevel=${LOGLEVEL} --rcode=" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
@@ -259,11 +251,7 @@ rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo
 
 LOGLEVEL="critical"
-ARGS="--log-a=yes --group=${GROUP} --level=${LOGLEVEL}" 
-for TYPE in "${ERROR_TYPES[@]}"
-do
-	ARGS="--log-${TYPE}=yes ${ARGS}"
-done
+ARGS="--qtype=A --rcode=ALL --group=${GROUP} --loglevel=${LOGLEVEL}" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"
@@ -284,7 +272,7 @@ rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo
 
 LOGLEVEL="trace"
-ARGS="--group=${GROUP} --level=${LOGLEVEL}" 
+ARGS="--group=${GROUP} --loglevel=${LOGLEVEL}" 
 echo -n "Start nflog_dns ${ARGS} ... "
 "${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
 NFLOGPID="${!}"

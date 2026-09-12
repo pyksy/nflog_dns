@@ -62,6 +62,56 @@ elif PACKET_TYPE == 'TXT':
         '123481800001000100000000076578616d706c6503636f6d0000100001'
         'c00c001000010000003c000d0c4578616d706c652074657874'
     )
+elif PACKET_TYPE == 'NS':
+    # example.com NS ns1.example.com
+    packet = bytes.fromhex(
+        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        'c00c000200010000003c0006036e7331c00c'
+    )
+elif PACKET_TYPE == 'SOA':
+    # example.com SOA ns1.example.com hostmaster.example.com (1 3600 1800 604800 60)
+    packet = bytes.fromhex(
+        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        'c00c000600010000003c0027036e7331c00c0a686f73746d6173746572'
+        'c00c0000000100000e100000070800093a800000003c'
+    )
+elif PACKET_TYPE == 'SRV':
+    # _sip._tcp.example.com SRV 10 20 5060 sip.example.com
+    packet = bytes.fromhex(
+        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        '045f736970045f746370c00c002100010000003c000c000a001413c403'
+        '736970c00c'
+    )
+elif PACKET_TYPE == 'DNSKEY':
+    # example.com DNSKEY flags=256 protocol=3 algorithm=8 (4-byte fake pubkey)
+    packet = bytes.fromhex(
+        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        'c00c003000010000003c000801000308aabbccdd'
+    )
+elif PACKET_TYPE == 'NSEC3PARAM':
+    # example.com NSEC3PARAM algorithm=1 flags=0 iterations=10 salt=1234
+    packet = bytes.fromhex(
+        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        'c00c003300010000003c00070100000a021234'
+    )
+elif PACKET_TYPE == 'NSAP-PTR':
+    # example.com NSAP-PTR ptr.example.com
+    packet = bytes.fromhex(
+        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        'c00c001700010000003c000603707472c00c'
+    )
+elif PACKET_TYPE == 'CERT':
+    # example.com CERT type=PKIX(1) key_tag=12345 algorithm=8 (4-byte fake cert)
+    packet = bytes.fromhex(
+        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        'c00c002500010000003c0009000130390801020304'
+    )
+elif PACKET_TYPE == 'DNAME':
+    # example.com DNAME example.net
+    packet = bytes.fromhex(
+        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        'c00c002700010000003c000d076578616d706c65036e657400'
+    )
 
 # Errors
 elif PACKET_TYPE == 'FORMERR':
@@ -82,8 +132,8 @@ elif PACKET_TYPE == 'NXDOMAIN':
         '1234818300010000000000000'
         '76578616d706c6503636f6d0000010001'
     )
-elif PACKET_TYPE == 'NOTIMPL':
-    # example.com A query -> NOTIMP/NOTIMPL (RCODE=4)
+elif PACKET_TYPE == 'NOTIMP':
+    # example.com A query -> NOTIMP (RCODE=4)
     packet = bytes.fromhex(
         '1234818400010000000000000'
         '76578616d706c6503636f6d0000010001'
@@ -93,6 +143,31 @@ elif PACKET_TYPE == 'REFUSED':
     packet = bytes.fromhex(
         '1234818500010000000000000'
         '76578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'YXDOMAIN':
+    # example.com A query -> YXDOMAIN (RCODE=6)
+    packet = bytes.fromhex(
+        '123481860001000000000000076578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'YXRRSET':
+    # example.com A query -> YXRRSET (RCODE=7)
+    packet = bytes.fromhex(
+        '123481870001000000000000076578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'NXRRSET':
+    # example.com A query -> NXRRSET (RCODE=8)
+    packet = bytes.fromhex(
+        '123481880001000000000000076578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'NOTAUTH':
+    # example.com A query -> NOTAUTH (RCODE=9)
+    packet = bytes.fromhex(
+        '123481890001000000000000076578616d706c6503636f6d0000010001'
+    )
+elif PACKET_TYPE == 'NOTZONE':
+    # example.com A query -> NOTZONE (RCODE=10)
+    packet = bytes.fromhex(
+        '1234818a0001000000000000076578616d706c6503636f6d0000010001'
     )
 
 # Invalids
@@ -143,8 +218,10 @@ elif PACKET_TYPE == 'QUERY':
     )
 else:
     print(f"Error: '{PACKET_TYPE}' is not a valid PACKET_TYPE. It can be")
-    print(f"a reply: 'A', 'AAAA', 'CNAME', 'MX', 'PTR', 'TXT';")
-    print(f"an error: 'FORMERR', 'SERVFAIL', 'NXDOMAIN', 'NOTIMPL', 'REFUSED';")
+    print(f"a reply: 'A', 'AAAA', 'CNAME', 'MX', 'PTR', 'TXT', 'NS', 'SOA',")
+    print(f"         'SRV', 'DNSKEY', 'NSEC3PARAM', 'NSAP-PTR', 'CERT', 'DNAME';")
+    print(f"an error: 'FORMERR', 'SERVFAIL', 'NXDOMAIN', 'NOTIMP', 'REFUSED',")
+    print(f"          'YXDOMAIN', 'YXRRSET', 'NXRRSET', 'NOTAUTH', 'NOTZONE';")
     print(f"invalid: 'EMPTYPACKET', 'BADIP', 'MALFORMED', 'NOQUESTION', 'QUERY'.")
     sys.exit(1)
 

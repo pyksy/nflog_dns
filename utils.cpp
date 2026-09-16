@@ -16,6 +16,60 @@
 #include "utils.h"
 #include "config.h"
 
+
+static bool is_printable(const std::string& data) {
+	for (unsigned char c : data) {
+		if (c < 0x20 || c > 0x7e) {
+			return false;
+		}
+	}
+	return true;
+}
+
+static std::string hex_encode(const std::string& data) {
+	static const char hex_digits[] = "0123456789abcdef";
+	std::string out;
+	out.reserve(data.size() * 2);
+	for (unsigned char c : data) {
+		out.push_back(hex_digits[c >> 4]);
+		out.push_back(hex_digits[c & 0x0f]);
+	}
+	return out;
+}
+
+// Decode TXT RDATA because Tins::DNS::resource::data() returns TXT RDATA
+// with the length-prefix byte(s) still attached. Returns false if the 
+// RDATA is a malformed.
+static bool decode_txt(const std::string& data, std::string& out) {
+	std::size_t pos = 0;
+	while (pos < data.size()) {
+		const std::size_t len = static_cast<unsigned char>(data[pos]);
+		++pos;
+		if (pos + len > data.size()) {
+			return false;
+		}
+		if (!out.empty()) {
+			out += " ";
+		}
+		out += data.substr(pos, len);
+		pos += len;
+	}
+	return true;
+}
+
+// Render RDATA for logging. TXT gets its character-string length
+// prefixes stripped, everything else is passed thru if already
+// printable ASCII, otherwise hex-encoded
+static std::string format_rdata(const Tins::DNS::QueryType qtype, const std::string& data) {
+	if (qtype == Tins::DNS::TXT) {
+		std::string decoded;
+		if (decode_txt(data, decoded) && is_printable(decoded)) {
+			return decoded;
+		}
+	}
+	return is_printable(data) ? data : "0x" + hex_encode(data);
+}
+
 Stats packet_stats;
 
 std::string bool_to_string(const bool value) {
@@ -169,7 +223,7 @@ void process_dns_packet(const uint8_t* payload,
                 const Tins::DNS::QueryType qtype = static_cast<Tins::DNS::QueryType>(answer.query_type());
 				if (qtype_enabled(qtype)) {
 					const std::string qtype_str = qtype_to_string(qtype);
-					dns_logger.log(dns_logger.level(), "{} reply {} {} -> {}", source, qtype_str, answer.dname(), answer.data());
+					dns_logger.log(dns_logger.level(), "{} reply {} {} -> {}", source, qtype_str, answer.dname(), format_rdata(qtype, answer.data()));
 					packet_stats.logged_records++;
 				}
 			}

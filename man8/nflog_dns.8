@@ -38,6 +38,8 @@ Display help message and exit.
 .BR \-l ", " \-\-loglevel=\fILOGLEVEL\fR
 Set log level for syslog logging (default: info).
 Valid levels: trace, debug, info, warn, error, critical.
+.B \-\-level
+is accepted as a deprecated alias.
 .TP
 .BR \-q ", " \-\-qtype=\fIQTYPE\fR,...
 Comma\-separated, case\-insensitive list of DNS record (query) types to log
@@ -58,6 +60,11 @@ HINFO, MINFO, MX, TXT, RP, AFSDB, X25, ISDN, RT, NSAP, NSAP\-PTR, SIG, KEY,
 PX, GPOS, AAAA, LOC, NXT, EID, NIMLOC, SRV, ATMA, NAPTR, KX, CERT, A6,
 DNAME, SINK, OPT, APL, DS, SSHFP, IPSECKEY, RRSIG, NSEC, DNSKEY, DHCID,
 NSEC3, NSEC3PARAM, or ALL to select everything.
+.IP
+Types whose data libtins cannot render as text or a name (e.g.
+.BR SOA ", " SRV ", " DNSKEY ", " CERT ", " NSEC3PARAM )
+are logged as a hex string prefixed
+.BR 0x .
 .TP
 .BR \-r ", " \-\-rcode=\fIRCODE\fR,...
 Comma\-separated, case\-insensitive list of DNS reply codes to log (default:

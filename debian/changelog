@@ -1,3 +1,28 @@
+nflog-dns (1.1.0-1) unstable; urgency=medium
+
+  * Create user _nflog-dns on .deb install, remove on .deb purge. Minor
+    test stilization.
+  * Create user _nflog-dns on .rpm install
+  * Test user removal after .deb remove/purge
+  * Add Fedora QA chroot tests to CI
+  * Initial commit of reworked qtype and rcode setup
+  * Update manpage
+  * Fix loglevel argument
+  * Fix documentation link in systemd service file
+  * Fix empty qtype and rcode parsing
+  * Add ALL selector to qtype and rcode
+  * Add accidentally dropped prototypes
+  * Fix infinite loop in qtype/rcode parsers
+  * Update unit tests
+  * Update integration tests
+  * Hexdump replies that are not decoded by libtins
+  * Add --level option for backward compatibility
+  * Fix copypaste fail in manpage
+  * Fix manpage
+  * Update unit tests
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Thu, 17 Sep 2026 23:40:28 +0300
+
 nflog-dns (1.0.4-1) unstable; urgency=medium
 
   * Add utils.cpp to clang-tidy linter. Fix minor issue with errno check

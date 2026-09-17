@@ -64,6 +64,27 @@ getent passwd _nflog-dns >/dev/null \
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Thu Sep 17 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.1.0-1
+- Update unit tests
+- Fix manpage
+- Fix copypaste fail in manpage
+- Add --level option for backward compatibility
+- Hexdump replies that are not decoded by libtins
+- Update integration tests
+- Update unit tests
+- Fix infinite loop in qtype/rcode parsers
+- Add accidentally dropped prototypes
+- Add ALL selector to qtype and rcode
+- Fix empty qtype and rcode parsing
+- Fix documentation link in systemd service file
+- Fix loglevel argument
+- Update manpage
+- Initial commit of reworked qtype and rcode setup
+- Add Fedora QA chroot tests to CI
+- Test user removal after .deb remove/purge
+- Create user _nflog-dns on .rpm install
+- Create user _nflog-dns on .deb install, remove on .deb purge. Minor test stilization.
+
 * Sat Sep 05 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.0.4-1
 - Drop root privileges after setting up dns logging
 - Add utils.cpp to clang-tidy linter. Fix minor issue with errno check

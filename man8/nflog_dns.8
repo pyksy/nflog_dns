@@ -35,6 +35,18 @@ Bind to NFLOG group \fINUM\fR (default: 123).
 .BR \-h ", " \-\-help
 Display help message and exit.
 .TP
+.BR \-j ", " \-\-json
+Output JSON instead of plaintext: one object per line. Applies to all output.
+.IP
+DNS reply fields are: timestamp, type=reply, id, server, qtype, name, rcode,
+data, raw; data is present when a record was logged; raw is true when libtins
+cannot render data as text and the field is hex\-encoded.
+.IP
+Stats fields are: timestamp, type=stats, received_packets, invalid_packets,
+dns_responses, logged_errors, logged_records.
+.IP
+Start/stop message fields are: timestamp, type=started|stopped, message.
+.TP
 .BR \-l ", " \-\-loglevel=\fILOGLEVEL\fR
 Set log level for syslog logging (default: info).
 Valid levels: trace, debug, info, warn, error, critical.

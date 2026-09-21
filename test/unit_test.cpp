@@ -26,6 +26,7 @@ static void reset_config() {
     enable_qtypes("A,AAAA");
     clear_rcodes();
     enable_rcodes("NOERROR");
+    use_json = false;
 }
 
 // Reset stats to zero
@@ -1234,4 +1235,177 @@ TEST_CASE("log_stats - received_packets is sum of invalid and responses") {
     log_stats(*logger);
 
     CHECK(oss.str().find("received_packets=10") != std::string::npos);
+}
+
+// ============================================================================
+// --json output
+// ============================================================================
+//
+// use_json is reset to false by reset_config() (see the helper above), so
+// every test here restores it explicitly rather than relying on registration
+// order, in case tests are ever run shuffled (doctest supports --order-by=rand).
+
+static const std::vector<uint8_t> PKT_TXT_ESCAPING = {
+    0x45, 0x00, 0x00, 0x58, 0x00, 0x00, 0x40, 0x00, 0x40, 0x11, 0x00, 0x00,
+    0xac, 0x1f, 0x35, 0x7b, 0xac, 0x1f, 0x35, 0x01, 0x00, 0x35, 0x30, 0x39,
+    0x00, 0x44, 0x00, 0x00, 0x12, 0x34, 0x81, 0x80, 0x00, 0x01, 0x00, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x07, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
+    0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x10, 0x00, 0x01, 0xc0, 0x0c, 0x00,
+    0x10, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x13, 0x12, 0x68, 0x65,
+    0x20, 0x73, 0x61, 0x69, 0x64, 0x20, 0x22, 0x68, 0x69, 0x5c, 0x74, 0x68,
+    0x65, 0x72, 0x65, 0x22,
+}; // TXT RDATA (after the length prefix) is: he said "hi\there"
+
+TEST_CASE("json_message - well-formed JSON with type and message") {
+    const std::string line = json_message("started", "DNS logging initialized for NFLOG group 123");
+    CHECK(line.front() == '{');
+    CHECK(line.back()  == '}');
+    CHECK(line.find("\"timestamp\":\"") != std::string::npos);
+    CHECK(line.find("\"type\":\"started\"") != std::string::npos);
+    CHECK(line.find("\"message\":\"DNS logging initialized for NFLOG group 123\"") != std::string::npos);
+}
+
+TEST_CASE("json_message - stopped uses its own type value") {
+    const std::string line = json_message("stopped", "DNS logging stopped");
+    CHECK(line.find("\"type\":\"stopped\"") != std::string::npos);
+}
+
+TEST_CASE("json_message - escapes quotes and backslashes") {
+    const std::string line = json_message("started", "say \"hi\\there\"");
+    CHECK(line.find("\"message\":\"say \\\"hi\\\\there\\\"\"") != std::string::npos);
+}
+
+TEST_CASE("process_dns_packet --json - record line has no rcode-error fields") {
+    reset_config();
+    reset_stats();
+    use_json = true;
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_A_REPLY.data(), (int)PKT_A_REPLY.size(), *logger);
+
+    const std::string output = oss.str();
+    CHECK(packet_stats.logged_records == 1);
+    CHECK(output.find("\"type\":\"reply\"")                != std::string::npos);
+    CHECK(output.find("\"id\":4660")                       != std::string::npos);
+    CHECK(output.find("\"server\":\"172.31.53.123\"") != std::string::npos);
+    CHECK(output.find("\"qtype\":\"A\"")                != std::string::npos);
+    CHECK(output.find("\"name\":\"example.com\"")       != std::string::npos);
+    CHECK(output.find("\"rcode\":\"NOERROR\"")          != std::string::npos);
+    CHECK(output.find("\"data\":\"127.0.0.1\"")         != std::string::npos);
+    CHECK(output.find("\"raw\"")                        == std::string::npos);
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet --json - hex-fallback record has raw:true") {
+    reset_config();
+    reset_stats();
+    clear_qtypes();
+    enable_qtypes("DNSKEY");
+    use_json = true;
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_DNSKEY.data(), (int)PKT_DNSKEY.size(), *logger);
+
+    const std::string output = oss.str();
+    CHECK(packet_stats.logged_records == 1);
+    CHECK(output.find("\"id\":4660")                     != std::string::npos);
+    CHECK(output.find("\"data\":\"0x01000308aabbccdd\"") != std::string::npos);
+    CHECK(output.find("\"raw\":true")                    != std::string::npos);
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet --json - error line has no data or raw fields") {
+    reset_config();
+    reset_stats();
+    enable_rcodes("NXDOMAIN");
+    use_json = true;
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_NXDOMAIN_REPLY.data(), (int)PKT_NXDOMAIN_REPLY.size(), *logger);
+
+    const std::string output = oss.str();
+    CHECK(packet_stats.logged_errors == 1);
+    CHECK(output.find("\"type\":\"reply\"")     != std::string::npos);
+    CHECK(output.find("\"id\":4660")            != std::string::npos);
+    CHECK(output.find("\"rcode\":\"NXDOMAIN\"") != std::string::npos);
+    CHECK(output.find("\"data\"")               == std::string::npos);
+    CHECK(output.find("\"raw\"")                == std::string::npos);
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet --json - multiple records from one reply share the same id") {
+    // PKT_A_REPLY has a single answer; this documents the intent (same
+    // transaction id ties records from one reply together) using two
+    // separate replies with the same crafted id, since a dedicated
+    // multi-answer fixture isn't otherwise needed by these tests.
+    reset_config();
+    reset_stats();
+    use_json = true;
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_A_REPLY.data(), (int)PKT_A_REPLY.size(), *logger);
+    process_dns_packet(PKT_A_REPLY.data(), (int)PKT_A_REPLY.size(), *logger);
+
+    std::istringstream lines(oss.str());
+    std::string line;
+    int count = 0;
+    while (std::getline(lines, line)) {
+        if (line.empty()) continue;
+        CHECK(line.find("\"id\":4660") != std::string::npos);
+        ++count;
+    }
+    CHECK(count == 2);
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet --json - quotes and backslashes in TXT are escaped") {
+    reset_config();
+    reset_stats();
+    clear_qtypes();
+    enable_qtypes("TXT");
+    use_json = true;
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_TXT_ESCAPING.data(), (int)PKT_TXT_ESCAPING.size(), *logger);
+
+    const std::string output = oss.str();
+    CHECK(packet_stats.logged_records == 1);
+    CHECK(output.find("\"data\":\"he said \\\"hi\\\\there\\\"\"") != std::string::npos);
+    CHECK(output.find("\"raw\"") == std::string::npos);  // it's printable text, not a hex fallback
+
+    reset_config();
+}
+
+TEST_CASE("log_stats --json - well-formed JSON with type and numeric fields") {
+    reset_config();
+    reset_stats();
+    use_json = true;
+    packet_stats.invalid_packets = 3;
+    packet_stats.dns_responses   = 7;
+    packet_stats.logged_records  = 5;
+    packet_stats.logged_errors   = 2;
+
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    log_stats(*logger);
+
+    const std::string output = oss.str();
+    CHECK(output.find("\"type\":\"stats\"")      != std::string::npos);
+    CHECK(output.find("\"received_packets\":10") != std::string::npos);
+    CHECK(output.find("\"invalid_packets\":3")   != std::string::npos);
+    CHECK(output.find("\"dns_responses\":7")     != std::string::npos);
+    CHECK(output.find("\"logged_errors\":2")     != std::string::npos);
+    CHECK(output.find("\"logged_records\":5")    != std::string::npos);
+
+    reset_config();
 }

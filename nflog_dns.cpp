@@ -42,6 +42,7 @@ void print_help(char* prgname) {
 	std::cout << "  -f, --facility=FACILITY  facility for syslog logging (default: user)" << std::endl;
 	std::cout << "  -g, --group=NUM          NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
 	std::cout << "  -h, --help               print this help and exit" << std::endl;
+	std::cout << "  -j, --json               output in json format" << std::endl;
 	std::cout << "  -l, --loglevel=LOGLEVEL  log level for syslog logging (default: info)" << std::endl;
 	std::cout << "  -q, --qtype=QTYPE,...    log QTYPE type DNS replies (default: A,AAAA)" << std::endl;
 	std::cout << "  -r, --rcode=RCODE,...    log RCODE return code replies (default: NOERROR)" << std::endl;
@@ -90,6 +91,7 @@ int main(int argc, char *argv[])
 		{"facility", required_argument, NULL, 'f'},
 		{"group", required_argument, NULL, 'g'},
 		{"help", no_argument, NULL, 'h'},
+		{"json", no_argument, NULL, 'j'},
 		{"level", required_argument, NULL, 'l'},
 		{"loglevel", required_argument, NULL, 'l'},
 		{"qtype", required_argument, NULL, 'q'},
@@ -101,7 +103,7 @@ int main(int argc, char *argv[])
 	};
 
 	while (true) {
-		const int opt = getopt_long(argc, argv, "f:g:hl:q:r:su:v", longopts, &optindex);
+		const int opt = getopt_long(argc, argv, "f:g:hjl:q:r:su:v", longopts, &optindex);
 
 		if (opt == -1) {
 			break;
@@ -128,6 +130,10 @@ int main(int argc, char *argv[])
 			case 'h':
 				print_help(argv[0]);
 				return EXIT_SUCCESS;
+				break;
+
+			case 'j':
+				use_json = true;
 				break;
 
 			case 'l':
@@ -227,7 +233,13 @@ int main(int argc, char *argv[])
 	auto dns_logger = std::make_shared<spdlog::logger>(PROGRAM_NAME, dns_logger_sink);
 	spdlog::register_logger(dns_logger);
 	dns_logger->set_level(syslog_level);
-	dns_logger->log(syslog_level, "DNS logging initialized for NFLOG group {}", group);
+	if (use_json) {
+		// strip spdlog timestamp/name/level prefix so message stays valid JSON.
+		dns_logger->set_pattern("%v");
+		dns_logger->log(syslog_level, "{}", json_message("started", "DNS logging initialized for NFLOG group " + std::to_string(group)));
+	} else {
+		dns_logger->log(syslog_level, "DNS logging initialized for NFLOG group {}", group);
+	}
 
 	nflog_callback_register(qh, &callback, static_cast<void*>(dns_logger.get()));
 
@@ -292,7 +304,11 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	dns_logger->log(syslog_level, "DNS logging stopped");
+	if (use_json) {
+		dns_logger->log(syslog_level, "{}", json_message("stopped", "DNS logging stopped"));
+	} else {
+		dns_logger->log(syslog_level, "DNS logging stopped");
+	}
 	log_stats(*dns_logger);
 
 	// Cleanup nflog

@@ -82,6 +82,7 @@ Extract DNS replies from NFLOG group
   -f, --facility=FACILITY  facility for syslog logging (default: user)
   -g, --group=NUM          NFLOG group to bind (default: 123)
   -h, --help               print this help and exit
+  -j, --json               output in json format
   -l, --loglevel=LOGLEVEL  log level for syslog logging (default: info)
   -q, --qtype=QTYPE,...    log QTYPE type DNS replies (default: A,AAAA)
   -r, --rcode=RCODE,...    log RCODE return code replies (default: NOERROR)

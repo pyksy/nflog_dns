@@ -83,6 +83,7 @@ static const std::unordered_map<ns_rcode, std::string> dns_rcodes = {
 // Defaults
 extern spdlog::level::level_enum syslog_level;
 extern bool use_syslog;
+extern bool use_json;
 
 extern bool use_default_qtypes;
 extern bool use_default_rcodes;

@@ -38,6 +38,8 @@ std::string rcode_to_string(const ns_rcode rcode);
 
 bool parse_qtype(const char *str, Tins::DNS::QueryType& qtype);
 
+std::string json_message(const std::string& type, const std::string& message);
+
 void log_stats(spdlog::logger& dns_logger);
 
 void process_dns_packet(const uint8_t* payload,

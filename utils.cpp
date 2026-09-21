@@ -7,6 +7,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
+#include <chrono>
+#include <cstdio>
+#include <ctime>
 #include <spdlog/spdlog.h>
 #include <tins/tins.h>
 #include <tins/dns.h>
@@ -60,14 +63,102 @@ static bool decode_txt(const std::string& data, std::string& out) {
 // Render RDATA for logging. TXT gets its character-string length
 // prefixes stripped, everything else is passed thru if already
 // printable ASCII, otherwise hex-encoded
-static std::string format_rdata(const Tins::DNS::QueryType qtype, const std::string& data) {
+static std::string format_rdata(const Tins::DNS::QueryType qtype, const std::string& data, bool& raw) {
 	if (qtype == Tins::DNS::TXT) {
 		std::string decoded;
 		if (decode_txt(data, decoded) && is_printable(decoded)) {
+			raw = false;
 			return decoded;
 		}
 	}
-	return is_printable(data) ? data : "0x" + hex_encode(data);
+	if (is_printable(data)) {
+		raw = false;
+		return data;
+	}
+	raw = true;
+	return "0x" + hex_encode(data);
+}
+
+// Escape a string for safe embedding in a JSON string literal.
+static std::string json_escape(const std::string& data) {
+	std::string out;
+	out.reserve(data.size());
+	for (unsigned char c : data) {
+		switch (c) {
+			case '"':  out += "\\\""; break;
+			case '\\': out += "\\\\"; break;
+			default:
+				if (c < 0x20 || c > 0x7e) {
+					char buf[7];
+					std::snprintf(buf, sizeof(buf), "\\u%04x", c);
+					out += buf;
+				} else {
+					out += static_cast<char>(c);
+				}
+		}
+	}
+	return out;
+}
+
+// ISO 8601 / RFC 3339 UTC timestamp with millisecond precision
+static std::string current_timestamp() {
+	const auto now = std::chrono::system_clock::now();
+	const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+		now.time_since_epoch()) % 1000;
+	const std::time_t t = std::chrono::system_clock::to_time_t(now);
+	struct tm tm_buf;
+	gmtime_r(&t, &tm_buf);
+	char datetime[32];
+	std::strftime(datetime, sizeof(datetime), "%Y-%m-%dT%H:%M:%S", &tm_buf);
+	char out[40];
+	std::snprintf(out, sizeof(out), "%s.%03dZ", datetime, static_cast<int>(ms.count()));
+	return std::string(out);
+}
+
+std::string json_message(const std::string& type, const std::string& message) {
+	return "{\"timestamp\":\"" + current_timestamp() + "\","
+	       "\"type\":\"" + json_escape(type) + "\","
+	       "\"message\":\"" + json_escape(message) + "\"}";
+}
+
+// JSON entry for an rcode-error reply;
+// no resource record to report, so no "data" nor "raw" fields
+static std::string json_error_line(const std::uint16_t id,
+                                    const std::string& server,
+                                    const std::string& qtype,
+                                    const std::string& name,
+                                    const std::string& rcode) {
+	return "{\"timestamp\":\"" + current_timestamp() + "\","
+	       "\"type\":\"reply\","
+	       "\"id\":" + std::to_string(id) + ","
+	       "\"server\":\"" + json_escape(server) + "\","
+	       "\"qtype\":\"" + json_escape(qtype) + "\","
+	       "\"name\":\"" + json_escape(name) + "\","
+	       "\"rcode\":\"" + json_escape(rcode) + "\"}";
+}
+
+// JSON entry for a resource record, with data and
+// raw fields; raw is true when data is hex fallback
+static std::string json_record_line(const std::uint16_t id,
+                                     const std::string& server,
+                                     const std::string& qtype,
+                                     const std::string& name,
+                                     const std::string& rcode,
+                                     const std::string& data,
+                                     const bool raw) {
+	std::string out = "{\"timestamp\":\"" + current_timestamp() + "\","
+	                   "\"type\":\"reply\","
+	                   "\"id\":" + std::to_string(id) + ","
+	                   "\"server\":\"" + json_escape(server) + "\","
+	                   "\"qtype\":\"" + json_escape(qtype) + "\","
+	                   "\"name\":\"" + json_escape(name) + "\","
+	                   "\"rcode\":\"" + json_escape(rcode) + "\","
+	                   "\"data\":\"" + json_escape(data) + "\"";
+	if (raw) {
+		out += ",\"raw\":true";
+	}
+	out += "}";
+	return out;
 }
 
 Stats packet_stats;
@@ -142,6 +233,18 @@ std::string rcode_to_string(ns_rcode rcode)
 
 void log_stats(spdlog::logger& dns_logger) {
     uint64_t packets_received = packet_stats.invalid_packets + packet_stats.dns_responses;
+    if (use_json) {
+        dns_logger.log(dns_logger.level(),
+            "{{\"timestamp\":\"{}\",\"type\":\"stats\",\"received_packets\":{},\"invalid_packets\":{},"
+            "\"dns_responses\":{},\"logged_errors\":{},\"logged_records\":{}}}",
+            current_timestamp(),
+            packets_received,
+            packet_stats.invalid_packets,
+            packet_stats.dns_responses,
+            packet_stats.logged_errors,
+            packet_stats.logged_records);
+        return;
+    }
     dns_logger.log(dns_logger.level(), "Statistics: received_packets={} invalid_packets={} dns_responses={} logged_errors={} logged_records={}",
         packets_received,
         packet_stats.invalid_packets,
@@ -213,8 +316,13 @@ void process_dns_packet(const uint8_t* payload,
 					return;
 				}
 
-				dns_logger.log(dns_logger.level(), "{} reply {} {} -> {}",
-					source, qtype_str, qname, rcode_str);
+				if (use_json) {
+					dns_logger.log(dns_logger.level(), "{}",
+						json_error_line(dns.id(), source, qtype_str, qname, rcode_str));
+				} else {
+					dns_logger.log(dns_logger.level(), "{} reply {} {} -> {}",
+						source, qtype_str, qname, rcode_str);
+				}
 				packet_stats.logged_errors++;
 			}
 
@@ -223,7 +331,16 @@ void process_dns_packet(const uint8_t* payload,
                 const Tins::DNS::QueryType qtype = static_cast<Tins::DNS::QueryType>(answer.query_type());
 				if (qtype_enabled(qtype)) {
 					const std::string qtype_str = qtype_to_string(qtype);
-					dns_logger.log(dns_logger.level(), "{} reply {} {} -> {}", source, qtype_str, answer.dname(), format_rdata(qtype, answer.data()));
+					bool raw = false;
+					const std::string data = format_rdata(qtype, answer.data(), raw);
+					if (use_json) {
+						dns_logger.log(dns_logger.level(), "{}",
+							json_record_line(dns.id(), source, qtype_str, answer.dname(),
+							                  rcode_to_string(rcode), data, raw));
+					} else {
+						dns_logger.log(dns_logger.level(), "{} reply {} {} -> {}",
+							source, qtype_str, answer.dname(), data);
+					}
 					packet_stats.logged_records++;
 				}
 			}

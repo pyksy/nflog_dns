@@ -9,6 +9,7 @@
 // Defaults
 spdlog::level::level_enum syslog_level = spdlog::level::info;
 bool use_syslog = false;
+bool use_json = false;
 
 bool use_default_qtypes = true;
 bool use_default_rcodes = true;

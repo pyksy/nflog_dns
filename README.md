@@ -1,9 +1,9 @@
 # nflog_dns
 
-DNS packet syslogging using iptables NFLOG, written in C++. This program
-parses DNS reply packets and logs the details (any combination of
-A, AAAA, CNAME, MX, PTR, TXT records and FORMERR, SERVFAIL, NXDOMAIN,
-NOTIMPL, REFUSED errors) to syslog or console (stdout).
+DNS packet logging utilizing iptables NFLOG target, written in C++. This program
+parses DNS reply packets and logs the details to syslog or console (stdout),
+in plaintext or in JSON format. Supports mostly all query types (A, CNAME, PTR, ...)
+and return codes (NOERROR, NXDOMAIN, REFUSED, ...).
 
 ## .deb/.rpm packages
 

@@ -64,6 +64,9 @@ getent passwd _nflog-dns >/dev/null \
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Tue Sep 22 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.2.1-1
+- Rename JSON "server" key to "source"
+
 * Tue Sep 22 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.2.0-1
 - Update README.md
 - Implement json integration tests

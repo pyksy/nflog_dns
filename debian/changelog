@@ -1,3 +1,9 @@
+nflog-dns (1.2.1-1) unstable; urgency=medium
+
+  * Rename JSON "server" key to "source"
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Tue, 22 Sep 2026 11:53:22 +0300
+
 nflog-dns (1.2.0-1) unstable; urgency=medium
 
   * Implement json output

@@ -64,6 +64,11 @@ getent passwd _nflog-dns >/dev/null \
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Tue Sep 22 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.2.0-1
+- Update README.md
+- Implement json integration tests
+- Implement json output
+
 * Thu Sep 17 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.1.0-1
 - Update unit tests
 - Fix manpage

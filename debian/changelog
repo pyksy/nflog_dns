@@ -1,3 +1,11 @@
+nflog-dns (1.2.0-1) unstable; urgency=medium
+
+  * Implement json output
+  * Implement json integration tests
+  * Update README.md
+
+ -- Antti Kultanen <antti.kultanen@molukki.com>  Tue, 22 Sep 2026 11:46:44 +0300
+
 nflog-dns (1.1.0-1) unstable; urgency=medium
 
   * Create user _nflog-dns on .deb install, remove on .deb purge. Minor

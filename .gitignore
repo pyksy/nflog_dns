@@ -7,3 +7,4 @@ debian/nflog-dns.substvars
 debian/files
 debian/nflog-dns.postrm.debhelper
 nflog_dns.spec.new
+.*.swp

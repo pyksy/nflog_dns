@@ -116,6 +116,20 @@ verify_stats() {
 	fi
 }
 
+# Validate json via verify_json.py
+verify_json() {
+	echo -n "Verify JSON output ... "
+	OUTPUT="$(python3 "${DIR}/py/verify_json.py" "${NFLOGTEMP}" "${@}" 2>&1)"
+	if [ "${?}" -eq 0 ]
+	then
+		echo "SUCCESS (${OUTPUT})"
+	else
+		echo "FAIL"
+		echo "${OUTPUT}"
+		((fail_count++))
+	fi
+}
+
 # Clean up iptables and interface just in case
 ${IPTABLES} -D INPUT -t filter -p udp -d "${IP}" --sport 53 -j nflog_dns_logger 2>/dev/null
 ${IPTABLES} -F nflog_dns_logger 2>/dev/null
@@ -269,6 +283,46 @@ cat "${NFLOGTEMP}"
 verify_errors
 verify_stats ${#ERROR_TYPES[@]} 0 ${#ERROR_TYPES[@]} ${#ERROR_TYPES[@]}  0
 rm -f "${NFLOGTEMP}"
+((fail_count > 0)) && exit 1 || echo
+
+LOGLEVEL="trace"
+ARGS="--group=${GROUP} --loglevel=${LOGLEVEL} --qtype=ALL --rcode=ALL --json" 
+echo -n "Start nflog_dns ${ARGS} ... "
+"${DIR}/../nflog_dns" $ARGS >"${NFLOGTEMP}" &
+NFLOGPID="${!}"
+echo "PID ${NFLOGPID}"
+
+sleep 1
+send_sigusr1
+
+send_packets PACKET_TYPES
+send_packets ERROR_TYPES
+sleep 2
+
+echo -n "Stop nflog_dns ... "
+kill -HUP "${NFLOGPID}"
+echo "done"
+NFLOGPID=""
+sleep 1
+cat "${NFLOGTEMP}"
+
+verify_json \
+	--count "type=started:1" \
+	--count "type=stopped:1" \
+	--count "type=stats:2" \
+	--count "type=reply:$((${#PACKET_TYPES[@]} + ${#ERROR_TYPES[@]}))" \
+	--count "type=reply,id=4660:$((${#PACKET_TYPES[@]} + ${#ERROR_TYPES[@]}))" \
+	--count "type=reply,raw=true:6" \
+	--exists "qtype=A,name=example.com,rcode=NOERROR,data=127.0.0.1,raw=<MISSING>" \
+	--exists "qtype=PTR,name=1.0.0.127.in-addr.arpa,rcode=NOERROR,data=example.com" \
+	--exists "qtype=TXT,name=example.com,rcode=NOERROR,data=Example text" \
+	--exists "qtype=NS,rcode=NOERROR,data=ns1.example.com,raw=<MISSING>" \
+	--exists "qtype=DNSKEY,rcode=NOERROR,data=0x01000308aabbccdd,raw=true" \
+	--exists "qtype=A,rcode=NXDOMAIN,data=<MISSING>,raw=<MISSING>" \
+	--exists "qtype=A,rcode=SERVFAIL,data=<MISSING>,raw=<MISSING>"
+
+rm -f "${NFLOGTEMP}"
+
 ((fail_count > 0)) && exit 1 || echo
 
 LOGLEVEL="trace"

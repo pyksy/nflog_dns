@@ -124,14 +124,14 @@ std::string json_message(const std::string& type, const std::string& message) {
 // JSON entry for an rcode-error reply;
 // no resource record to report, so no "data" nor "raw" fields
 static std::string json_error_line(const std::uint16_t id,
-                                    const std::string& server,
+                                    const std::string& source,
                                     const std::string& qtype,
                                     const std::string& name,
                                     const std::string& rcode) {
 	return "{\"timestamp\":\"" + current_timestamp() + "\","
 	       "\"type\":\"reply\","
 	       "\"id\":" + std::to_string(id) + ","
-	       "\"server\":\"" + json_escape(server) + "\","
+	       "\"source\":\"" + json_escape(source) + "\","
 	       "\"qtype\":\"" + json_escape(qtype) + "\","
 	       "\"name\":\"" + json_escape(name) + "\","
 	       "\"rcode\":\"" + json_escape(rcode) + "\"}";
@@ -140,7 +140,7 @@ static std::string json_error_line(const std::uint16_t id,
 // JSON entry for a resource record, with data and
 // raw fields; raw is true when data is hex fallback
 static std::string json_record_line(const std::uint16_t id,
-                                     const std::string& server,
+                                     const std::string& source,
                                      const std::string& qtype,
                                      const std::string& name,
                                      const std::string& rcode,
@@ -149,7 +149,7 @@ static std::string json_record_line(const std::uint16_t id,
 	std::string out = "{\"timestamp\":\"" + current_timestamp() + "\","
 	                   "\"type\":\"reply\","
 	                   "\"id\":" + std::to_string(id) + ","
-	                   "\"server\":\"" + json_escape(server) + "\","
+	                   "\"source\":\"" + json_escape(source) + "\","
 	                   "\"qtype\":\"" + json_escape(qtype) + "\","
 	                   "\"name\":\"" + json_escape(name) + "\","
 	                   "\"rcode\":\"" + json_escape(rcode) + "\","

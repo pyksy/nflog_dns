@@ -38,7 +38,7 @@ Display help message and exit.
 .BR \-j ", " \-\-json
 Output JSON instead of plaintext: one object per line. Applies to all output.
 .IP
-DNS reply fields are: timestamp, type=reply, id, server, qtype, name, rcode,
+DNS reply fields are: timestamp, type=reply, id, source, qtype, name, rcode,
 data, raw; data is present when a record was logged; raw is true when libtins
 cannot render data as text and the field is hex\-encoded.
 .IP

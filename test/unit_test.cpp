@@ -1288,7 +1288,7 @@ TEST_CASE("process_dns_packet --json - record line has no rcode-error fields") {
     CHECK(packet_stats.logged_records == 1);
     CHECK(output.find("\"type\":\"reply\"")                != std::string::npos);
     CHECK(output.find("\"id\":4660")                       != std::string::npos);
-    CHECK(output.find("\"server\":\"172.31.53.123\"") != std::string::npos);
+    CHECK(output.find("\"source\":\"172.31.53.123\"") != std::string::npos);
     CHECK(output.find("\"qtype\":\"A\"")                != std::string::npos);
     CHECK(output.find("\"name\":\"example.com\"")       != std::string::npos);
     CHECK(output.find("\"rcode\":\"NOERROR\"")          != std::string::npos);

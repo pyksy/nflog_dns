@@ -320,8 +320,8 @@ void process_dns_packet(const uint8_t* payload,
 					dns_logger.log(dns_logger.level(), "{}",
 						json_error_line(dns.id(), source, qtype_str, qname, rcode_str));
 				} else {
-					dns_logger.log(dns_logger.level(), "{} reply {} {} -> {}",
-						source, qtype_str, qname, rcode_str);
+					dns_logger.log(dns_logger.level(), "{} reply {} {} -> {} (id={})",
+						source, qtype_str, qname, rcode_str, dns.id());
 				}
 				packet_stats.logged_errors++;
 			}
@@ -338,8 +338,8 @@ void process_dns_packet(const uint8_t* payload,
 							json_record_line(dns.id(), source, qtype_str, answer.dname(),
 							                  rcode_to_string(rcode), data, raw));
 					} else {
-						dns_logger.log(dns_logger.level(), "{} reply {} {} -> {}",
-							source, qtype_str, answer.dname(), data);
+						dns_logger.log(dns_logger.level(), "{} reply {} {} -> {} (id={})",
+							source, qtype_str, answer.dname(), data, dns.id());
 					}
 					packet_stats.logged_records++;
 				}

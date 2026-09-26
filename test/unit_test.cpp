@@ -1339,19 +1339,68 @@ TEST_CASE("process_dns_packet --json - error line has no data or raw fields") {
     reset_config();
 }
 
-TEST_CASE("process_dns_packet --json - multiple records from one reply share the same id") {
-    // PKT_A_REPLY has a single answer; this documents the intent (same
-    // transaction id ties records from one reply together) using two
-    // separate replies with the same crafted id, since a dedicated
-    // multi-answer fixture isn't otherwise needed by these tests.
+// ============================================================================
+// process_dns_packet - multi-answer replies
+// ============================================================================
+//
+// A single DNS reply can carry more than one resource record in its answer
+// section - most commonly round-robin A/AAAA records, or a CNAME followed
+// by the record it points to (resolved within the same reply). The answer
+// loop in process_dns_packet logs each one as its own line; these two
+// fixtures are genuine multi-answer packets (one packet, ANCOUNT=2), not
+// two single-answer packets standing in for one - a real multi-answer
+// packet is the only thing that actually exercises the loop running more
+// than once for a single process_dns_packet() call.
+
+static const std::vector<uint8_t> PKT_A_ROUNDROBIN = {
+    0x45, 0x00, 0x00, 0x59, 0x00, 0x00, 0x40, 0x00, 0x40, 0x11, 0x00, 0x00,
+    0xac, 0x1f, 0x35, 0x7b, 0xac, 0x1f, 0x35, 0x01, 0x00, 0x35, 0x30, 0x39,
+    0x00, 0x45, 0x00, 0x00, 0x12, 0x34, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02,
+    0x00, 0x00, 0x00, 0x00, 0x07, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c, 0x65,
+    0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01, 0xc0, 0x0c, 0x00,
+    0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x04, 0xc0, 0x00, 0x02,
+    0x01, 0xc0, 0x0c, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00,
+    0x04, 0xc0, 0x00, 0x02, 0x02,
+}; // example.com A -> 192.0.2.1, 192.0.2.2 (two answers, one packet)
+
+static const std::vector<uint8_t> PKT_CNAME_CHAIN = {
+    0x45, 0x00, 0x00, 0x5b, 0x00, 0x00, 0x40, 0x00, 0x40, 0x11, 0x00, 0x00,
+    0xac, 0x1f, 0x35, 0x7b, 0xac, 0x1f, 0x35, 0x01, 0x00, 0x35, 0x30, 0x39,
+    0x00, 0x47, 0x00, 0x00, 0x12, 0x34, 0x81, 0x80, 0x00, 0x01, 0x00, 0x02,
+    0x00, 0x00, 0x00, 0x00, 0x03, 0x77, 0x77, 0x77, 0x07, 0x65, 0x78, 0x61,
+    0x6d, 0x70, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
+    0x01, 0xc0, 0x0c, 0x00, 0x05, 0x00, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00,
+    0x02, 0xc0, 0x10, 0xc0, 0x10, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0x3c, 0x00, 0x04, 0xc0, 0x00, 0x02, 0x01,
+}; // www.example.com CNAME example.com; example.com A -> 192.0.2.1
+
+TEST_CASE("process_dns_packet - round-robin A reply logs both records as one dns_response") {
+    reset_config();
+    reset_stats();
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_A_ROUNDROBIN.data(), (int)PKT_A_ROUNDROBIN.size(), *logger);
+
+    CHECK(packet_stats.dns_responses  == 1);  // one packet ...
+    CHECK(packet_stats.logged_records == 2);  // ... with two records logged
+
+    const std::string output = oss.str();
+    CHECK(output.find("reply A example.com -> 192.0.2.1 (id=4660)") != std::string::npos);
+    CHECK(output.find("reply A example.com -> 192.0.2.2 (id=4660)") != std::string::npos);
+}
+
+TEST_CASE("process_dns_packet --json - round-robin A reply: both records share the same id") {
     reset_config();
     reset_stats();
     use_json = true;
     std::ostringstream oss;
     auto logger = make_test_logger(oss);
 
-    process_dns_packet(PKT_A_REPLY.data(), (int)PKT_A_REPLY.size(), *logger);
-    process_dns_packet(PKT_A_REPLY.data(), (int)PKT_A_REPLY.size(), *logger);
+    process_dns_packet(PKT_A_ROUNDROBIN.data(), (int)PKT_A_ROUNDROBIN.size(), *logger);
+
+    CHECK(packet_stats.dns_responses  == 1);
+    CHECK(packet_stats.logged_records == 2);
 
     std::istringstream lines(oss.str());
     std::string line;
@@ -1362,6 +1411,80 @@ TEST_CASE("process_dns_packet --json - multiple records from one reply share the
         ++count;
     }
     CHECK(count == 2);
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet - CNAME chain logs the CNAME and its target as one dns_response") {
+    // A resolver following a CNAME within one reply produces two answers of
+    // *different* types and names; both must still come from one packet.
+    // CNAME isn't in the default A,AAAA qtype set, so it must be enabled
+    // explicitly to see both records.
+    reset_config();
+    reset_stats();
+    clear_qtypes();
+    enable_qtypes("A,CNAME");
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_CNAME_CHAIN.data(), (int)PKT_CNAME_CHAIN.size(), *logger);
+
+    CHECK(packet_stats.dns_responses  == 1);
+    CHECK(packet_stats.logged_records == 2);
+
+    const std::string output = oss.str();
+    CHECK(output.find("reply CNAME www.example.com -> example.com (id=4660)") != std::string::npos);
+    CHECK(output.find("reply A example.com -> 192.0.2.1 (id=4660)")           != std::string::npos);
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet --json - CNAME chain: CNAME and A share the same id") {
+    reset_config();
+    reset_stats();
+    clear_qtypes();
+    enable_qtypes("A,CNAME");
+    use_json = true;
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_CNAME_CHAIN.data(), (int)PKT_CNAME_CHAIN.size(), *logger);
+
+    const std::string output = oss.str();
+    CHECK(packet_stats.logged_records == 2);
+    CHECK(output.find("\"qtype\":\"CNAME\",\"name\":\"www.example.com\",\"rcode\":\"NOERROR\",\"data\":\"example.com\"") != std::string::npos);
+    CHECK(output.find("\"qtype\":\"A\",\"name\":\"example.com\",\"rcode\":\"NOERROR\",\"data\":\"192.0.2.1\"") != std::string::npos);
+
+    std::istringstream lines(oss.str());
+    std::string line;
+    int count = 0;
+    while (std::getline(lines, line)) {
+        if (line.empty()) continue;
+        CHECK(line.find("\"id\":4660") != std::string::npos);
+        ++count;
+    }
+    CHECK(count == 2);
+
+    reset_config();
+}
+
+TEST_CASE("process_dns_packet - a disabled qtype in a multi-answer reply is filtered independently") {
+    // Only A is enabled: the CNAME hop is filtered out but the A record
+    // (which happens to still be reachable via a compression pointer set up
+    // by the CNAME) is not affected by that filtering.
+    reset_config();
+    reset_stats();
+    clear_qtypes();
+    enable_qtypes("A");
+    std::ostringstream oss;
+    auto logger = make_test_logger(oss);
+
+    process_dns_packet(PKT_CNAME_CHAIN.data(), (int)PKT_CNAME_CHAIN.size(), *logger);
+
+    CHECK(packet_stats.logged_records == 1);
+    const std::string output = oss.str();
+    CHECK(output.find("CNAME") == std::string::npos);
+    CHECK(output.find("reply A example.com -> 192.0.2.1 (id=4660)") != std::string::npos);
 
     reset_config();
 }

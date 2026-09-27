@@ -1,3 +1,13 @@
+nflog-dns (1.2.3-1) unstable; urgency=medium
+
+  * Update RPM description and run unit test when building package
+  * Update DEB description and run unit test when building package
+  * Create releases from GitHub workflow dispatch instead of shell
+    script
+  * Update CI release workflow and README
+
+ -- github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>  Sun, 27 Sep 2026 16:58:16 +0000
+
 nflog-dns (1.2.2-1) unstable; urgency=medium
 
   * Remove stray file and update gitignore

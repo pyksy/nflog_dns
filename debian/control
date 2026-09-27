@@ -16,7 +16,7 @@ Rules-Requires-Root: no
 Package: nflog-dns
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, adduser
-Description: Extract and log DNS replies from NFLOG group
- A tool to extract and log DNS replies from Netfilter NFLOG groups.
- The tool binds to an NFLOG group and logs received DNS response records
- (A, AAAA, CNAME, MX, PTR, TXT) to syslog or stdout.
+Description: Log DNS replies from iptables/nftables NFLOG target
+ Parse and log DNS reply packets from NFLOG target to syslog or stdout,
+ in plaintext or in JSON format. Supports mostly all query types (A,
+ CNAME, PTR, ...) and return codes (NOERROR, NXDOMAIN, REFUSED, ...).

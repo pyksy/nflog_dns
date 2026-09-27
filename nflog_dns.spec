@@ -64,6 +64,10 @@ getent passwd _nflog-dns >/dev/null \
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Sun Sep 27 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.2.2-1
+- Log id also in plaintext
+- Remove stray file and update gitignore
+
 * Tue Sep 22 2026 Antti Kultanen <antti.kultanen@molukki.com> - 1.2.1-1
 - Rename JSON "server" key to "source"
 

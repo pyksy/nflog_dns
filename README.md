@@ -121,4 +121,4 @@ prevents logging IPv6 reverse DNS lookups.
 
 ## Create a new release
 
-1. Run the create_release.sh script
+1. In GitHub Actions, trigger manual build ("Run workflow") and select "Create a release" from dropdown menu.

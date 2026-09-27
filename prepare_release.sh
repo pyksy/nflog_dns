@@ -3,7 +3,8 @@
 # Copyright Antti Kultanen <antti.kultanen@molukki.com>
 # nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
 
-if [ "${1}" = "-h" ] || [ "${1}" = "--help" ]; then
+if [ "${1}" = "-h" ] || [ "${1}" = "--help" ]
+then
 	echo "Usage: $0 [VERSION]"
 	echo "Prepare a new release by bumping version and updating package changelogs"
 	echo ""
@@ -34,18 +35,16 @@ then
 		exit 1
 	fi
 else
-	echo "Usage: ${0} [VERSION]"
 	echo "No arguments given, assuming patchlevel bump"
 	echo ""
 	echo "Current release version is: ${CURRENTVERSION}"
-	echo ""
 	MAJORMINOR="${CURRENTVERSION%.*}"
 	PATCH="${CURRENTVERSION##*.}"
 	RELEASE="${MAJORMINOR}.$((PATCH+1))"
-	echo
 fi
 
-if [ "$(printf '%s\n' "$CURRENTVERSION" "$RELEASE" | sort -V | head -n1)" = "$RELEASE" ]; then
+if [ "$(printf '%s\n' "$CURRENTVERSION" "$RELEASE" | sort -V | head -n1)" = "$RELEASE" ]
+then
 	echo "Error: New version $RELEASE is not greater than current version $CURRENTVERSION" >&2
 	exit 1
 fi
@@ -69,17 +68,21 @@ echo "Creating release v${RELEASE} as ${DEBFULLNAME} <${DEBEMAIL}>."
 echo '#define PROGRAM_VERSION "'"${RELEASE}"'"' | tee version.h
 
 # Update DEB changelog
+echo "Update DEB changelog..."
 LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-if [ -n "$LAST_TAG" ]; then
+if [ -n "$LAST_TAG" ]
+then
 	echo "Extracting changes since $LAST_TAG..."
 
 	mapfile -t COMMITS < <(git log ${LAST_TAG}..HEAD --pretty=format:"%s" --no-merges | grep -v "^Release version ")
 
-	if [ ${#COMMITS[@]} -eq 0 ]; then
+	if [ ${#COMMITS[@]} -eq 0 ]
+	then
 		dch -v ${RELEASE}-1 --distribution unstable "No changes found." || exit 1
 	else
 		dch -v ${RELEASE}-1 --distribution unstable "${COMMITS[-1]}" || exit 1
-		for (( i=${#COMMITS[@]}-2; i>=0; i-- )); do
+		for (( i=${#COMMITS[@]}-2; i>=0; i-- ))
+		do
 			[ -n "${COMMITS[$i]}" ] && { dch --append "${COMMITS[$i]}" || exit 1; }
 		done
 	fi
@@ -90,7 +93,9 @@ fi
 dch --release "" || exit 1
 
 # Update RPM changelog
-if [ -f nflog_dns.spec ]; then
+echo "Update RPM changelog..."
+if [ -f nflog_dns.spec ]
+then
 	LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
 	CHANGELOG_DATE=$(date '+%a %b %d %Y')
 
@@ -98,7 +103,8 @@ if [ -f nflog_dns.spec ]; then
 	NEW_ENTRY="* ${CHANGELOG_DATE} ${DEBFULLNAME} <${DEBEMAIL}> - ${RELEASE}-1"
 
 	# Get commits or use default
-	if [ -n "$LAST_TAG" ] && git log ${LAST_TAG}..HEAD --oneline --no-merges | grep -q .; then
+	if [ -n "$LAST_TAG" ] && git log ${LAST_TAG}..HEAD --oneline --no-merges | grep -q .
+	then
 		CHANGES=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
 	else
 		CHANGES="- Release version ${RELEASE}"

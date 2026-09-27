@@ -1,7 +1,7 @@
 Name:           nflog_dns
 Version:        0.0.0
 Release:        1%{?dist}
-Summary:        Extract and log DNS replies from NFLOG group
+Summary:        Parse and log DNS replies from iptables/nftables NFLOG group
 
 License:        GPL-2.0-or-later
 URL:            https://github.com/pyksy/nflog_dns
@@ -22,9 +22,10 @@ Requires(pre): /usr/sbin/groupadd
 %{?systemd_requires}
 
 %description
-A tool to extract and log DNS replies from Netfilter NFLOG groups.
-The tool binds to an NFLOG group and logs received DNS response records
-(A, AAAA, CNAME, MX, PTR, TXT) to syslog or stdout.
+Parse and log DNS reply packets from NFLOG target to syslog or stdout,
+in plaintext or in JSON format. Supports mostly all query types (A,
+CNAME, PTR, ...) and return codes (NOERROR, NXDOMAIN, REFUSED, ...).
+
 
 %prep
 %autosetup
@@ -37,8 +38,7 @@ The tool binds to an NFLOG group and logs received DNS response records
 sed -i 's/--user=nobody/--user=_nflog-dns/' %{buildroot}%{_sysconfdir}/default/nflog_dns
 
 %check
-# Tests require root and cannot be run during rpm build
-# make test
+make test-unit
 
 %files
 %license LICENSE

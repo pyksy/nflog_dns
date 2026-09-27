@@ -5,7 +5,7 @@
 
 if [ "${1}" = "-h" ] || [ "${1}" = "--help" ]; then
 	echo "Usage: $0 [VERSION]"
-	echo "Create a new release by bumping version and creating a git tag"
+	echo "Prepare a new release by bumping version and updating package changelogs"
 	echo ""
 	echo "If VERSION is not specified, performs a patch-level bump"
 	echo "VERSION must be in semantic format MAJOR.MINOR.PATCHLEVEL (e.g., 1.2.3)"
@@ -42,10 +42,6 @@ else
 	MAJORMINOR="${CURRENTVERSION%.*}"
 	PATCH="${CURRENTVERSION##*.}"
 	RELEASE="${MAJORMINOR}.$((PATCH+1))"
-	echo -n "Bump version number to ${RELEASE} (y/n)? "
-	read REPLY
-	REPLY="${REPLY,}"
-	[ "${REPLY:0:1}" = "y" ] || exit 0
 	echo
 fi
 
@@ -120,12 +116,3 @@ if [ -f nflog_dns.spec ]; then
 	{ print }
 	' nflog_dns.spec > nflog_dns.spec.new && mv nflog_dns.spec.new nflog_dns.spec
 fi
-
-# Commit changes
-git add version.h debian/changelog nflog_dns.spec
-git commit -m "Release version ${RELEASE}"
-
-# Create and push tag
-git tag v${RELEASE}
-git push origin master
-git push origin v${RELEASE}

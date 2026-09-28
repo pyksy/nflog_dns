@@ -1084,6 +1084,10 @@ jobs:
               echo "Cannot determine distribution from: $name"
               exit 1
             fi
+            if [[ "${distro}" = tumbleweed* ]]
+            then
+              distro="tumbleweed"
+            fi
             repository="$output/$distro/$arch"
             mkdir -p "$repository"
             cp "$rpm_file" "$repository/"

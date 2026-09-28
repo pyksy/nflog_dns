@@ -835,6 +835,9 @@ jobs:
           done
 
       - name: Generate APT metadata
+        env:
+          APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
+          APT_SIGNING_PASSPHRASE: ${{ secrets.APT_SIGNING_PASSPHRASE }}
         shell: bash
         run: |
           set -euo pipefail
@@ -843,6 +846,12 @@ jobs:
           pool="$repo/pool"
           work="$RUNNER_TEMP/apt"
           mkdir -p "$work"
+          printf '%s' "$APT_SIGNING_KEY" | gpg --batch --import
+          signing_key=$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" { print $10; exit }')
+          if [ -z "$signing_key" ]; then
+            echo "Error: No signing key found"
+            exit 1
+          fi
           declare -A distributions=()
           declare -A distro_arches=()
           declare -A distro_files=()
@@ -932,8 +941,43 @@ jobs:
               -o "APT::FTPArchive::Release::Components=main" \
               -o "APT::FTPArchive::Release::Architectures=$architectures_string" \
               release "$release_dir" > "$release_dir/Release"
+            gpg \
+              --batch \
+              --yes \
+              --pinentry-mode loopback \
+              --passphrase "$APT_SIGNING_PASSPHRASE" \
+              --local-user "$signing_key" \
+              --clearsign \
+              --output "$release_dir/InRelease" \
+              "$release_dir/Release"
+            gpg \
+              --batch \
+              --yes \
+              --pinentry-mode loopback \
+              --passphrase "$APT_SIGNING_PASSPHRASE" \
+              --local-user "$signing_key" \
+              --detach-sign \
+              --armor \
+              --output "$release_dir/Release.gpg" \
+              "$release_dir/Release"
           done
           
+      - name: Publish APT public key
+        run: |
+          gpg --batch --armor --export \
+            "$(
+              gpg --batch --with-colons --list-secret-keys |
+              awk -F: '$1 == "fpr" { print $10; exit }'
+            )" \
+            > apt-repository/nflog-dns-archive-keyring.asc
+
+          gpg --batch --export \
+            "$(
+              gpg --batch --with-colons --list-secret-keys |
+              awk -F: '$1 == "fpr" { print $10; exit }'
+            )" \
+            > apt-repository/nflog-dns-archive-keyring.pgp
+
       - name: Upload repository to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:

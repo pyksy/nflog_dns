@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
                 try {
                     enable_qtypes(optarg);
                 } catch (const std::invalid_argument& e) {
-                    std::cerr << "Error: Invalid qtype: " << e.what() << std::endl;
+                    std::cerr << "Error: " << e.what() << std::endl;
                     return EXIT_FAILURE;
                 }
                 break;
@@ -165,7 +165,7 @@ int main(int argc, char *argv[])
                 try {
                     enable_rcodes(optarg);
                 } catch (const std::invalid_argument& e) {
-                    std::cerr << "Error: Invalid rcode: " << e.what() << std::endl;
+                    std::cerr << "Error: " << e.what() << std::endl;
                     return EXIT_FAILURE;
                 }
                 break;

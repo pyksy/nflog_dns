@@ -89,8 +89,8 @@ echo "done"
 echo
 
 echo "Verify --qtype/--rcode reject an unknown value..."
-verify_rejected --qtype "BOGUS" "Error: Invalid qtype: unknown DNS qtype: BOGUS"
-verify_rejected --rcode "BOGUS" "Error: Invalid rcode: unknown DNS rcode: BOGUS"
+verify_rejected --qtype "BOGUS" "Error: unknown DNS qtype: BOGUS"
+verify_rejected --rcode "BOGUS" "Error: unknown DNS rcode: BOGUS"
 echo "done"
 echo
 

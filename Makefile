@@ -19,7 +19,9 @@ SOURCES = config.cpp utils.cpp nflog_dns.cpp
 HEADERS = config.h utils.h version.h
 TEST_SOURCES = test/unit_test.cpp config.cpp utils.cpp
 
-all: nflog_dns
+all: build
+
+build: check-format nflog_dns
 
 nflog_dns: $(SOURCES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(LDFLAGS) $(SOURCES) $(LIBS) -o $@
@@ -69,6 +71,9 @@ test-integration:
 test: test-unit test-integration
 
 check: test
+
+check-format:
+	@awk '/\t/ { print FILENAME ":" FNR ": tab character found; use spaces instead."; found=1 } END { exit found }' *.cpp *.h
 
 install-bin:
 	install -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
@@ -128,6 +133,7 @@ uninstall-files: uninstall-init uninstall-systemd uninstall-config
 uninstall: uninstall-bin uninstall-man uninstall-files
 
 .PHONY: all deb rpm \
+	check check-format
 	clean distclean \
 	test-unit test-integration test check \
 	install-bin install-bin-strip \

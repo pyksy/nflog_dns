@@ -98,7 +98,7 @@ jobs:
       run: |
         sudo rm -f /var/lib/man-db/auto-update
         sudo apt-get update
-        sudo apt-get -y --no-install-recommends install libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy debhelper-compat lsb-release doctest-dev
+        sudo apt-get -y --no-install-recommends install gpg libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy debhelper-compat lsb-release doctest-dev
 
     - name: Run clang-tidy
       run: |
@@ -389,11 +389,11 @@ jobs:
           - name: Debian 13
             image: debian:13
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
+            install: apt-get update && apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
           - name: Debian 12
             image: debian:12
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends  install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
+            install: apt-get update && apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
 
           - name: Fedora 44
             image: fedora:44
@@ -426,7 +426,7 @@ jobs:
               ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
               echo "Etc/UTC" > /etc/timezone
               apt-get update
-              apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
+              apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
           - name: Ubuntu 24.04
             image: ubuntu:24.04
             pkgtype: deb
@@ -434,7 +434,7 @@ jobs:
               ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
               echo "Etc/UTC" > /etc/timezone
               apt-get update
-              apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
+              apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
 
     name: ${{ matrix.name }} amd64 build
     needs: [ prepare-release ]
@@ -598,7 +598,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo chroot ../devuan-${{ matrix.release }} apt-get update
-          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
+          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
 
       - name: Inject distribution into package version
         run: |
@@ -674,7 +674,7 @@ jobs:
         run: |
           rm -f /etc/apt/apt.conf.d/docker-clean
           apt-get update
-          apt-get -y --no-install-recommends install ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
+          apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
 
       - name: Inject distribution into package version
         run: |
@@ -783,3 +783,49 @@ jobs:
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  generate-apt-repository:
+    name: Generate APT repository
+    # needs: create-release
+    needs: containers-amd64
+    runs-on: ubuntu-latest
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+
+    steps:
+      - name: Generate APT repository
+        run: |
+          mkdir -p apt-repository/dists/stable/main/binary-amd64
+
+          cat > apt-repository/dists/stable/Release <<'EOF'
+          Origin: nflog-dns
+          Label: nflog-dns
+          Suite: stable
+          Codename: stable
+          Architectures: amd64
+          Components: main
+          Description: nflog-dns APT repository
+          EOF
+
+          cat > apt-repository/dists/stable/main/binary-amd64/Packages <<'EOF'
+          Hello world
+          EOF
+
+          gzip -9 -c \
+            apt-repository/dists/stable/main/binary-amd64/Packages \
+            > apt-repository/dists/stable/main/binary-amd64/Packages.gz
+
+          find apt-repository -type f -print
+
+      - name: Upload repository to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apt-repository
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v4

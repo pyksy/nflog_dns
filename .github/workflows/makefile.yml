@@ -473,7 +473,6 @@ jobs:
             NOW="$(date '+%a %b %d %Y')"
             VERSION="$(grep '^Version:' nflog_dns.spec | awk '{print $2}')"
             PACKAGER="GitHub Actions <ci@molukki.com>"
-
             awk -v rel="${FULLRELEASE}" -v ver="${VERSION}" -v date="${NOW}" \
                 -v packager="${PACKAGER}" -v release="${RELEASE}" -v version_id="${VERSION_ID}" '
                 /^%changelog/ {
@@ -787,7 +786,6 @@ jobs:
   generate-apt-repository:
     name: Generate APT repository
     # needs: create-release
-    needs: containers-amd64
     runs-on: ubuntu-latest
 
     permissions:
@@ -798,30 +796,144 @@ jobs:
       name: github-pages
 
     steps:
-      - name: Generate APT repository
+      - name: Install dependencies
         run: |
-          mkdir -p apt-repository/dists/stable/main/binary-amd64
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update
+          sudo apt-get -y --no-install-recommends install apt-utils dpkg-dev
 
-          cat > apt-repository/dists/stable/Release <<'EOF'
-          Origin: nflog-dns
-          Label: nflog-dns
-          Suite: stable
-          Codename: stable
-          Architectures: amd64
-          Components: main
-          Description: nflog-dns APT repository
-          EOF
 
-          cat > apt-repository/dists/stable/main/binary-amd64/Packages <<'EOF'
-          Hello world
-          EOF
+      - name: Download DEB packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p apt-repository/pool/main
+          mapfile -t releases < <(
+            gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/releases" \
+              --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name'
+          )
+          for tag in "${releases[@]}"; do
+            mkdir -p "$RUNNER_TEMP/release"
+            gh release download "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --pattern '*.deb' \
+              --dir "$RUNNER_TEMP/release"
+            for deb in "$RUNNER_TEMP/release"/*.deb; do
+              [ -f "$deb" ] || continue
+              name=$(basename "$deb")
+              package="${name%%_*}"
+              first_letter="${package:0:1}"
+              mkdir -p \
+                "apt-repository/pool/main/$first_letter/$package"
+              cp "$deb" \
+                "apt-repository/pool/main/$first_letter/$package/"
+            done
+            rm -rf "$RUNNER_TEMP/release"
+          done
 
-          gzip -9 -c \
-            apt-repository/dists/stable/main/binary-amd64/Packages \
-            > apt-repository/dists/stable/main/binary-amd64/Packages.gz
-
-          find apt-repository -type f -print
-
+      - name: Generate APT metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          repo="$GITHUB_WORKSPACE/apt-repository"
+          pool="$repo/pool"
+          work="$RUNNER_TEMP/apt"
+          mkdir -p "$work"
+          declare -A distributions=()
+          declare -A distro_arches=()
+          declare -A distro_files=()
+          declare -A architectures=()
+          for deb in "$pool"/main/*/*/*.deb; do
+            name=$(basename "$deb")
+            base="${name%.deb}"
+            arch="${base##*_}"
+            version="${base%_*}"
+            distro_release="${version##*+}"
+            distro="${distro_release%%[0-9]*}"
+            if [[ "$version" != *"+"* || -z "$distro" || -z "$arch" ]]; then
+              echo "Cannot derive distribution/architecture from: $name"
+              exit 1
+            fi
+            relative="${deb#"$repo"/}"
+            distributions["$distro"]=1
+            architectures["$arch"]=1
+            distro_arches["$distro/$arch"]=1
+            distro_files["$distro/$arch"]+="$relative"$'\n'
+          done
+          if [ "${#distributions[@]}" -eq 0 ]; then
+            echo "No Debian packages found"
+            exit 1
+          fi
+          for arch in "${!architectures[@]}"; do
+            (
+              cd "$repo"
+              dpkg-scanpackages \
+                --arch "$arch" \
+                --multiversion \
+                pool \
+                /dev/null
+            ) > "$work/Packages.$arch"
+          done
+          for distro in "${!distributions[@]}"; do
+            distro_arch_list=()
+            for key in "${!distro_arches[@]}"; do
+              if [[ "$key" == "$distro/"* ]]; then
+                distro_arch_list+=("${key#*/}")
+              fi
+            done
+            mapfile -t distro_arch_list < <(
+              printf '%s\n' "${distro_arch_list[@]}" | sort -u
+            )
+            for arch in "${distro_arch_list[@]}"; do
+              output="$repo/dists/$distro/main/binary-$arch"
+              wanted="$work/wanted-$distro-$arch"
+              mkdir -p "$output"
+              printf '%s' "${distro_files["$distro/$arch"]}" |
+                sed '/^$/d' |
+                sort -u > "$wanted"
+              awk -v wanted="$wanted" '
+                BEGIN {
+                  while ((getline line < wanted) > 0)
+                    wanted_file[line] = 1
+                  close(wanted)
+                  RS = ""
+                  ORS = "\n\n"
+                }
+                {
+                  filename = ""
+                  n = split($0, lines, "\n")
+                  for (i = 1; i <= n; i++) {
+                    if (lines[i] ~ /^Filename: /) {
+                      filename = substr(lines[i], 11)
+                      break
+                    }
+                  }
+                  if (filename in wanted_file)
+                    print
+                }
+              ' "$work/Packages.$arch" > "$output/Packages"
+              gzip -9 -c "$output/Packages" > "$output/Packages.gz"
+            done
+            architectures_string=$(
+              printf '%s\n' "${distro_arch_list[@]}" |
+                sort -u |
+                paste -sd' ' -
+            )
+            release_dir="$repo/dists/$distro"
+            apt-ftparchive \
+              -o "APT::FTPArchive::Release::Origin=nflog-dns" \
+              -o "APT::FTPArchive::Release::Label=nflog-dns" \
+              -o "APT::FTPArchive::Release::Suite=$distro" \
+              -o "APT::FTPArchive::Release::Codename=$distro" \
+              -o "APT::FTPArchive::Release::Components=main" \
+              -o "APT::FTPArchive::Release::Architectures=$architectures_string" \
+              release "$release_dir" > "$release_dir/Release"
+          done
+          
       - name: Upload repository to GitHub Pages
         uses: actions/upload-pages-artifact@v3
         with:

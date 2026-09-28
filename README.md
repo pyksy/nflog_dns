@@ -5,72 +5,6 @@ parses DNS reply packets and logs the details to syslog or console (stdout),
 in plaintext or in JSON format. Supports mostly all query types (A, CNAME, PTR, ...)
 and return codes (NOERROR, NXDOMAIN, REFUSED, ...).
 
-## .deb/.rpm packages
-
-Prebuilt .deb/.rpm packages for popular distributions can be downloaded from the Releases page.
-
-## Requirements
-
-nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries
-
-## Compile (Debian based distributions)
-
-1. sudo apt-get install build-essential libtins-dev libnetfilter-log-dev libspdlog-dev libfmt-dev
-2. make
-
-## Compile (RPM based distributions)
-
-1. sudo dnf install gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel
-2. make
-
-## Run tests (Debian based distributions)
-
-1. sudo apt-get install doctest-dev
-2. sudo make test
-
-## Run tests (RPM based distributions)
-
-1. sudo dnf install doctest-devel
-2. sudo make test
-
-## Quickstart
-
-1. Compile nflog_dns as above
-2. sudo ./start.sh
-3. sudo ./nflog_dns
-4. Make some DNS queries and observe the extracted DNS replies
-5. sudo ./stop.sh
-
-## Install
-
-1. Compile nflog_dns as above
-2. Optional: Edit the PREFIX in Makefile. By default installs to /usr/local
-3. sudo make install
-
-## Enable sysvinit service
-
-1. Install nflog_dns as above
-2. Edit options in /etc/default/nflog_dns to suit your needs
-3. sudo update-rc.d nflog_dns defaults
-4. sudo service nflog_dns start
-
-## Enable systemd service
-
-1. Install nflog_dns as above
-2. Edit options in /etc/default/nflog_dns to suit your needs
-3. sudo systemctl enable nflog_dns.service
-4. sudo systemctl start nflog_dns.service
-
-## Build deb package
-
-1. sudo apt-get install debhelper-compat lsb-release (plus compile dependencies from above)
-2. make deb
-
-## Build rpm package
-
-1. sudo dnf install rpm-build rpmdevtools (plus compile dependencies from above)
-2. make rpm
-
 ## Usage
 
 ```
@@ -91,6 +25,116 @@ Extract DNS replies from NFLOG group
   -v, --version            show version and exit
 ```
 See nflog_dns.8 manpage for further information, including explanation of command line options.
+
+## .deb/.rpm packages
+
+Prebuilt .deb/.rpm packages for popular distributions can be downloaded from the Releases page.
+
+## APT repository
+
+Released .deb packages are also available via APT repository.
+
+Add APT signing key, then add APT source, then update APT sources, then install package nflog-dns. Replace 'trixie' with your distribution name.
+```
+curl -fsSL https://pyksy.github.io/nflog_dns/nflog-dns-archive-keyring.asc \
+    | sudo gpg --dearmor -o /usr/share/keyrings/nflog-dns-archive-keyring.gpg -
+echo 'deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns trixie main' \
+    | sudo tee /etc/apt/sources.list.d/nflog-dns.list
+sudo apt-get update
+sudo apt-get install nflog-dns
+```
+
+## Requirements
+
+Building nflog_dns requires libfmt, libtins, libnetfilter_log and libspdlog libraries.
+
+Building unit tests also requires doctest.
+
+Building .deb packages also requires debhelper-compat and lsb-release.
+
+Building .rpm packages also requires rpm-build and rpmdevtools.
+
+## Compile (Debian based distributions)
+
+```
+sudo apt-get install build-essential libtins-dev libnetfilter-log-dev libspdlog-dev libfmt-dev
+make
+```
+
+## Compile (RPM based distributions)
+
+```
+sudo dnf install gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel
+make
+```
+
+## Run tests (Debian based distributions)
+
+```
+sudo apt-get install doctest-dev
+sudo make test
+```
+
+## Run tests (RPM based distributions)
+
+```
+sudo dnf install doctest-devel
+sudo make test
+```
+
+## Quickstart demo
+
+Compile nflog_dns as above, then
+```
+sudo ./start.sh
+sudo ./nflog_dns
+```
+Make some DNS queries and observe the extracted DNS replies. CTRL-C stops nflog_dns.
+```
+sudo ./stop.sh
+```
+
+## Install
+
+Compile nflog_dns as above. Optional: Edit the PREFIX in Makefile. By default installs to /usr/local.
+```
+sudo make install
+```
+
+## Enable sysvinit service
+
+Install nflog_dns as above, then edit options in /etc/default/nflog_dns to suit your needs.
+
+Enable and start nflog_dns service:
+```
+sudo update-rc.d nflog_dns defaults
+sudo service nflog_dns start
+```
+
+## Enable systemd service
+
+Install nflog_dns as above, then edit options in /etc/default/nflog_dns to suit your needs.
+
+Enable and start nflog_dns service:
+```
+sudo systemctl enable nflog_dns.service
+sudo systemctl start nflog_dns.service
+```
+
+## Build .deb package
+
+```
+sudo apt-get install debhelper-compat lsb-release
+make deb
+```
+
+## Build .rpm package
+
+
+```
+sudo dnf install rpm-build rpmdevtools
+make rpm
+```
 
 ## iptables setup
 
@@ -121,4 +165,4 @@ prevents logging IPv6 reverse DNS lookups.
 
 ## Create a new release
 
-1. In GitHub Actions, trigger manual build ("Run workflow") and select "Create a release" from dropdown menu.
+In GitHub Actions, trigger manual build ("Run workflow") and select "Create a release" from dropdown menu.

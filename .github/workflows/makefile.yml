@@ -789,11 +789,7 @@ jobs:
     runs-on: ubuntu-latest
 
     permissions:
-      pages: write
-      id-token: write
-
-    environment:
-      name: github-pages
+      contents: read
 
     steps:
       - name: Download DEB packages
@@ -805,26 +801,23 @@ jobs:
           mkdir -p apt-repository/pool/main
           mapfile -t releases < <(
             gh api --paginate \
-              "repos/${GITHUB_REPOSITORY}/releases" \
-              --jq '.[] | select(.draft == false and .prerelease == false) | .tag_name'
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq '.[] | select(.draft == false and .prerelease == false) | .id'
           )
-          for tag in "${releases[@]}"; do
-            mkdir -p "$RUNNER_TEMP/release"
-            gh release download "$tag" \
-              --repo "$GITHUB_REPOSITORY" \
-              --pattern '*.deb' \
-              --dir "$RUNNER_TEMP/release"
-            for deb in "$RUNNER_TEMP/release"/*.deb; do
-              [ -f "$deb" ] || continue
-              name=$(basename "$deb")
+          for release_id in "${releases[@]}"
+          do
+            gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100" \
+              --jq '.[] | select(.name | endswith(".deb")) | [.name, .url] | @tsv' |
+            while IFS=$'\t' read -r name url
+            do
+              deb="$RUNNER_TEMP/$name"
+              gh api -H "Accept: application/octet-stream" "$url" >"$deb"
               package="${name%%_*}"
               first_letter="${package:0:1}"
-              mkdir -p \
-                "apt-repository/pool/main/$first_letter/$package"
-              cp "$deb" \
-                "apt-repository/pool/main/$first_letter/$package/"
+              mkdir -p "apt-repository/pool/main/$first_letter/$package"
+              mv "$deb" "apt-repository/pool/main/$first_letter/$package/"
             done
-            rm -rf "$RUNNER_TEMP/release"
           done
 
       - name: Generate APT metadata
@@ -841,7 +834,8 @@ jobs:
           mkdir -p "$work"
           printf '%s' "$APT_SIGNING_KEY" | gpg --batch --import
           signing_key=$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" { print $10; exit }')
-          if [ -z "$signing_key" ]; then
+          if [ -z "$signing_key" ]
+          then
             echo "Error: No signing key found"
             exit 1
           fi
@@ -849,14 +843,16 @@ jobs:
           declare -A distro_arches=()
           declare -A distro_files=()
           declare -A architectures=()
-          for deb in "$pool"/main/*/*/*.deb; do
+          for deb in "$pool"/main/*/*/*.deb
+          do
             name=$(basename "$deb")
             base="${name%.deb}"
             arch="${base##*_}"
             version="${base%_*}"
             distro_release="${version##*+}"
             distro="${distro_release%%[0-9]*}"
-            if [[ "$version" != *"+"* || -z "$distro" || -z "$arch" ]]; then
+            if [[ "$version" != *"+"* || -z "$distro" || -z "$arch" ]]
+            then
               echo "Cannot derive distribution/architecture from: $name"
               exit 1
             fi
@@ -866,11 +862,13 @@ jobs:
             distro_arches["$distro/$arch"]=1
             distro_files["$distro/$arch"]+="$relative"$'\n'
           done
-          if [ "${#distributions[@]}" -eq 0 ]; then
+          if [ "${#distributions[@]}" -eq 0 ]
+          then
             echo "No Debian packages found"
             exit 1
           fi
-          for arch in "${!architectures[@]}"; do
+          for arch in "${!architectures[@]}"
+          do
             (
               cd "$repo"
               dpkg-scanpackages \
@@ -880,17 +878,21 @@ jobs:
                 /dev/null
             ) > "$work/Packages.$arch"
           done
-          for distro in "${!distributions[@]}"; do
+          for distro in "${!distributions[@]}"
+          do
             distro_arch_list=()
-            for key in "${!distro_arches[@]}"; do
-              if [[ "$key" == "$distro/"* ]]; then
+            for key in "${!distro_arches[@]}"
+            do
+              if [[ "$key" == "$distro/"* ]]
+              then
                 distro_arch_list+=("${key#*/}")
               fi
             done
             mapfile -t distro_arch_list < <(
               printf '%s\n' "${distro_arch_list[@]}" | sort -u
             )
-            for arch in "${distro_arch_list[@]}"; do
+            for arch in "${distro_arch_list[@]}"
+            do
               output="$repo/dists/$distro/main/binary-$arch"
               wanted="$work/wanted-$distro-$arch"
               mkdir -p "$output"
@@ -954,7 +956,7 @@ jobs:
               --output "$release_dir/Release.gpg" \
               "$release_dir/Release"
           done
-          
+
       - name: Publish APT public key
         run: |
           gpg --batch --armor --export \
@@ -971,20 +973,164 @@ jobs:
             )" \
             > apt-repository/nflog-dns-archive-keyring.pgp
 
-      - name: Upload repository to GitHub Pages
-        uses: actions/upload-pages-artifact@v3
+      - name: Upload DEB repository
+        uses: actions/upload-artifact@v4
         with:
+          name: apt-repository
           path: apt-repository
 
-      - name: Deploy to GitHub Pages
+  generate-rpm-repository:
+    name: Generate RPM repository
+    # needs: create-release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Install RPM tools
+        run: |
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends createrepo-c rpm
+
+      - name: Download RPM packages
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/rpm-downloads"
+          mapfile -t releases < <(
+            gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+              --jq '.[] | select(.draft == false and .prerelease == false) | .id'
+          )
+          for release_id in "${releases[@]}"
+          do
+            gh api --paginate \
+              "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100" \
+              --jq '.[] | select(.name | endswith(".rpm")) | [.name, .url] | @tsv' |
+            while IFS=$'\t' read -r name url
+            do
+              gh api -H "Accept: application/octet-stream" "$url" >"$RUNNER_TEMP/rpm-downloads/$name"
+            done
+          done
+          if ! compgen -G "$RUNNER_TEMP/rpm-downloads/*.rpm" > /dev/null
+          then
+            echo "No RPM packages found"
+            exit 1
+          fi
+
+      - name: Generate RPM metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          output="$GITHUB_WORKSPACE/rpm-repository/rpm"
+          declare -A repositories=()
+          for rpm_file in "$RUNNER_TEMP/rpm-downloads"/*.rpm
+          do
+            name=$(basename "$rpm_file")
+            arch="${name%.rpm}"
+            arch="${arch##*.}"
+            if [ -z "$arch" ]
+            then
+              echo "Cannot determine architecture from: $name"
+              exit 1
+            fi
+            release=$(rpm -qp --qf '%{RELEASE}' "$rpm_file")
+            distro="${release#*.}"
+            if [ -z "$distro" ] || [ "$distro" = "$release" ]
+            then
+                echo "Cannot determine distribution from: $(basename "$rpm_file")"
+                exit 1
+            fi
+            if [ -z "$distro" ] || [ "$distro" = "(none)" ]
+            then
+              echo "Cannot determine distribution from: $name"
+              exit 1
+            fi
+            repository="$output/$distro/$arch"
+            mkdir -p "$repository"
+            cp "$rpm_file" "$repository/"
+            repositories["$distro/$arch"]=1
+          done
+          for repository in "${!repositories[@]}"
+          do
+            createrepo_c "$output/$repository"
+            cat > "$output/$repository/nflog-dns.repo" <<EOF
+          [nflog-dns]
+          name=nflog-dns
+          baseurl=https://pyksy.github.io/nflog_dns/rpm/$repository/
+          enabled=1
+          gpgcheck=0
+          EOF
+          done
+
+      - name: Upload RPM repository
+        uses: actions/upload-artifact@v4
+        with:
+          name: rpm-repository
+          path: rpm-repository
+
+  generate-repository-pages:
+    name: Generate repository pages
+    runs-on: ubuntu-latest
+
+    needs: [ generate-apt-repository, generate-rpm-repository ]
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+
+    steps:
+      - name: Download APT repository
+        uses: actions/download-artifact@v8
+        with:
+          name: apt-repository
+          path: apt-repository
+
+      - name: Download RPM repository
+        uses: actions/download-artifact@v8
+        with:
+          name: rpm-repository
+          path: rpm-repository
+
+      - name: Assemble repository pages
+        run: |
+          mkdir -p pages
+          mv apt-repository/* rpm-repository/* pages
+
+      - name: Upload repository pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+      - name: Deploy GitHub Pages
         uses: actions/deploy-pages@v4
 
-      - name: Verify repository
+      - name: Verify DEB repository
         run: |
           source "/etc/os-release"
-          curl -fsSL https://pyksy.github.io/nflog_dns/nflog-dns-archive-keyring.asc \
+          curl -sSfL --retry 10 --retry-delay 3 \
+            https://pyksy.github.io/nflog_dns/nflog-dns-archive-keyring.asc \
             | sudo gpg --dearmor -o /usr/share/keyrings/nflog-dns-archive-keyring.gpg -
           echo "deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns ${VERSION_CODENAME} main" \
             | sudo tee /etc/apt/sources.list.d/nflog-dns.list
+          sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get update
           sudo apt-get install nflog-dns
+
+      - name: Verify RPM repository
+        run: |
+          docker run --rm fedora:44 bash -c '
+            set -euo pipefail
+            curl -sSfL --retry 10 --retry-delay 3 \
+              -o /etc/yum.repos.d/nflog-dns.repo \
+              https://pyksy.github.io/nflog_dns/rpm/fc44/x86_64/nflog-dns.repo
+            dnf install -y nflog_dns
+          '

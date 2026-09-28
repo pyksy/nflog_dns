@@ -796,13 +796,6 @@ jobs:
       name: github-pages
 
     steps:
-      - name: Install dependencies
-        run: |
-          sudo rm -f /var/lib/man-db/auto-update
-          sudo apt-get update
-          sudo apt-get -y --no-install-recommends install apt-utils dpkg-dev
-
-
       - name: Download DEB packages
         env:
           GH_TOKEN: ${{ github.token }}
@@ -985,3 +978,13 @@ jobs:
 
       - name: Deploy to GitHub Pages
         uses: actions/deploy-pages@v4
+
+      - name: Verify repository
+        run: |
+          source "/etc/os-release"
+          curl -fsSL https://pyksy.github.io/nflog_dns/nflog-dns-archive-keyring.asc \
+            | sudo gpg --dearmor -o /usr/share/keyrings/nflog-dns-archive-keyring.gpg -
+          echo "deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns ${VERSION_CODENAME} main" \
+            | sudo tee /etc/apt/sources.list.d/nflog-dns.list
+          sudo apt-get update
+          sudo apt-get install nflog-dns

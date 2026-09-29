@@ -64,6 +64,22 @@ getent passwd _nflog-dns >/dev/null \
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Tue Sep 29 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1.2.4-1
+- Add RPM repository public key
+- Update README with RPM repo instructions
+- Sign RPM repositories
+- Hack for tumbleweed repo name
+- Sign .rpm packages
+- Generate and verify rpm repository
+- Update README.md
+- Verify apt repository
+- Sign apt repository
+- Generate apt repository
+- Generate dummy repository
+- Add APT repository public key
+- Fix qtype and rcode error messages
+- Housekeeping: fix exception handling, convert tabs to spaces and add a tab check
+
 * Sun Sep 27 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1.2.3-1
 - Update CI release workflow and README
 - Create releases from GitHub workflow dispatch instead of shell script

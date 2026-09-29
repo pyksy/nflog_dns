@@ -1,1 +1,1 @@
-#define PROGRAM_VERSION "1.2.3"
+#define PROGRAM_VERSION "1.2.4"

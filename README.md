@@ -36,12 +36,24 @@ Released .deb packages are also available via APT repository.
 
 Add APT signing key, then add APT source, then update APT sources, then install package nflog-dns. Replace 'trixie' with your distribution name.
 ```
-curl -fsSL https://pyksy.github.io/nflog_dns/nflog-dns-archive-keyring.asc \
+curl -fsSL https://pyksy.github.io/nflog_dns/apt/nflog-dns-archive-keyring.asc \
     | sudo gpg --dearmor -o /usr/share/keyrings/nflog-dns-archive-keyring.gpg -
-echo 'deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns trixie main' \
+echo 'deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns/apt trixie main' \
     | sudo tee /etc/apt/sources.list.d/nflog-dns.list
 sudo apt-get update
 sudo apt-get install nflog-dns
+```
+
+## RPM Repository
+
+Released .rpm packages are also available via RPM repository.
+
+### Fedora Core
+
+Add .repo file to yum and install nflog-dns. Replace 'fc44' with your distribution name.
+```
+sudo curl -sSfL -o /etc/yum.repos.d/nflog-dns.repo https://pyksy.github.io/nflog_dns/rpm/fc44/x86_64/nflog-dns.repo
+dnf install nflog_dns
 ```
 
 ## Requirements

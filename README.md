@@ -38,7 +38,8 @@ Add APT signing key, then add APT source, then update APT sources, then install 
 ```
 curl -fsSL https://pyksy.github.io/nflog_dns/apt/nflog-dns-archive-keyring.asc \
     | sudo gpg --dearmor -o /usr/share/keyrings/nflog-dns-archive-keyring.gpg -
-echo 'deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns/apt trixie main' \
+echo 'deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] \
+    https://pyksy.github.io/nflog_dns/apt trixie main' \
     | sudo tee /etc/apt/sources.list.d/nflog-dns.list
 sudo apt-get update
 sudo apt-get install nflog-dns
@@ -50,10 +51,33 @@ Released .rpm packages are also available via RPM repository.
 
 ### Fedora Core
 
-Add .repo file to yum and install nflog-dns. Replace 'fc44' with your distribution name.
+Add .repo file to yum and install nflog_dns. Replace 'fc44' with your distribution name.
 ```
-sudo curl -sSfL -o /etc/yum.repos.d/nflog-dns.repo https://pyksy.github.io/nflog_dns/rpm/fc44/x86_64/nflog-dns.repo
-dnf install nflog_dns
+sudo curl -sSfL -o /etc/yum.repos.d/nflog-dns.repo \
+    https://pyksy.github.io/nflog_dns/rpm/fc44/x86_64/nflog-dns.repo
+sudo dnf install nflog_dns
+```
+
+### openSUSE
+
+#### Leap
+
+Add nflog_dns and netfilter repos zypper and refresh, then install nflog_dns.
+Replace 'leap160' / '16.0' with your Leap distribution name / version.
+```
+sudo zypper addrepo https://pyksy.github.io/nflog_dns/rpm/leap160/x86_64/nflog-dns.repo
+sudo zypper addrepo https://download.opensuse.org/repositories/security:netfilter/16.0/security:netfilter.repo
+sudo zypper refresh
+sudo zypper install nflog_dns
+```
+
+#### Tumbleweed
+
+Add nflog_dns repo zypper and refresh, then install nflog_dns.
+```
+sudo zypper addrepo https://pyksy.github.io/nflog_dns/rpm/tumbleweed/x86_64/nflog-dns.repo
+sudo zypper refresh
+sudo zypper install nflog_dns
 ```
 
 ## Requirements

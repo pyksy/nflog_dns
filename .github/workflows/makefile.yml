@@ -818,7 +818,7 @@ jobs:
 
   generate-apt-repository:
     name: Generate APT repository
-    # needs: create-release
+    needs: create-release
     runs-on: ubuntu-latest
 
     permissions:
@@ -831,7 +831,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p apt-repository/pool/main
           mapfile -t releases < <(
             gh api --paginate \
               "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
@@ -844,16 +843,16 @@ jobs:
               --jq '.[] | select(.name | endswith(".deb")) | [.name, .url] | @tsv' |
             while IFS=$'\t' read -r name url
             do
-              deb="$RUNNER_TEMP/$name"
-              gh api -H "Accept: application/octet-stream" "$url" >"$deb"
+              deb="${RUNNER_TEMP}/${name}"
+              gh api -H "Accept: application/octet-stream" "${url}" >"${deb}"
               package="${name%%_*}"
               first_letter="${package:0:1}"
-              mkdir -p "apt-repository/pool/main/$first_letter/$package"
-              mv "$deb" "apt-repository/pool/main/$first_letter/$package/"
+              mkdir -p "apt-repository/apt/pool/main/${first_letter}/${package}"
+              mv "${deb}" "apt-repository/apt/pool/main/${first_letter}/${package}/"
             done
           done
 
-      - name: Generate APT metadata
+      - name: Generate APT repo metadata
         env:
           APT_SIGNING_KEY: ${{ secrets.APT_SIGNING_KEY }}
           APT_SIGNING_PASSPHRASE: ${{ secrets.APT_SIGNING_PASSPHRASE }}
@@ -861,13 +860,13 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          repo="$GITHUB_WORKSPACE/apt-repository"
-          pool="$repo/pool"
-          work="$RUNNER_TEMP/apt"
-          mkdir -p "$work"
-          printf '%s' "$APT_SIGNING_KEY" | gpg --batch --import
+          repo="${GITHUB_WORKSPACE}/apt-repository/apt"
+          pool="${repo}/pool"
+          work="${RUNNER_TEMP}/apt"
+          mkdir -p "${work}"
+          printf '%s' "${APT_SIGNING_KEY}" | gpg --batch --import
           signing_key=$(gpg --batch --with-colons --list-secret-keys | awk -F: '$1 == "fpr" { print $10; exit }')
-          if [ -z "$signing_key" ]
+          if [ -z "${signing_key}" ]
           then
             echo "Error: No signing key found"
             exit 1
@@ -876,24 +875,24 @@ jobs:
           declare -A distro_arches=()
           declare -A distro_files=()
           declare -A architectures=()
-          for deb in "$pool"/main/*/*/*.deb
+          for deb in "${pool}"/main/*/*/*.deb
           do
-            name=$(basename "$deb")
+            name=$(basename "${deb}")
             base="${name%.deb}"
             arch="${base##*_}"
             version="${base%_*}"
             distro_release="${version##*+}"
             distro="${distro_release%%[0-9]*}"
-            if [[ "$version" != *"+"* || -z "$distro" || -z "$arch" ]]
+            if [[ "${version}" != *"+"* || -z "${distro}" || -z "${arch}" ]]
             then
-              echo "Cannot derive distribution/architecture from: $name"
+              echo "Cannot derive distribution/architecture from: ${name}"
               exit 1
             fi
-            relative="${deb#"$repo"/}"
-            distributions["$distro"]=1
-            architectures["$arch"]=1
-            distro_arches["$distro/$arch"]=1
-            distro_files["$distro/$arch"]+="$relative"$'\n'
+            relative="${deb#"${repo}"/}"
+            distributions["${distro}"]=1
+            architectures["${arch}"]=1
+            distro_arches["${distro}/${arch}"]=1
+            distro_files["${distro}/${arch}"]+="${relative}"$'\n'
           done
           if [ "${#distributions[@]}" -eq 0 ]
           then
@@ -903,20 +902,20 @@ jobs:
           for arch in "${!architectures[@]}"
           do
             (
-              cd "$repo"
+              cd "${repo}"
               dpkg-scanpackages \
-                --arch "$arch" \
+                --arch "${arch}" \
                 --multiversion \
                 pool \
                 /dev/null
-            ) > "$work/Packages.$arch"
+            ) > "${work}/Packages.${arch}"
           done
           for distro in "${!distributions[@]}"
           do
             distro_arch_list=()
             for key in "${!distro_arches[@]}"
             do
-              if [[ "$key" == "$distro/"* ]]
+              if [[ "${key}" == "${distro}/"* ]]
               then
                 distro_arch_list+=("${key#*/}")
               fi
@@ -926,13 +925,13 @@ jobs:
             )
             for arch in "${distro_arch_list[@]}"
             do
-              output="$repo/dists/$distro/main/binary-$arch"
-              wanted="$work/wanted-$distro-$arch"
-              mkdir -p "$output"
-              printf '%s' "${distro_files["$distro/$arch"]}" |
+              output="${repo}/dists/${distro}/main/binary-${arch}"
+              wanted="${work}/wanted-${distro}-${arch}"
+              mkdir -p "${output}"
+              printf '%s' "${distro_files["${distro}/${arch}"]}" |
                 sed '/^$/d' |
-                sort -u > "$wanted"
-              awk -v wanted="$wanted" '
+                sort -u > "${wanted}"
+              awk -v wanted="${wanted}" '
                 BEGIN {
                   while ((getline line < wanted) > 0)
                     wanted_file[line] = 1
@@ -952,59 +951,59 @@ jobs:
                   if (filename in wanted_file)
                     print
                 }
-              ' "$work/Packages.$arch" > "$output/Packages"
-              gzip -9 -c "$output/Packages" > "$output/Packages.gz"
+              ' "${work}/Packages.${arch}" > "${output}/Packages"
+              gzip -9 -c "${output}/Packages" > "${output}/Packages.gz"
             done
             architectures_string=$(
               printf '%s\n' "${distro_arch_list[@]}" |
                 sort -u |
                 paste -sd' ' -
             )
-            release_dir="$repo/dists/$distro"
+            release_dir="${repo}/dists/${distro}"
             apt-ftparchive \
               -o "APT::FTPArchive::Release::Origin=nflog-dns" \
               -o "APT::FTPArchive::Release::Label=nflog-dns" \
-              -o "APT::FTPArchive::Release::Suite=$distro" \
-              -o "APT::FTPArchive::Release::Codename=$distro" \
+              -o "APT::FTPArchive::Release::Suite=${distro}" \
+              -o "APT::FTPArchive::Release::Codename=${distro}" \
               -o "APT::FTPArchive::Release::Components=main" \
-              -o "APT::FTPArchive::Release::Architectures=$architectures_string" \
-              release "$release_dir" > "$release_dir/Release"
+              -o "APT::FTPArchive::Release::Architectures=${architectures_string}" \
+              release "${release_dir}" > "${release_dir}/Release"
             gpg \
               --batch \
               --yes \
               --pinentry-mode loopback \
-              --passphrase "$APT_SIGNING_PASSPHRASE" \
-              --local-user "$signing_key" \
+              --passphrase "${APT_SIGNING_PASSPHRASE}" \
+              --local-user "${signing_key}" \
               --clearsign \
-              --output "$release_dir/InRelease" \
-              "$release_dir/Release"
+              --output "${release_dir}/InRelease" \
+              "${release_dir}/Release"
             gpg \
               --batch \
               --yes \
               --pinentry-mode loopback \
-              --passphrase "$APT_SIGNING_PASSPHRASE" \
-              --local-user "$signing_key" \
+              --passphrase "${APT_SIGNING_PASSPHRASE}" \
+              --local-user "${signing_key}" \
               --detach-sign \
               --armor \
-              --output "$release_dir/Release.gpg" \
-              "$release_dir/Release"
+              --output "${release_dir}/Release.gpg" \
+              "${release_dir}/Release"
           done
 
-      - name: Publish APT public key
+      - name: Publish APT repo public key
         run: |
           gpg --batch --armor --export \
             "$(
               gpg --batch --with-colons --list-secret-keys |
               awk -F: '$1 == "fpr" { print $10; exit }'
             )" \
-            > apt-repository/nflog-dns-archive-keyring.asc
+            > apt-repository/apt/nflog-dns-archive-keyring.asc
 
           gpg --batch --export \
             "$(
               gpg --batch --with-colons --list-secret-keys |
               awk -F: '$1 == "fpr" { print $10; exit }'
             )" \
-            > apt-repository/nflog-dns-archive-keyring.pgp
+            > apt-repository/apt/nflog-dns-archive-keyring.pgp
 
       - name: Upload DEB repository
         uses: actions/upload-artifact@v4
@@ -1014,7 +1013,7 @@ jobs:
 
   generate-rpm-repository:
     name: Generate RPM repository
-    # needs: create-release
+    needs: create-release
     runs-on: ubuntu-latest
 
     permissions:
@@ -1033,7 +1032,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/rpm-downloads"
+          mkdir -p "${RUNNER_TEMP}/rpm-downloads"
           mapfile -t releases < <(
             gh api --paginate \
               "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
@@ -1046,64 +1045,114 @@ jobs:
               --jq '.[] | select(.name | endswith(".rpm")) | [.name, .url] | @tsv' |
             while IFS=$'\t' read -r name url
             do
-              gh api -H "Accept: application/octet-stream" "$url" >"$RUNNER_TEMP/rpm-downloads/$name"
+              gh api -H "Accept: application/octet-stream" "${url}" >"${RUNNER_TEMP}/rpm-downloads/${name}"
             done
           done
-          if ! compgen -G "$RUNNER_TEMP/rpm-downloads/*.rpm" > /dev/null
+          if ! compgen -G "${RUNNER_TEMP}/rpm-downloads/*.rpm" > /dev/null
           then
             echo "No RPM packages found"
             exit 1
           fi
 
-      - name: Generate RPM metadata
+      - name: Generate RPM repo metadata
         shell: bash
         run: |
           set -euo pipefail
           shopt -s nullglob
-          output="$GITHUB_WORKSPACE/rpm-repository/rpm"
+          repo="${GITHUB_WORKSPACE}/rpm-repository/rpm"
           declare -A repositories=()
-          for rpm_file in "$RUNNER_TEMP/rpm-downloads"/*.rpm
+          for rpm_file in "${RUNNER_TEMP}/rpm-downloads"/*.rpm
           do
-            name=$(basename "$rpm_file")
+            name=$(basename "${rpm_file}")
             arch="${name%.rpm}"
             arch="${arch##*.}"
-            if [ -z "$arch" ]
+            if [ -z "${arch}" ]
             then
-              echo "Cannot determine architecture from: $name"
+              echo "Cannot determine architecture from: ${name}"
               exit 1
             fi
-            release=$(rpm -qp --qf '%{RELEASE}' "$rpm_file")
+            release=$(rpm -qp --qf '%{RELEASE}' "${rpm_file}")
             distro="${release#*.}"
-            if [ -z "$distro" ] || [ "$distro" = "$release" ]
+            if [ -z "${distro}" ] || [ "${distro}" = "$release" ]
             then
-                echo "Cannot determine distribution from: $(basename "$rpm_file")"
+                echo "Cannot determine distribution from: $(basename "${rpm_file}")"
                 exit 1
             fi
-            if [ -z "$distro" ] || [ "$distro" = "(none)" ]
+            if [ -z "${distro}" ] || [ "${distro}" = "(none)" ]
             then
-              echo "Cannot determine distribution from: $name"
+              echo "Cannot determine distribution from: ${name}"
               exit 1
             fi
             if [[ "${distro}" = tumbleweed* ]]
             then
               distro="tumbleweed"
             fi
-            repository="$output/$distro/$arch"
-            mkdir -p "$repository"
-            cp "$rpm_file" "$repository/"
-            repositories["$distro/$arch"]=1
+            repository="${repo}/${distro}/${arch}"
+            mkdir -p "${repository}"
+            cp "${rpm_file}" "${repository}/"
+            repositories["${distro}/${arch}"]=1
           done
           for repository in "${!repositories[@]}"
           do
-            createrepo_c "$output/$repository"
-            cat > "$output/$repository/nflog-dns.repo" <<EOF
+            createrepo_c "${repo}/${repository}"
+            cat > "${repo}/${repository}/nflog-dns.repo" <<EOF
           [nflog-dns]
           name=nflog-dns
-          baseurl=https://pyksy.github.io/nflog_dns/rpm/$repository/
+          baseurl=https://pyksy.github.io/nflog_dns/rpm/${repository}/
           enabled=1
-          gpgcheck=0
+          gpgcheck=1
+          gpgkey=https://pyksy.github.io/nflog_dns/rpm/RPM-GPG-KEY-nflog_dns.gpg
           EOF
           done
+
+      - name: Sign RPM repo metadata
+        env:
+          RPM_SIGNING_KEY: ${{ secrets.RPM_SIGNING_KEY }}
+          RPM_SIGNING_PASSPHRASE: ${{ secrets.RPM_SIGNING_PASSPHRASE }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          printf '%s' "${RPM_SIGNING_KEY}" | gpg --batch --import
+          KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '$1=="sec"{print $5; exit}')
+          echo "Signing with key: ${KEY_ID}"
+          if [ -z "${KEY_ID}" ]
+          then
+            echo "Error: No signing key found" >&2
+            exit 1
+          fi
+          mkdir -p "${HOME}/.gnupg"
+          chmod 700 "${HOME}/.gnupg"
+          echo "allow-loopback-pinentry" >> "${HOME}/.gnupg/gpg-agent.conf"
+          echo "pinentry-mode loopback" >> "${HOME}/.gnupg/gpg.conf"
+          gpgconf --kill gpg-agent
+          for REPOMD in rpm-repository/rpm/*/*/repodata/repomd.xml
+          do
+            printf '%s' "${RPM_SIGNING_PASSPHRASE}" | gpg --batch \
+              --pinentry-mode loopback \
+              --passphrase-fd 0 \
+              --detach-sign \
+              --armor \
+              -u "${KEY_ID}" \
+              -o "${REPOMD}.asc" \
+              "${REPOMD}"
+          done
+
+      - name: Publish RPM repo public key
+        run: |
+          gpg --batch --armor --export \
+            "$(
+              gpg --batch --with-colons --list-secret-keys |
+              awk -F: '$1 == "fpr" { print $10; exit }'
+            )" \
+            > rpm-repository/rpm/RPM-GPG-KEY-nflog_dns.asc
+
+          gpg --batch --export \
+            "$(
+              gpg --batch --with-colons --list-secret-keys |
+              awk -F: '$1 == "fpr" { print $10; exit }'
+            )" \
+            > rpm-repository/rpm/RPM-GPG-KEY-nflog_dns.gpg
 
       - name: Upload RPM repository
         uses: actions/upload-artifact@v4
@@ -1154,9 +1203,9 @@ jobs:
         run: |
           source "/etc/os-release"
           curl -sSfL --retry 10 --retry-delay 3 \
-            https://pyksy.github.io/nflog_dns/nflog-dns-archive-keyring.asc \
+            https://pyksy.github.io/nflog_dns/apt/nflog-dns-archive-keyring.asc \
             | sudo gpg --dearmor -o /usr/share/keyrings/nflog-dns-archive-keyring.gpg -
-          echo "deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns ${VERSION_CODENAME} main" \
+          echo "deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns/apt ${VERSION_CODENAME} main" \
             | sudo tee /etc/apt/sources.list.d/nflog-dns.list
           sudo rm -f /var/lib/man-db/auto-update
           sudo apt-get update

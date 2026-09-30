@@ -133,7 +133,7 @@ uninstall-files: uninstall-init uninstall-systemd uninstall-config
 uninstall: uninstall-bin uninstall-man uninstall-files
 
 .PHONY: all deb rpm \
-	check check-format
+	check check-format \
 	clean distclean \
 	test-unit test-integration test check \
 	install-bin install-bin-strip \

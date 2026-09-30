@@ -65,6 +65,12 @@ getent passwd _nflog-dns >/dev/null \
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Wed Sep 30 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1.2.5-1
+- Bump the actions group with 3 updates
+- Fix dependencies and put Readme back in deb package
+- Fix missing backslash in Makefile
+- Update README with further RPM repo instructions
+
 * Tue Sep 29 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1.2.4-1
 - Add RPM repository public key
 - Update README with RPM repo instructions

@@ -1006,7 +1006,7 @@ jobs:
             > apt-repository/apt/nflog-dns-archive-keyring.pgp
 
       - name: Upload DEB repository
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: apt-repository
           path: apt-repository
@@ -1155,7 +1155,7 @@ jobs:
             > rpm-repository/rpm/RPM-GPG-KEY-nflog_dns.gpg
 
       - name: Upload RPM repository
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: rpm-repository
           path: rpm-repository
@@ -1192,12 +1192,12 @@ jobs:
           mv apt-repository/* rpm-repository/* pages
 
       - name: Upload repository pages
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: pages
 
       - name: Deploy GitHub Pages
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Verify DEB repository
         run: |

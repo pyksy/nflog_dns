@@ -16,6 +16,7 @@ BuildRequires:  libnetfilter_log-devel
 BuildRequires:  spdlog-devel
 BuildRequires:  libpcap-devel
 BuildRequires:  fmt-devel
+BuildRequires:  doctest-devel
 BuildRequires:  systemd-rpm-macros
 Requires(pre): /usr/sbin/useradd
 Requires(pre): /usr/sbin/groupadd

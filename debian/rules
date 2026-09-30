@@ -22,3 +22,5 @@ override_dh_install:
 	mkdir -p debian/nflog-dns/usr/share/keyrings
 	gpg --output debian/nflog-dns/usr/share/keyrings/nflog-dns-archive-keyring.gpg \
 		--dearmor apt/nflog-dns-archive-keyring.asc
+
+	dh_install

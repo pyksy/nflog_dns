@@ -8,7 +8,8 @@ Build-Depends: debhelper-compat (= 13),
                libtins-dev,
                libnetfilter-log-dev,
                libspdlog-dev,
-               libfmt-dev
+               libfmt-dev,
+               doctest-dev
 Standards-Version: 4.6.2
 Homepage: https://github.com/pyksy/nflog_dns
 Rules-Requires-Root: no

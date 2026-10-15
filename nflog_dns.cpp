@@ -65,6 +65,8 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
     struct nflog_data *ldata,
     void *data)
 {
+    packet_stats.packets_received++;
+
     uint8_t* payload;
     const int payload_len = nflog_get_payload(ldata, (char **)(&payload));
     if (!payload || payload_len < 1) {

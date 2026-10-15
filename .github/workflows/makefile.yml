@@ -1161,7 +1161,7 @@ jobs:
           path: rpm-repository
 
   generate-repository-pages:
-    name: Generate repository pages
+    name: Publish repository pages
     runs-on: ubuntu-latest
 
     needs: [ generate-apt-repository, generate-rpm-repository ]

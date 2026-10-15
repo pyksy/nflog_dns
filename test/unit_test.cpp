@@ -1191,6 +1191,7 @@ TEST_CASE("process_dns_packet - malformed TXT length prefix falls back to safe h
 
 TEST_CASE("log_stats - output contains all stat fields") {
     reset_stats();
+    packet_stats.packets_received = 10;
     packet_stats.invalid_packets = 3;
     packet_stats.dns_responses   = 7;
     packet_stats.logged_records  = 5;
@@ -1224,8 +1225,9 @@ TEST_CASE("log_stats - zero stats") {
     CHECK(output.find("logged_errors=0")    != std::string::npos);
 }
 
-TEST_CASE("log_stats - received_packets is sum of invalid and responses") {
+TEST_CASE("log_stats - received_packets is tracked independently") {
     reset_stats();
+    packet_stats.packets_received = 12;
     packet_stats.invalid_packets = 4;
     packet_stats.dns_responses   = 6;
 
@@ -1234,7 +1236,7 @@ TEST_CASE("log_stats - received_packets is sum of invalid and responses") {
 
     log_stats(*logger);
 
-    CHECK(oss.str().find("received_packets=10") != std::string::npos);
+    CHECK(oss.str().find("received_packets=12") != std::string::npos);
 }
 
 // ============================================================================
@@ -1512,6 +1514,7 @@ TEST_CASE("log_stats --json - well-formed JSON with type and numeric fields") {
     reset_config();
     reset_stats();
     use_json = true;
+    packet_stats.packets_received = 10;
     packet_stats.invalid_packets = 3;
     packet_stats.dns_responses   = 7;
     packet_stats.logged_records  = 5;

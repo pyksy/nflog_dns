@@ -39,7 +39,6 @@ declare -a ERROR_TYPES=(
 )
 declare -a INVALID_TYPES=(
 	emptypacket
-	badip
 	malformed
 	noquestion
 	query

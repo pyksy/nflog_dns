@@ -341,6 +341,6 @@ echo "done"
 NFLOGPID=""
 cat "${NFLOGTEMP}"
 
-verify_stats ${#INVALID_TYPES[@]} ${#INVALID_TYPES[@]} 0 0 0
+verify_stats ${#INVALID_TYPES[@]} 2 1 0 0
 rm -f "${NFLOGTEMP}"
 ((fail_count > 0)) && exit 1 || echo

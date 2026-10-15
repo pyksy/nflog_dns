@@ -232,13 +232,12 @@ std::string rcode_to_string(ns_rcode rcode)
 }
 
 void log_stats(spdlog::logger& dns_logger) {
-    uint64_t packets_received = packet_stats.invalid_packets + packet_stats.dns_responses;
     if (use_json) {
         dns_logger.log(dns_logger.level(),
             "{{\"timestamp\":\"{}\",\"type\":\"stats\",\"received_packets\":{},\"invalid_packets\":{},"
             "\"dns_responses\":{},\"logged_errors\":{},\"logged_records\":{}}}",
             current_timestamp(),
-            packets_received,
+            packet_stats.packets_received,
             packet_stats.invalid_packets,
             packet_stats.dns_responses,
             packet_stats.logged_errors,
@@ -246,7 +245,7 @@ void log_stats(spdlog::logger& dns_logger) {
         return;
     }
     dns_logger.log(dns_logger.level(), "Statistics: received_packets={} invalid_packets={} dns_responses={} logged_errors={} logged_records={}",
-        packets_received,
+        packet_stats.packets_received,
         packet_stats.invalid_packets,
         packet_stats.dns_responses,
         packet_stats.logged_errors,

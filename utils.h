@@ -17,6 +17,7 @@ typedef struct _code CODE;
 extern CODE facilitynames[];
 
 struct Stats {
+    uint64_t packets_received = 0;
     uint64_t invalid_packets = 0;
     uint64_t dns_responses = 0;
     uint64_t logged_records = 0;

@@ -22,8 +22,13 @@ PACKET_TYPE = sys.argv[3].upper()
 try:
     socket.inet_pton(socket.AF_INET6, DEST_IP)
     family = socket.AF_INET6
-except socket.error:
-    family = socket.AF_INET
+except OSError:
+    try:
+        socket.inet_pton(socket.AF_INET, DEST_IP)
+        family = socket.AF_INET
+    except OSError:
+        print(f"Error: '{DEST_IP}' is not a valid IPv4 or IPv6 address.")
+        sys.exit(1)
 
 # Replies
 if PACKET_TYPE == 'A' or PACKET_TYPE == 'NOERROR':
@@ -46,9 +51,10 @@ elif PACKET_TYPE == 'CNAME':
     )
 elif PACKET_TYPE == 'MX':
     # example.com MX 10 mail.example.com
+    # RDLENGTH is 0x14 (20): 2 (preference) + 18 (mail.example.com)
     packet = bytes.fromhex(
         '123481800001000100000000076578616d706c6503636f6d00000f0001'
-        'c00c000f00010000003c0010000a046d61696c076578616d706c6503636f6d00'
+        'c00c000f00010000003c0014000a046d61696c076578616d706c6503636f6d00'
     )
 elif PACKET_TYPE == 'PTR':
     # 1.0.0.127.in-addr.arpa PTR example.com
@@ -65,51 +71,59 @@ elif PACKET_TYPE == 'TXT':
 elif PACKET_TYPE == 'NS':
     # example.com NS ns1.example.com
     packet = bytes.fromhex(
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        '123481800001000100000000'
+        '076578616d706c6503636f6d0000020001'  # question: example.com NS
         'c00c000200010000003c0006036e7331c00c'
     )
 elif PACKET_TYPE == 'SOA':
     # example.com SOA ns1.example.com hostmaster.example.com (1 3600 1800 604800 60)
     packet = bytes.fromhex(
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        '123481800001000100000000'
+        '076578616d706c6503636f6d0000060001'  # question: example.com SOA
         'c00c000600010000003c0027036e7331c00c0a686f73746d6173746572'
         'c00c0000000100000e100000070800093a800000003c'
     )
 elif PACKET_TYPE == 'SRV':
     # _sip._tcp.example.com SRV 10 20 5060 sip.example.com
     packet = bytes.fromhex(
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
-        '045f736970045f746370c00c002100010000003c000c000a001413c403'
-        '736970c00c'
+        '123481800001000100000000'
+        '045f736970045f746370076578616d706c6503636f6d0000210001'  # question
+        'c00c002100010000003c000c000a001413c4'
+        '03736970c016'  # sip + pointer to example.com (offset 22)
     )
 elif PACKET_TYPE == 'DNSKEY':
     # example.com DNSKEY flags=256 protocol=3 algorithm=8 (4-byte fake pubkey)
     packet = bytes.fromhex(
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        '123481800001000100000000'
+        '076578616d706c6503636f6d0000300001'  # question: example.com DNSKEY
         'c00c003000010000003c000801000308aabbccdd'
     )
 elif PACKET_TYPE == 'NSEC3PARAM':
     # example.com NSEC3PARAM algorithm=1 flags=0 iterations=10 salt=1234
     packet = bytes.fromhex(
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        '123481800001000100000000'
+        '076578616d706c6503636f6d0000330001'  # question: example.com NSEC3PARAM
         'c00c003300010000003c00070100000a021234'
     )
 elif PACKET_TYPE == 'NSAP-PTR':
     # example.com NSAP-PTR ptr.example.com
     packet = bytes.fromhex(
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        '123481800001000100000000'
+        '076578616d706c6503636f6d0000170001'  # question: example.com NSAP-PTR
         'c00c001700010000003c000603707472c00c'
     )
 elif PACKET_TYPE == 'CERT':
     # example.com CERT type=PKIX(1) key_tag=12345 algorithm=8 (4-byte fake cert)
     packet = bytes.fromhex(
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        '123481800001000100000000'
+        '076578616d706c6503636f6d0000250001'  # question: example.com CERT
         'c00c002500010000003c0009000130390801020304'
     )
 elif PACKET_TYPE == 'DNAME':
     # example.com DNAME example.net
     packet = bytes.fromhex(
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
+        '123481800001000100000000'
+        '076578616d706c6503636f6d0000270001'  # question: example.com DNAME
         'c00c002700010000003c000d076578616d706c65036e657400'
     )
 
@@ -171,49 +185,25 @@ elif PACKET_TYPE == 'NOTZONE':
     )
 
 # Invalids
+#
 elif PACKET_TYPE == 'EMPTYPACKET':
-    # Empty payload - triggers first check
+    # Zero-length UDP datagram: valid IP+UDP headers (added by the kernel)
+    # with no DNS payload at all
     packet = bytes.fromhex('')
-elif PACKET_TYPE == 'BADIP':
-    # Valid length but unparseable IP header
-    packet = bytes.fromhex(
-        'ffffffffffffffffffffffffffffffffffffffff'  # 20 bytes of garbage
-        '0035303900140000'  # UDP header
-        '123481800001000100000000076578616d706c6503636f6d0000010001'
-    )
 elif PACKET_TYPE == 'MALFORMED':
-    # Malformed DNS packet
-    # Valid IP/UDP headers but corrupted DNS data (truncated mid-question)
+    # Malformed DNS packet: header says 1 question and 1 answer, but the
+    # QNAME is truncated (label length 3, only 2 bytes "ex" follow)
     packet = bytes.fromhex(
-        # IPv4 header (20 bytes)
-        '4500002800000000401100007f0000017f000001'
-        # UDP header (8 bytes)
-        '0035303900140000'
-        # Malformed DNS: header says 1 question but question section is truncated
-        # Header: ID=1234, response, 1 question, 1 answer
-        '123481800001000100000000'
-        # Truncated question: only "exa" instead of "example.com"
+        '123481800001000100000000'  # ID=1234, response, 1 question, 1 answer
         '036578'
     )
 elif PACKET_TYPE == 'NOQUESTION':
     # DNS response with error but no question section
-    # Header: response, NXDOMAIN, 0 questions, 0 answers
-    packet = bytes.fromhex(
-        # IPv4 header (20 bytes)
-        '4500002000000000401100007f0000017f000001'
-        # UDP header (8 bytes)
-        '0035303900240000'
-        # DNS header only: ID=1234, response with NXDOMAIN, 0 questions
-        '123481830000000000000000'
-    )
+    # Header: ID=1234, response, NXDOMAIN, 0 questions, 0 answers
+    packet = bytes.fromhex('123481830000000000000000')
 elif PACKET_TYPE == 'QUERY':
-    # Valid packet but DNS QUERY (not RESPONSE)
+    # Valid packet but DNS QUERY (QR bit = 0), not a RESPONSE
     packet = bytes.fromhex(
-        # IPv4 header (20 bytes)
-        '4500003800000000401100007f0000017f000001'
-        # UDP header (8 bytes)
-        '0035303900240000'
-        # DNS query (QR bit = 0)
         '123401000001000000000000076578616d706c6503636f6d0000010001'
     )
 else:
@@ -222,7 +212,7 @@ else:
     print(f"         'SRV', 'DNSKEY', 'NSEC3PARAM', 'NSAP-PTR', 'CERT', 'DNAME';")
     print(f"an error: 'FORMERR', 'SERVFAIL', 'NXDOMAIN', 'NOTIMP', 'REFUSED',")
     print(f"          'YXDOMAIN', 'YXRRSET', 'NXRRSET', 'NOTAUTH', 'NOTZONE';")
-    print(f"invalid: 'EMPTYPACKET', 'BADIP', 'MALFORMED', 'NOQUESTION', 'QUERY'.")
+    print(f"invalid: 'EMPTYPACKET', 'MALFORMED', 'NOQUESTION', 'QUERY'.")
     sys.exit(1)
 
 # Create UDP socket

@@ -495,9 +495,6 @@ jobs:
         esac
 
     - name: Build package
-      env:
-        RPM_SIGNING_KEY: ${{ secrets.RPM_SIGNING_KEY }}
-        RPM_SIGNING_PASSPHRASE: ${{ secrets.RPM_SIGNING_PASSPHRASE }}
       run: |
         mkdir -p artifacts
         case "${{ matrix.pkgtype }}" in
@@ -507,36 +504,6 @@ jobs:
           ;;
         "rpm")
           make rpm
-          printf '%s' "${RPM_SIGNING_KEY}" | gpg --batch --import
-          KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '$1=="sec"{print $5; exit}')
-          echo "Signing with key: ${KEY_ID}"
-          if [ -z "${KEY_ID}" ]
-          then
-            echo "Error: No signing key found" >&2
-            exit 1
-          fi
-
-          printf '%s' "${RPM_SIGNING_PASSPHRASE}" > /tmp/gpg-passphrase
-          chmod 600 /tmp/gpg-passphrase
-          mkdir -p "${HOME}/.gnupg"
-          chmod 700 "${HOME}/.gnupg"
-          echo "allow-loopback-pinentry" >> "${HOME}/.gnupg/gpg-agent.conf"
-          echo "pinentry-mode loopback" >> "${HOME}/.gnupg/gpg.conf"
-          gpgconf --kill gpg-agent
-          cat <<'EOF' > /tmp/gpg-wrapper
-        #!/bin/sh
-        exec /usr/bin/gpg --pinentry-mode loopback --passphrase-file /tmp/gpg-passphrase "$@"
-        EOF
-          chmod +x /tmp/gpg-wrapper
-          cat <<EOF > "${HOME}/.rpmmacros"
-        %_gpg_name ${KEY_ID}
-        %__gpg /tmp/gpg-wrapper
-        EOF
-
-          rpmsign --addsign "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm
-          gpg --export --armor "${KEY_ID}" > /tmp/pubkey.asc
-          rpm --import /tmp/pubkey.asc
-          rpm -Kv "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm
           cp -v "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm artifacts/
           ;;
         *)
@@ -544,6 +511,42 @@ jobs:
           exit 1
           ;;
         esac
+
+    - name: Sign RPM package
+      if: ${{ matrix.pkgtype == 'rpm' }} && github.event_name == 'workflow_dispatch' && inputs.action == 'Create a release'
+      env:
+        RPM_SIGNING_KEY: ${{ secrets.RPM_SIGNING_KEY }}
+        RPM_SIGNING_PASSPHRASE: ${{ secrets.RPM_SIGNING_PASSPHRASE }}
+      run: |
+        printf '%s' "${RPM_SIGNING_KEY}" | gpg --batch --import
+        KEY_ID=$(gpg --list-secret-keys --with-colons | awk -F: '$1=="sec"{print $5; exit}')
+        echo "Signing with key: ${KEY_ID}"
+        if [ -z "${KEY_ID}" ]
+        then
+          echo "Error: No signing key found" >&2
+          exit 1
+        fi
+        printf '%s' "${RPM_SIGNING_PASSPHRASE}" > /tmp/gpg-passphrase
+        chmod 600 /tmp/gpg-passphrase
+        mkdir -p "${HOME}/.gnupg"
+        chmod 700 "${HOME}/.gnupg"
+        echo "allow-loopback-pinentry" >> "${HOME}/.gnupg/gpg-agent.conf"
+        echo "pinentry-mode loopback" >> "${HOME}/.gnupg/gpg.conf"
+        gpgconf --kill gpg-agent
+        cat <<'EOF' > /tmp/gpg-wrapper
+      #!/bin/sh
+      exec /usr/bin/gpg --pinentry-mode loopback --passphrase-file /tmp/gpg-passphrase "$@"
+      EOF
+        chmod +x /tmp/gpg-wrapper
+        cat <<EOF > "${HOME}/.rpmmacros"
+      %_gpg_name ${KEY_ID}
+      %__gpg /tmp/gpg-wrapper
+      EOF
+
+        rpmsign --addsign "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm
+        gpg --export --armor "${KEY_ID}" > /tmp/pubkey.asc
+        rpm --import /tmp/pubkey.asc
+        rpm -Kv "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm
 
     - name: Verify DEB package installation
       if: ${{ matrix.pkgtype == 'deb' }}
@@ -1101,6 +1104,7 @@ jobs:
           baseurl=https://pyksy.github.io/nflog_dns/rpm/${repository}/
           enabled=1
           gpgcheck=1
+          repo_gpgcheck=1
           gpgkey=https://pyksy.github.io/nflog_dns/rpm/RPM-GPG-KEY-nflog_dns.gpg
           EOF
           done

@@ -35,21 +35,21 @@ volatile sig_atomic_t log_stats_flag = 0;
 const char* unprivileged_user = UNPRIVILEGED_USER;
 
 void print_help(char* prgname) {
-    std::cout << "Usage: " << prgname << " [OPTION]..." << std::endl;
-    std::cout << std::endl;
-    std::cout << "Extract DNS replies from NFLOG group" << std::endl;
-    std::cout << std::endl;
-    std::cout << "  -f, --facility=FACILITY  facility for syslog logging (default: user)" << std::endl;
-    std::cout << "  -g, --group=NUM          NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << std::endl;
-    std::cout << "  -h, --help               print this help and exit" << std::endl;
-    std::cout << "  -j, --json               output in json format" << std::endl;
-    std::cout << "  -l, --loglevel=LOGLEVEL  log level for syslog logging (default: info)" << std::endl;
-    std::cout << "  -q, --qtype=QTYPE,...    log QTYPE type DNS replies (default: A,AAAA)" << std::endl;
-    std::cout << "  -r, --rcode=RCODE,...    log RCODE return code replies (default: NOERROR)" << std::endl;
-    std::cout << "  -s, --syslog             log replies to syslog instead of stdout" << std::endl;
-    std::cout << "  -u, --user=USER          user after dropping privileges (default: " << UNPRIVILEGED_USER << ")" << std::endl;
-    std::cout << "  -v, --version            show version and exit" << std::endl;
-    std::cout << std::endl;
+    std::cout << "Usage: " << prgname << " [OPTION]..." << '\n';
+    std::cout << '\n';
+    std::cout << "Extract DNS replies from NFLOG group" << '\n';
+    std::cout << '\n';
+    std::cout << "  -f, --facility=FACILITY  facility for syslog logging (default: user)" << '\n';
+    std::cout << "  -g, --group=NUM          NFLOG group to bind (default: " << DEFAULT_NFLOG_GROUP << ")" << '\n';
+    std::cout << "  -h, --help               print this help and exit" << '\n';
+    std::cout << "  -j, --json               output in json format" << '\n';
+    std::cout << "  -l, --loglevel=LOGLEVEL  log level for syslog logging (default: info)" << '\n';
+    std::cout << "  -q, --qtype=QTYPE,...    log QTYPE type DNS replies (default: A,AAAA)" << '\n';
+    std::cout << "  -r, --rcode=RCODE,...    log RCODE return code replies (default: NOERROR)" << '\n';
+    std::cout << "  -s, --syslog             log replies to syslog instead of stdout" << '\n';
+    std::cout << "  -u, --user=USER          user after dropping privileges (default: " << UNPRIVILEGED_USER << ")" << '\n';
+    std::cout << "  -v, --version            show version and exit" << '\n';
+    std::cout << '\n';
 }
 
 void signal_handler(int signum) {
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
             case 'f':
                 syslog_facility = parse_syslog_code(optarg, facilitynames);
                 if (syslog_facility == -1) {
-                    std::cerr << "Error: Bad syslog facility name: " << optarg << std::endl;
+                    std::cerr << "Error: Bad syslog facility name: " << optarg << '\n';
                     return EXIT_FAILURE;
                 }
                 break;
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
                 if (is_number(optarg)) {
                     group = atoi(optarg);
                 } else {
-                    std::cerr << "Error: Bad group number: " << optarg << std::endl;
+                    std::cerr << "Error: Bad group number: " << optarg << '\n';
                     return EXIT_FAILURE;
                 }
                 break;
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
                 }
                 syslog_level = spdlog::level::from_str(optarg);
                 if (syslog_level == spdlog::level::off) {
-                    std::cerr << "Error: Bad syslog level: " << optarg << std::endl;
+                    std::cerr << "Error: Bad syslog level: " << optarg << '\n';
                     return EXIT_FAILURE;
                 }
                 break;
@@ -160,7 +160,7 @@ int main(int argc, char *argv[])
                 try {
                     enable_qtypes(optarg);
                 } catch (const std::invalid_argument& e) {
-                    std::cerr << "Error: " << e.what() << std::endl;
+                    std::cerr << "Error: " << e.what() << '\n';
                     return EXIT_FAILURE;
                 }
                 break;
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
                 try {
                     enable_rcodes(optarg);
                 } catch (const std::invalid_argument& e) {
-                    std::cerr << "Error: " << e.what() << std::endl;
+                    std::cerr << "Error: " << e.what() << '\n';
                     return EXIT_FAILURE;
                 }
                 break;
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
                 break;
 
             case 'v':
-                std::cout << PROGRAM_NAME << " version " << PROGRAM_VERSION << std::endl;
+                std::cout << PROGRAM_NAME << " version " << PROGRAM_VERSION << '\n';
                 return 0;
                 break;
 
@@ -200,32 +200,32 @@ int main(int argc, char *argv[])
     // Setup nflog
     h = nflog_open();
     if (!h) {
-        std::cerr << "Error: nflog_open() failed" << std::endl;
+        std::cerr << "Error: nflog_open() failed" << '\n';
         return 1;
     }
     if (nflog_unbind_pf(h, AF_INET) < 0) {
-        std::cerr << "Error: nflog_unbind_pf() failed (" << strerror(errno) << ")" << std::endl;
+        std::cerr << "Error: nflog_unbind_pf() failed (" << strerror(errno) << ")" << '\n';
         nflog_close(h);
         return 1;
     }
     // Note that AF_INET socket does receive both IPv4 and IPv6 packets;
     // no need to open AF_INET6 socket here (or anywhere).
     if (nflog_bind_pf(h, AF_INET) < 0) {
-        std::cerr << "Error: nflog_bind_pf() failed (" << strerror(errno) << ")" << std::endl;
+        std::cerr << "Error: nflog_bind_pf() failed (" << strerror(errno) << ")" << '\n';
         nflog_close(h);
         return 1;
     }
     qh = nflog_bind_group(h, group);
     if (!qh) {
-        std::cerr << "Error: nflog_bind_group() failed, no handle for group " << group << " (" << strerror(errno) << ") -- is " << PROGRAM_NAME << " already running?" << std::endl;
+        std::cerr << "Error: nflog_bind_group() failed, no handle for group " << group << " (" << strerror(errno) << ") -- is " << PROGRAM_NAME << " already running?" << '\n';
         nflog_close(h);
         return 1;
     }
     if (nflog_set_nlbufsiz(qh, NFLOG_BUFFER_SIZE) < 0) {
-        std::cerr << "Warning: nflog_set_nlbufsiz() failed, cannot set netlink buffer size" << std::endl;
+        std::cerr << "Warning: nflog_set_nlbufsiz() failed, cannot set netlink buffer size" << '\n';
     }
     if (nflog_set_mode(qh, NFULNL_COPY_PACKET, NFLOG_BUFFER_SIZE) < 0) {
-        std::cerr << "Error: nflog_set_mode() failed, cannot set packet copy mode" << std::endl;
+        std::cerr << "Error: nflog_set_mode() failed, cannot set packet copy mode" << '\n';
         nflog_unbind_group(qh);
         nflog_close(h);
         return 1;
@@ -255,7 +255,7 @@ int main(int argc, char *argv[])
     if (geteuid() == 0) {
         const struct passwd* pw = getpwnam(unprivileged_user);
         if (!pw) {
-            std::cerr << "Error: Cannot find user " << unprivileged_user << std::endl;
+            std::cerr << "Error: Cannot find user " << unprivileged_user << '\n';
             nflog_unbind_group(qh);
             nflog_close(h);
             return 1;
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
         if (initgroups(pw->pw_name, pw->pw_gid) < 0 ||
             setgid(pw->pw_gid) < 0 ||
             setuid(pw->pw_uid) < 0) {
-            std::cerr << "Error: Cannot drop to user " << unprivileged_user << ": " << strerror(errno) << std::endl;
+            std::cerr << "Error: Cannot drop to user " << unprivileged_user << ": " << strerror(errno) << '\n';
             nflog_unbind_group(qh);
             nflog_close(h);
             return 1;
@@ -295,21 +295,19 @@ int main(int argc, char *argv[])
         }
 
         if (rv > 0) {
-            nflog_handle_packet(h, buf, rv);    
+            nflog_handle_packet(h, buf, static_cast<int>(rv));
         }
         if (rv == 0) {
-            std::cerr << "Error: recv() failed, nflog connection is closed" << std::endl;
+            std::cerr << "Error: recv() failed, nflog connection is closed" << '\n';
             break;
         }
         if (rv < 0) {
-            if (errno_recv == EINTR) {
-                // Signal interrupted, try again
-                continue;
-            } else if (errno_recv == ENOBUFS) {
-                // Netlink receive-buffer overflow, continue
+            if (errno_recv == EINTR || errno_recv == ENOBUFS) {
+                // Signal interrupted or netlink receive-buffer overflow;
+                // safe to continue
                 continue;
             } else {
-                std::cerr << "Error: recv() failed with error " << strerror(errno_recv) << std::endl;
+                std::cerr << "Error: recv() failed with error " << strerror(errno_recv) << '\n';
                 exit_code = EXIT_FAILURE;
                 break;
             }

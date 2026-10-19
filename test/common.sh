@@ -3,7 +3,7 @@
 # Copyright Antti Kultanen <antti.kultanen@molukki.com>
 # nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
 
-DIR="$(dirname $(realpath "${0}"))"
+DIR="$(dirname "$(realpath "${0}")")"
 GROUP=$((RANDOM/2+1024))
 
 declare -a PACKET_TYPES=(

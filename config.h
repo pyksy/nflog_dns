@@ -12,7 +12,7 @@
 #include <spdlog/common.h>
 #include <tins/dns.h>
 
-const std::unordered_map<Tins::DNS::QueryType, std::string> dns_qtypes = {
+static const std::unordered_map<Tins::DNS::QueryType, std::string> dns_qtypes = {
     {Tins::DNS::A,           "A"},
     {Tins::DNS::NS,          "NS"},
     {Tins::DNS::MD,          "MD"},

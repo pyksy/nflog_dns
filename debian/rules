@@ -6,7 +6,9 @@ DEB_BUILD_MAINT_OPTIONS = hardening=+all
 	dh $@
 
 override_dh_auto_test:
-	make test-unit
+ifeq (,$(filter nocheck,$(DEB_BUILD_OPTIONS)))
+	$(MAKE) test-unit
+endif
 
 override_dh_auto_install:
 	if grep -qi '^id=devuan' /etc/os-release; \

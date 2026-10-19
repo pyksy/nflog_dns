@@ -21,7 +21,7 @@ TEST_SOURCES = test/unit_test.cpp config.cpp utils.cpp
 
 all: build
 
-build: check-format nflog_dns
+build: nflog_dns
 
 nflog_dns: $(SOURCES) $(HEADERS)
 	$(CXX) $(CXXFLAGS) $(CXXEXTRAFLAGS) $(LDFLAGS) $(SOURCES) $(LIBS) -o $@
@@ -68,12 +68,12 @@ test-unit: $(TEST_SOURCES) $(HEADERS)
 test-integration:
 	bash ./test/integration_test.sh
 
-test: test-unit test-integration
-
-check: test
-
-check-format:
+test-format:
 	@awk '/\t/ { print FILENAME ":" FNR ": tab character found; use spaces instead."; found=1 } END { exit found }' *.cpp *.h
+
+test: test-format test-unit test-integration
+
+check: test-format test-unit
 
 install-bin:
 	install -Dm755 "nflog_dns" "$(DESTDIR)$(SBINDIR)/nflog_dns"
@@ -106,7 +106,7 @@ install-files: install-init install-systemd install-config
 
 install: install-bin install-man install-files
 
-install-strip: install-bin-strip install-files
+install-strip: install-bin-strip install-man install-files
 
 uninstall-bin:
 	rm -f "$(DESTDIR)$(SBINDIR)/nflog_dns"
@@ -133,8 +133,9 @@ uninstall-files: uninstall-init uninstall-systemd uninstall-config
 uninstall: uninstall-bin uninstall-man uninstall-files
 
 .PHONY: all deb rpm \
+	build debug \
 	check check-format \
-	clean distclean \
+	clean distclean clean-bin clean-deb clean-rpm \
 	test-unit test-integration test check \
 	install-bin install-bin-strip \
 	install-man \

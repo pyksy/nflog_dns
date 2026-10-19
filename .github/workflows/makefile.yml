@@ -55,10 +55,12 @@ jobs:
       - name: Prepare release
         id: prepare
         if: github.event_name == 'workflow_dispatch' && inputs.action == 'Create a release'
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          ./prepare_release.sh "${{ inputs.version }}"
+          ./prepare_release.sh "${RELEASE_VERSION}"
           VERSION=$(awk -F'"' '/PROGRAM_VERSION/ {print $2}' version.h)
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
 
@@ -98,7 +100,7 @@ jobs:
       run: |
         sudo rm -f /var/lib/man-db/auto-update
         sudo apt-get update
-        sudo apt-get -y --no-install-recommends install gpg libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy debhelper-compat lsb-release doctest-dev
+        sudo apt-get -y --no-install-recommends install gpg gpg-agent libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy debhelper-compat lsb-release doctest-dev
 
     - name: Run clang-tidy
       run: |
@@ -389,11 +391,11 @@ jobs:
           - name: Debian 13
             image: debian:13
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
+            install: apt-get update && apt-get -y --no-install-recommends install gpg gpg-agent ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
           - name: Debian 12
             image: debian:12
             pkgtype: deb
-            install: apt-get update && apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
+            install: apt-get update && apt-get -y --no-install-recommends install gpg gpg-agent ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
 
           - name: Fedora 44
             image: fedora:44
@@ -426,7 +428,7 @@ jobs:
               ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
               echo "Etc/UTC" > /etc/timezone
               apt-get update
-              apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
+              apt-get -y --no-install-recommends install gpg gpg-agent ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
           - name: Ubuntu 24.04
             image: ubuntu:24.04
             pkgtype: deb
@@ -434,7 +436,7 @@ jobs:
               ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
               echo "Etc/UTC" > /etc/timezone
               apt-get update
-              apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
+              apt-get -y --no-install-recommends install gpg gpg-agent ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
 
     name: ${{ matrix.name }} amd64 build
     needs: [ prepare-release ]
@@ -513,7 +515,7 @@ jobs:
         esac
 
     - name: Sign RPM package
-      if: ${{ matrix.pkgtype == 'rpm' }} && github.event_name == 'workflow_dispatch' && inputs.action == 'Create a release'
+      if: matrix.pkgtype == 'rpm' && github.event_name == 'workflow_dispatch' && inputs.action == 'Create a release'
       env:
         RPM_SIGNING_KEY: ${{ secrets.RPM_SIGNING_KEY }}
         RPM_SIGNING_PASSPHRASE: ${{ secrets.RPM_SIGNING_PASSPHRASE }}
@@ -534,15 +536,14 @@ jobs:
         echo "pinentry-mode loopback" >> "${HOME}/.gnupg/gpg.conf"
         gpgconf --kill gpg-agent
         cat <<'EOF' > /tmp/gpg-wrapper
-      #!/bin/sh
-      exec /usr/bin/gpg --pinentry-mode loopback --passphrase-file /tmp/gpg-passphrase "$@"
-      EOF
+        #!/bin/sh
+        exec /usr/bin/gpg --pinentry-mode loopback --passphrase-file /tmp/gpg-passphrase "$@"
+        EOF
         chmod +x /tmp/gpg-wrapper
         cat <<EOF > "${HOME}/.rpmmacros"
-      %_gpg_name ${KEY_ID}
-      %__gpg /tmp/gpg-wrapper
-      EOF
-
+        %_gpg_name ${KEY_ID}
+        %__gpg /tmp/gpg-wrapper
+        EOF
         rpmsign --addsign "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm
         gpg --export --armor "${KEY_ID}" > /tmp/pubkey.asc
         rpm --import /tmp/pubkey.asc
@@ -633,7 +634,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo chroot ../devuan-${{ matrix.release }} apt-get update
-          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
+          sudo chroot ../devuan-${{ matrix.release }} apt-get -y --no-install-recommends install gpg gpg-agent ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
 
       - name: Inject distribution into package version
         run: |
@@ -709,7 +710,7 @@ jobs:
         run: |
           rm -f /etc/apt/apt.conf.d/docker-clean
           apt-get update
-          apt-get -y --no-install-recommends install gpg ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
+          apt-get -y --no-install-recommends install gpg gpg-agent ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release adduser
 
       - name: Inject distribution into package version
         run: |

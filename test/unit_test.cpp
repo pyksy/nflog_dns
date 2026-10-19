@@ -44,15 +44,6 @@ static std::shared_ptr<spdlog::logger> make_test_logger(std::ostringstream& oss)
 }
 
 // ============================================================================
-// bool_to_string
-// ============================================================================
-
-TEST_CASE("bool_to_string") {
-    CHECK(bool_to_string(true)  == "yes");
-    CHECK(bool_to_string(false) == "no");
-}
-
-// ============================================================================
 // is_number
 // ============================================================================
 
@@ -85,54 +76,6 @@ TEST_CASE("is_number - negative numbers") {
 TEST_CASE("is_number - floating point") {
     CHECK(is_number("1.0") == false);
     CHECK(is_number("1.5") == false);
-}
-
-// ============================================================================
-// parse_bool
-// ============================================================================
-
-TEST_CASE("parse_bool - true values") {
-    CHECK(parse_bool("1")      == 1);
-    CHECK(parse_bool("enable") == 1);
-    CHECK(parse_bool("on")     == 1);
-    CHECK(parse_bool("true")   == 1);
-    CHECK(parse_bool("yes")    == 1);
-}
-
-TEST_CASE("parse_bool - true values case insensitive") {
-    CHECK(parse_bool("YES")    == 1);
-    CHECK(parse_bool("True")   == 1);
-    CHECK(parse_bool("ON")     == 1);
-    CHECK(parse_bool("Enable") == 1);
-    CHECK(parse_bool("TRUE")   == 1);
-}
-
-TEST_CASE("parse_bool - false values") {
-    CHECK(parse_bool("0")       == 0);
-    CHECK(parse_bool("disable") == 0);
-    CHECK(parse_bool("off")     == 0);
-    CHECK(parse_bool("false")   == 0);
-    CHECK(parse_bool("no")      == 0);
-}
-
-TEST_CASE("parse_bool - false values case insensitive") {
-    CHECK(parse_bool("NO")      == 0);
-    CHECK(parse_bool("False")   == 0);
-    CHECK(parse_bool("OFF")     == 0);
-    CHECK(parse_bool("Disable") == 0);
-    CHECK(parse_bool("FALSE")   == 0);
-}
-
-TEST_CASE("parse_bool - invalid values") {
-    CHECK(parse_bool("")        == -1);
-    CHECK(parse_bool("2")       == -1);
-    CHECK(parse_bool("maybe")   == -1);
-    CHECK(parse_bool("yep")     == -1);
-    CHECK(parse_bool("nope")    == -1);
-    CHECK(parse_bool("tru")     == -1);
-    CHECK(parse_bool("fals")    == -1);
-    CHECK(parse_bool(" yes")    == -1);
-    CHECK(parse_bool("yes ")    == -1);
 }
 
 // ============================================================================

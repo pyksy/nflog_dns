@@ -67,7 +67,7 @@ static int callback(struct nflog_g_handle *gh __attribute__((unused)),
 {
     packet_stats.packets_received++;
 
-    uint8_t* payload;
+    uint8_t* payload = nullptr;
     const int payload_len = nflog_get_payload(ldata, (char **)(&payload));
     if (!payload || payload_len < 1) {
         packet_stats.invalid_packets++;
@@ -88,6 +88,7 @@ int main(int argc, char *argv[])
     uint16_t group = DEFAULT_NFLOG_GROUP;
     int syslog_facility = LOG_USER;
     int optindex = 0;
+    int exit_code = EXIT_SUCCESS;
 
     const option longopts[] = {
         {"facility", required_argument, NULL, 'f'},
@@ -139,6 +140,11 @@ int main(int argc, char *argv[])
                 break;
 
             case 'l':
+                // spdlog wants level in lower case
+                char *p;
+                for (p = optarg; *p != '\0'; p++) {
+                    *p = (char)tolower((unsigned char)*p);
+                }
                 syslog_level = spdlog::level::from_str(optarg);
                 if (syslog_level == spdlog::level::off) {
                     std::cerr << "Error: Bad syslog level: " << optarg << std::endl;
@@ -299,8 +305,13 @@ int main(int argc, char *argv[])
             if (errno_recv == EINTR) {
                 // Signal interrupted, try again
                 continue;
+            }
+            else if (errno_recv == ENOBUFS) {
+                // Netlink receive-buffer overflow, continue
+                continue;
             } else {
-                std::cerr << "Error: recv() failed with error " << strerror(errno) << std::endl;
+                std::cerr << "Error: recv() failed with error " << strerror(errno_recv) << std::endl;
+                exit_code = EXIT_FAILURE;
                 break;
             }
         }
@@ -317,5 +328,5 @@ int main(int argc, char *argv[])
     nflog_unbind_group(qh);
     nflog_close(h);
 
-    return 0;
+    return exit_code;
 }

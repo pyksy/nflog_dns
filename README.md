@@ -38,8 +38,7 @@ Add APT signing key, then add APT source, then update APT sources, then install 
 ```
 curl -fsSL https://pyksy.github.io/nflog_dns/apt/nflog-dns-archive-keyring.asc \
     | sudo gpg --dearmor -o /usr/share/keyrings/nflog-dns-archive-keyring.gpg -
-echo 'deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] \
-    https://pyksy.github.io/nflog_dns/apt trixie main' \
+echo 'deb [signed-by=/usr/share/keyrings/nflog-dns-archive-keyring.gpg] https://pyksy.github.io/nflog_dns/apt trixie main' \
     | sudo tee /etc/apt/sources.list.d/nflog-dns.list
 sudo apt-get update
 sudo apt-get install nflog-dns
@@ -100,7 +99,7 @@ make
 ## Compile (RPM based distributions)
 
 ```
-sudo dnf install gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel
+sudo dnf install gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel fmt-devel
 make
 ```
 

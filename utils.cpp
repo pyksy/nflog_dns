@@ -163,10 +163,6 @@ static std::string json_record_line(const std::uint16_t id,
 
 Stats packet_stats;
 
-std::string bool_to_string(const bool value) {
-    return value ? "yes" : "no";
-}
-
 bool is_number(const char* facility_arg) {
     // Check if number was given
     if (!facility_arg || !isdigit((unsigned char)facility_arg[0])) return false;
@@ -188,24 +184,6 @@ int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table) {
     }
 
     // No match, return error
-    return -1;
-}
-
-int parse_bool(const char *str) {
-    if (strcasecmp(str, "1") == 0 ||
-        strcasecmp(str, "enable") == 0 ||
-        strcasecmp(str, "on") == 0 ||
-        strcasecmp(str, "true") == 0 ||
-        strcasecmp(str, "yes") == 0)
-        return 1;
-    if (strcasecmp(str, "0") == 0 ||
-        strcasecmp(str, "disable") == 0 ||
-        strcasecmp(str, "off") == 0 ||
-        strcasecmp(str, "false") == 0 ||
-        strcasecmp(str, "no") == 0)
-        return 0;
-
-    // Cannot parse, return error
     return -1;
 }
 

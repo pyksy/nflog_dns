@@ -10,7 +10,7 @@ if [[ "${EUID}" -ne 0 ]]; then
         exit 1
 fi
 
-DIR="$(dirname $(realpath "${0}"))"
+DIR="$(dirname "$(realpath "${0}")")"
 cd "${DIR}"
 
 echo "TEST: user_test.sh"

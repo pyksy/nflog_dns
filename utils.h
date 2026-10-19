@@ -25,19 +25,13 @@ struct Stats {
 };
 extern Stats packet_stats;
 
-std::string bool_to_string(const bool value);
-
 bool is_number(const char* facility_arg);
 
 int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table);
 
-int parse_bool(const char *str);
-
 std::string qtype_to_string(const Tins::DNS::QueryType queryType);
 
 std::string rcode_to_string(const ns_rcode rcode);
-
-bool parse_qtype(const char *str, Tins::DNS::QueryType& qtype);
 
 std::string json_message(const std::string& type, const std::string& message);
 

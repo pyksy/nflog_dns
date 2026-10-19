@@ -4,12 +4,14 @@ Priority: optional
 Maintainer: Antti Kultanen <antti.kultanen@molukki.com>
 Build-Depends: debhelper-compat (= 13),
                g++,
+               gpg,
+               gpg-agent,
                pkg-config,
                libtins-dev,
                libnetfilter-log-dev,
                libspdlog-dev,
                libfmt-dev,
-               doctest-dev
+               doctest-dev <!nocheck>
 Standards-Version: 4.6.2
 Homepage: https://github.com/pyksy/nflog_dns
 Rules-Requires-Root: no

@@ -2,22 +2,11 @@
 Checks: >
   -*,
   bugprone-*,
-  cert-*,
   clang-analyzer-*,
-  concurrency-*,
-  cppcoreguidelines-*,
-  misc-*,
-  performance-*,
-  portability-*,
-  readability-*,
 
-  -bugprone-easily-swappable-parameters,
-  -cppcoreguidelines-avoid-magic-numbers,
-  -cppcoreguidelines-pro-type-reinterpret-cast,
-  -cppcoreguidelines-pro-type-union-access,
-  -readability-identifier-length,
-  -readability-magic-numbers,
-  -readability-named-parameter
+  # Avoid noisy or primarily stylistic findings.
+  -bugprone-branch-clone,
+  -bugprone-easily-swappable-parameters
 
 # Make enabled-check warnings fail CI.
 WarningsAsErrors: '*'

@@ -305,8 +305,7 @@ int main(int argc, char *argv[])
             if (errno_recv == EINTR) {
                 // Signal interrupted, try again
                 continue;
-            }
-            else if (errno_recv == ENOBUFS) {
+            } else if (errno_recv == ENOBUFS) {
                 // Netlink receive-buffer overflow, continue
                 continue;
             } else {

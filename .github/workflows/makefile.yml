@@ -172,7 +172,7 @@ jobs:
         sudo systemctl enable nflog_dns.service
         sudo systemctl start nflog_dns.service
 
-    - name: Verify debug package
+    - name: Verify dbgsym package
       run: |
         gdb -q -batch \
           -ex "set debuginfod enabled off" \
@@ -268,7 +268,8 @@ jobs:
           systemd \
           doctest-devel \
           iptables-nft \
-          git
+          git \
+          gdb
 
     - name: Setup Fedora 44 chroot
       run: |
@@ -373,6 +374,19 @@ jobs:
           --quiet \
           -- \
           getent passwd _nflog-dns
+
+    - name: Verify debuginfo package
+      run: |
+        sudo systemd-nspawn \
+          --directory=/tmp/fedora-root \
+          --machine=fedora44 \
+          --quiet \
+          -- \
+          /bin/bash -c 'gdb -q -batch \
+            -ex "set debuginfod enabled off" \
+            -ex "file $(command -v nflog_dns)" \
+            -ex "info address main" |
+            grep -F 'Symbol "main(int, char**)" is a function at address''
 
     - name: Verify RPM removal
       run: |

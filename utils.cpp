@@ -90,8 +90,8 @@ static std::string json_escape(const std::string& data) {
             default:
                 if (c < 0x20 || c > 0x7e) {
                     char buf[7];
-                    std::snprintf(buf, sizeof(buf), "\\u%04x", c);
-                    out += buf;
+                    std::snprintf(&buf[0], sizeof(buf), "\\u%04x", c);
+                    out += &buf[0];
                 } else {
                     out += static_cast<char>(c);
                 }
@@ -109,10 +109,10 @@ static std::string current_timestamp() {
     struct tm tm_buf {};
     gmtime_r(&t, &tm_buf);
     char datetime[32];
-    std::strftime(datetime, sizeof(datetime), "%Y-%m-%dT%H:%M:%S", &tm_buf);
+    std::strftime(&datetime[0], sizeof(datetime), "%Y-%m-%dT%H:%M:%S", &tm_buf);
     char out[40];
-    std::snprintf(out, sizeof(out), "%s.%03dZ", datetime, static_cast<int>(ms.count()));
-    return std::string(out);
+    std::snprintf(&out[0], sizeof(out), "%s.%03dZ", &datetime[0], static_cast<int>(ms.count()));
+    return std::string(&out[0]);
 }
 
 std::string json_message(const std::string& type, const std::string& message) {

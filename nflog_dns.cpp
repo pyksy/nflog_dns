@@ -106,7 +106,7 @@ int main(int argc, char *argv[])
     };
 
     while (true) {
-        const int opt = getopt_long(argc, argv, "f:g:hjl:q:r:su:v", longopts, &optindex);
+        const int opt = getopt_long(argc, argv, "f:g:hjl:q:r:su:v", static_cast<const struct option*>(longopts), &optindex);
 
         if (opt == -1) {
             break;
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 
         switch (opt) {
             case 'f':
-                syslog_facility = parse_syslog_code(optarg, facilitynames);
+                syslog_facility = parse_syslog_code(optarg, static_cast<CODE*>(facilitynames));
                 if (syslog_facility == -1) {
                     std::cerr << "Error: Bad syslog facility name: " << optarg << '\n';
                     return EXIT_FAILURE;
@@ -286,7 +286,7 @@ int main(int argc, char *argv[])
 
     // Enter packet handling loop
     while (!exit_program_flag) {
-        rv = recv(fd, buf, sizeof(buf), 0);
+        rv = recv(fd, &buf[0], sizeof(buf), 0);
         const int errno_recv = errno;
 
         if (log_stats_flag) {
@@ -295,7 +295,7 @@ int main(int argc, char *argv[])
         }
 
         if (rv > 0) {
-            nflog_handle_packet(h, buf, static_cast<int>(rv));
+            nflog_handle_packet(h, &buf[0], static_cast<int>(rv));
         }
         if (rv == 0) {
             std::cerr << "Error: recv() failed, nflog connection is closed" << '\n';

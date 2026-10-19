@@ -766,9 +766,6 @@ jobs:
         with:
           path: release-artifacts
 
-      - name: Remove debug packages from release
-        run: rm -f release-artifacts/**/*dbgsym*
-
       - name: Generate SHA256 checksums
         run: |
           cd release-artifacts
@@ -849,7 +846,7 @@ jobs:
           do
             gh api --paginate \
               "repos/${GITHUB_REPOSITORY}/releases/${release_id}/assets?per_page=100" \
-              --jq '.[] | select(.name | endswith(".deb")) | [.name, .url] | @tsv' |
+              --jq '.[] | select(.name | endswith(".deb") or endswith(".ddeb")) | [.name, .url] | @tsv' |
             while IFS=$'\t' read -r name url
             do
               deb="${RUNNER_TEMP}/${name}"
@@ -884,7 +881,7 @@ jobs:
           declare -A distro_arches=()
           declare -A distro_files=()
           declare -A architectures=()
-          for deb in "${pool}"/main/*/*/*.deb
+          for deb in "${pool}"/main/*/*/*.deb "${pool}"/main/*/*/*.ddeb
           do
             name=$(basename "${deb}")
             base="${name%.deb}"
@@ -917,7 +914,14 @@ jobs:
                 --multiversion \
                 pool \
                 /dev/null
-            ) > "${work}/Packages.${arch}"
+              dpkg-scanpackages \
+                --type ddeb \
+                --arch "${arch}" \
+                --multiversion \
+                pool \
+                /dev/null
+            ) | awk 'BEGIN { RS = ""; ORS = "\n\n" } NF { print }' \
+              > "${work}/Packages.${arch}"
           done
           for distro in "${!distributions[@]}"
           do

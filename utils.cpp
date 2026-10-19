@@ -106,7 +106,7 @@ static std::string current_timestamp() {
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
         now.time_since_epoch()) % 1000;
     const std::time_t t = std::chrono::system_clock::to_time_t(now);
-    struct tm tm_buf;
+    struct tm tm_buf {};
     gmtime_r(&t, &tm_buf);
     char datetime[32];
     std::strftime(datetime, sizeof(datetime), "%Y-%m-%dT%H:%M:%S", &tm_buf);

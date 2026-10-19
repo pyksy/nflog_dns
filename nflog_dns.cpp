@@ -274,7 +274,7 @@ int main(int argc, char *argv[])
     const int fd = nflog_fd(h);
 
     // Setup signal handlers
-    struct sigaction sa;
+    struct sigaction sa {};
     memset(&sa, 0, sizeof(sa));
     sa.sa_handler = signal_handler;
     sa.sa_flags = 0;  // Do NOT set SA_RESTART - we want EINTR

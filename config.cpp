@@ -21,11 +21,11 @@ std::unordered_set<Tins::DNS::QueryType> enabled_qtypes = {
 };
 void enable_qtypes(const char* arg)
 {
-    std::string input(arg);
+    const std::string input(arg);
     std::size_t start = 0;
 
     while (start < input.size()) {
-        std::size_t comma = input.find(',', start);
+        const std::size_t comma = input.find(',', start);
         std::string qtype = input.substr(
             start,
             comma == std::string::npos ? std::string::npos : comma - start
@@ -90,11 +90,11 @@ std::unordered_set<ns_rcode> enabled_rcodes = {
 };
 void enable_rcodes(const char* arg)
 {
-    std::string input(arg);
+    const std::string input(arg);
     std::size_t start = 0;
 
     while (start < input.size()) {
-        std::size_t comma = input.find(',', start);
+        const std::size_t comma = input.find(',', start);
 
         std::string rcode = input.substr(
             start,

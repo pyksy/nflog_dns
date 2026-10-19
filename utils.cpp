@@ -21,7 +21,7 @@
 
 
 static bool is_printable(const std::string& data) {
-    for (unsigned char c : data) {
+    for (const unsigned char c : data) {
         if (c < 0x20 || c > 0x7e) {
             return false;
         }
@@ -33,7 +33,7 @@ static std::string hex_encode(const std::string& data) {
     static const char hex_digits[] = "0123456789abcdef";
     std::string out;
     out.reserve(data.size() * 2);
-    for (unsigned char c : data) {
+    for (const unsigned char c : data) {
         out.push_back(hex_digits[c >> 4]);
         out.push_back(hex_digits[c & 0x0f]);
     }
@@ -83,7 +83,7 @@ static std::string format_rdata(const Tins::DNS::QueryType qtype, const std::str
 static std::string json_escape(const std::string& data) {
     std::string out;
     out.reserve(data.size());
-    for (unsigned char c : data) {
+    for (const unsigned char c : data) {
         switch (c) {
             case '"':  out += "\\\""; break;
             case '\\': out += "\\\\"; break;
@@ -167,7 +167,7 @@ bool is_number(const char* facility_arg) {
     // Check if number was given
     if (!facility_arg || !isdigit((unsigned char)facility_arg[0])) return false;
     char* temp;
-    unsigned long number = strtoul(facility_arg, &temp, 10);
+    const unsigned long number = strtoul(facility_arg, &temp, 10);
     return facility_arg != temp && *temp == '\0' && number <= USHRT_MAX;
 }
 
@@ -189,7 +189,7 @@ int parse_syslog_code(const char* facility_arg, const CODE* syslog_code_table) {
 
 std::string qtype_to_string(Tins::DNS::QueryType qtype)
 {
-    std::unordered_map<Tins::DNS::QueryType, std::string>::const_iterator it =
+    const std::unordered_map<Tins::DNS::QueryType, std::string>::const_iterator it =
         dns_qtypes.find(qtype);
 
     if (it != dns_qtypes.end())
@@ -200,7 +200,7 @@ std::string qtype_to_string(Tins::DNS::QueryType qtype)
 
 std::string rcode_to_string(ns_rcode rcode)
 {
-    std::unordered_map<ns_rcode, std::string>::const_iterator it =
+    const std::unordered_map<ns_rcode, std::string>::const_iterator it =
         dns_rcodes.find(rcode);
 
     if (it != dns_rcodes.end())

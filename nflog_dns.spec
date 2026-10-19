@@ -65,6 +65,14 @@ getent passwd _nflog-dns >/dev/null \
 %systemd_postun_with_restart nflog_dns.service
 
 %changelog
+* Mon Oct 19 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1.2.6-1
+- Fix RPM signing
+- Release dbgsym .deb packages
+- Verify debug .deb package works
+- Several minor code fixes - Update Makefile - Update README.md - Fix .deb build nocheck - Remove dead code - Update tests
+- Only sign release RPMs
+- Fix packet counters
+
 * Wed Sep 30 2026 github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com> - 1.2.5-1
 - Bump the actions group with 3 updates
 - Fix dependencies and put Readme back in deb package

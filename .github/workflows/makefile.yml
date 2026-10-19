@@ -96,11 +96,11 @@ jobs:
         languages: cpp
         queries: security-and-quality
 
-    - name: Install build and test dependencies
+    - name: Install build and test dependencies from repository
       run: |
         sudo rm -f /var/lib/man-db/auto-update
         sudo apt-get update
-        sudo apt-get -y --no-install-recommends install gpg gpg-agent libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy debhelper-compat lsb-release doctest-dev
+        sudo apt-get -y --no-install-recommends install gpg gpg-agent gdb libtins-dev libnetfilter-log-dev libspdlog-dev python3 build-essential clang-tidy debhelper-compat lsb-release doctest-dev
 
     - name: Run clang-tidy
       run: |
@@ -115,16 +115,16 @@ jobs:
     - name: Run tests
       run: sudo make test
 
-    - name: Verify installation
+    - name: Verify installation works
       run: sudo make install
 
     - name: Run the installed binary
       run: nflog_dns --version
 
-    - name: Verify uninstallation
+    - name: Verify uninstallation works
       run: sudo make uninstall
 
-    - name: Verify clean
+    - name: Verify clean works
       run: |
         make clean
         [ -z "$(git status --porcelain)" ] || exit 1
@@ -144,10 +144,12 @@ jobs:
       run: make deb
 
     - name: Verify DEB package installation
-      run: sudo dpkg -i ../nflog-dns_*.deb
+      run: sudo dpkg -i ../nflog-dns_*.deb ../nflog-dns-dbgsym_*.ddeb
 
-    - name: List installed package contents
-      run: dpkg -L nflog-dns
+    - name: List installed nflog_dns packages and contents
+      run: |
+        dpkg -l nflog-dns nflog-dns-dbgsym
+        dpkg -L nflog-dns nflog-dns-dbgsym
 
     - name: Run the installed binary
       run: nflog_dns --version
@@ -169,6 +171,14 @@ jobs:
       run: |
         sudo systemctl enable nflog_dns.service
         sudo systemctl start nflog_dns.service
+
+    - name: Verify debug package
+      run: |
+        gdb -q -batch \
+          -ex "set debuginfod enabled off" \
+          -ex "file $(command -v nflog_dns)" \
+          -ex "info address main" |
+          grep -F 'Symbol "main(int, char**)" is a function at address'
 
     - name: Verify DEB package reinstallation
       run: sudo dpkg -i ../nflog-dns_*.deb
@@ -553,8 +563,11 @@ jobs:
       if: ${{ matrix.pkgtype == 'deb' }}
       run: dpkg -i artifacts/*.*deb
 
+    - name: Verify RPM package installation
+      if: ${{ matrix.pkgtype == 'rpm' }}
+      run: rpm -i artifacts/*.rpm
+
     - name: Run the installed binary
-      if: ${{ matrix.pkgtype == 'deb' }}
       run: nflog_dns --version
 
     - name: Verify DEB package re-installation
@@ -564,14 +577,6 @@ jobs:
     - name: Verify DEB package removal
       if: ${{ matrix.pkgtype == 'deb' }}
       run: dpkg -r nflog-dns nflog-dns-dbgsym
-
-    - name: Verify RPM package installation
-      if: ${{ matrix.pkgtype == 'rpm' }}
-      run: rpm -i artifacts/*.rpm
-
-    - name: Run the installed binary
-      if: ${{ matrix.pkgtype == 'rpm' }}
-      run: nflog_dns --version
 
     - name: Verify RPM package removal
       if: ${{ matrix.pkgtype == 'rpm' }}

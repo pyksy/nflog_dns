@@ -530,6 +530,7 @@ jobs:
           ;;
         "rpm")
           make rpm
+          cp -v "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm artifacts/
           ;;
         *)
           echo "Error: unknown pkgtype" >&2

@@ -516,7 +516,6 @@ jobs:
           ;;
         "rpm")
           make rpm
-          cp -v "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm artifacts/
           ;;
         *)
           echo "Error: unknown pkgtype" >&2
@@ -558,6 +557,7 @@ jobs:
         gpg --export --armor "${KEY_ID}" > /tmp/pubkey.asc
         rpm --import /tmp/pubkey.asc
         rpm -Kv "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm
+        mv -v "${HOME}"/rpmbuild/RPMS/x86_64/*.rpm artifacts/
 
     - name: Verify DEB package installation
       if: ${{ matrix.pkgtype == 'deb' }}

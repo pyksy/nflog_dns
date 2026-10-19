@@ -1,0 +1,33 @@
+# Start from no checks, then explicitly enable useful groups.
+Checks: >
+  -*,
+  bugprone-*,
+  cert-*,
+  clang-analyzer-*,
+  concurrency-*,
+  cppcoreguidelines-*,
+  misc-*,
+  performance-*,
+  portability-*,
+  readability-*,
+
+  -bugprone-easily-swappable-parameters,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-pro-type-union-access,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  -readability-named-parameter
+
+# Make enabled-check warnings fail CI.
+WarningsAsErrors: '*'
+
+# Analyze project headers, but not system headers.
+HeaderFilterRegex: '.*'
+SystemHeaders: false
+
+# Do not apply formatting changes automatically.
+FormatStyle: none
+
+# Don't analyze generated or vendored source files.
+ExcludeHeaderFilterRegex: '(^|/)(build|generated|third_party|vendor)/'

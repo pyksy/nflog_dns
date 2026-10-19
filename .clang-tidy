@@ -3,10 +3,21 @@ Checks: >
   -*,
   bugprone-*,
   clang-analyzer-*,
+  performance-*,
+  portability-*,
+  cppcoreguidelines-pro-type-member-init,
+  cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+  readability-misleading-indentation,
+  misc-definitions-in-headers,
+  misc-header-include-cycle,
+  misc-const-correctness,
+  cppcoreguidelines-pro-type-reinterpret-cast,
+  readability-duplicate-include
 
-  # Avoid noisy or primarily stylistic findings.
-  -bugprone-branch-clone,
-  -bugprone-easily-swappable-parameters
+# Allow _code as it is the struct tag used by glibcs syslog CODE definition.
+CheckOptions:
+  - key: bugprone-reserved-identifier.AllowedIdentifiers
+    value: '_code'
 
 # Make enabled-check warnings fail CI.
 WarningsAsErrors: '*'
@@ -17,6 +28,3 @@ SystemHeaders: false
 
 # Do not apply formatting changes automatically.
 FormatStyle: none
-
-# Don't analyze generated or vendored source files.
-ExcludeHeaderFilterRegex: '(^|/)(build|generated|third_party|vendor)/'

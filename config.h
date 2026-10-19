@@ -4,7 +4,8 @@
  * nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
  */
 
-#pragma once
+#ifndef CONFIG_H
+#define CONFIG_H
 
 #include <arpa/nameser.h>
 #include <unordered_set>
@@ -99,3 +100,5 @@ extern std::unordered_set<ns_rcode> enabled_rcodes;
 void enable_rcodes(const char* arg);
 bool rcode_enabled(const ns_rcode rcode);
 void clear_rcodes();
+
+#endif // CONFIG_H

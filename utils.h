@@ -4,7 +4,8 @@
  * nflog_dns is licensed under GNU GPL v2 or later; see LICENSE file
  */
 
-#pragma once
+#ifndef UTILS_H
+#define UTILS_H
 
 #include <string>
 #include <cstdint>
@@ -38,3 +39,5 @@ std::string json_message(const std::string& type, const std::string& message);
 void log_stats(spdlog::logger& dns_logger);
 
 void process_dns_packet(const uint8_t* payload, const int payload_len, spdlog::logger& dns_logger);
+
+#endif // UTILS_H

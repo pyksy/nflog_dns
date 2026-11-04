@@ -90,12 +90,6 @@ jobs:
       with:
         ref: ${{ needs.prepare-release.outputs.sha }}
 
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
-      with:
-        languages: cpp
-        queries: security-and-quality
-
     - name: Install build and test dependencies from repository
       run: |
         sudo rm -f /var/lib/man-db/auto-update
@@ -106,14 +100,22 @@ jobs:
       run: |
         clang-tidy config.cpp nflog_dns.cpp utils.cpp -- -std=c++11 $(pkg-config --cflags libnetfilter_log libtins fmt spdlog)
 
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: c-cpp
+        queries: security-and-quality
+        build-mode: manual
+        debug: true
+
     - name: Compile binary
       run: make
 
-    - name: Run CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
-
     - name: Run tests
       run: sudo make test
+
+    - name: Run CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
 
     - name: Verify installation works
       run: sudo make install

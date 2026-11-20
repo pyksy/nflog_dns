@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
             case 'g':
                 if (is_number(optarg)) {
-                    group = atoi(optarg);
+                    group = static_cast<uint16_t>(std::strtoul(optarg, nullptr, 10));
                 } else {
                     std::cerr << "Error: Bad group number: " << optarg << '\n';
                     return EXIT_FAILURE;

@@ -15,5 +15,18 @@ SuccessExitStatus=0 129
 StandardOutput=journal
 StandardError=journal
 
+# Hardenings
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+
 [Install]
 WantedBy=multi-user.target

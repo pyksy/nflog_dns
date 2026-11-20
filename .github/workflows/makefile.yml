@@ -203,7 +203,7 @@ jobs:
 
   # Smoke test in chrooted Fedora
   fedora-smoke:
-    name: Fedora 44 QA tests
+    name: Fedora 45 QA tests
     needs: [ prepare-release ]
     runs-on: ubuntu-26.04
     timeout-minutes: 60
@@ -237,8 +237,8 @@ jobs:
           --setopt=keepcache=True \
           --setopt=install_weak_deps=False \
           --setopt=tsflags=nodocs \
-          --repofrompath=fedora,https://dl.fedoraproject.org/pub/fedora/linux/releases/44/Everything/x86_64/os/ \
-          --repofrompath=updates,https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/x86_64/ \
+          --repofrompath=fedora,https://dl.fedoraproject.org/pub/fedora/linux/releases/45/Everything/x86_64/os/ \
+          --repofrompath=updates,https://dl.fedoraproject.org/pub/fedora/linux/updates/45/Everything/x86_64/ \
           --setopt=fedora.gpgcheck=1 \
           --setopt=updates.gpgcheck=1 \
           --setopt=fedora.gpgkey=https://fedoraproject.org/fedora.pgp \
@@ -272,11 +272,11 @@ jobs:
           git \
           gdb
 
-    - name: Setup Fedora 44 chroot
+    - name: Setup Fedora 45 chroot
       run: |
         sudo systemd-firstboot \
           --root=/tmp/fedora-root \
-          --hostname=fedora44 \
+          --hostname=fedora45 \
           --locale=C.UTF-8 \
           --timezone=UTC
         sudo systemd-machine-id-setup --root=/tmp/fedora-root
@@ -289,7 +289,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           make -C /root/nflog_dns all
@@ -298,7 +298,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --capability=CAP_NET_ADMIN \
           --quiet \
           -- \
@@ -308,7 +308,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           make -C /root/nflog_dns install
@@ -317,7 +317,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           nflog_dns --version
@@ -326,7 +326,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           make -C /root/nflog_dns uninstall
@@ -335,7 +335,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           /bin/bash -c 'make -C /root/nflog_dns clean && git -C /root/nflog_dns status --porcelain'
@@ -344,25 +344,25 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           make -C /root/nflog_dns rpm
 
-    - name: Verify RPM package installation
+    - name: Verify unsigned RPM package installation
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
-          /bin/bash -c 'rpm -i /root/rpmbuild/RPMS/x86_64/*.rpm'
+          /bin/bash -c 'rpm -i --nosignature /root/rpmbuild/RPMS/x86_64/*.rpm'
 
     - name: Run the installed binary
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           nflog_dns --version
@@ -371,7 +371,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           getent passwd _nflog-dns
@@ -380,7 +380,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           /bin/bash -c 'gdb -q -batch \
@@ -393,7 +393,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           rpm -e nflog_dns
@@ -402,7 +402,7 @@ jobs:
       run: |
         sudo systemd-nspawn \
           --directory=/tmp/fedora-root \
-          --machine=fedora44 \
+          --machine=fedora45 \
           --quiet \
           -- \
           /bin/bash -c 'make -C /root/nflog_dns clean && git -C /root/nflog_dns status --porcelain'
@@ -422,12 +422,12 @@ jobs:
             pkgtype: deb
             install: apt-get update && apt-get -y --no-install-recommends install gpg gpg-agent ca-certificates libtins-dev libnetfilter-log-dev libspdlog-dev doctest-dev python3 build-essential debhelper-compat lsb-release
 
-          - name: Fedora 44
-            image: fedora:44
+          - name: Fedora 45
+            image: fedora:45
             pkgtype: rpm
             install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel doctest-devel python3 rpm-build rpm-sign rpmdevtools rpmlint systemd-rpm-macros systemd
-          - name: Fedora 43
-            image: fedora:43
+          - name: Fedora 44
+            image: fedora:44
             pkgtype: rpm
             install: dnf install -y gcc-c++ make libpcap-devel libtins-devel libnetfilter_log-devel spdlog-devel doctest-devel python3 rpm-build rpm-sign rpmdevtools rpmlint systemd-rpm-macros systemd
 
@@ -579,9 +579,9 @@ jobs:
       if: ${{ matrix.pkgtype == 'deb' }}
       run: dpkg -i artifacts/*.*deb
 
-    - name: Verify RPM package installation
+    - name: Verify unsigned RPM package installation
       if: ${{ matrix.pkgtype == 'rpm' }}
-      run: rpm -i artifacts/*.rpm
+      run: rpm -i --nosignature artifacts/*.rpm
 
     - name: Run the installed binary
       run: nflog_dns --version
@@ -796,7 +796,7 @@ jobs:
             - Debian 12, 13
             - Ubuntu 24.04, 26.04
             - Devuan 5.0, 6.0
-            - Fedora 43, 44
+            - Fedora 44, 45
             - openSUSE Leap 16.0, Tumbleweed
           - ARM64:
             - Debian 12, 13
@@ -1243,7 +1243,7 @@ jobs:
 
       - name: Verify RPM repository
         run: |
-          docker run --rm fedora:44 bash -c '
+          docker run --rm fedora:45 bash -c '
             set -euo pipefail
             curl -sSfL --retry 10 --retry-delay 3 \
               -o /etc/yum.repos.d/nflog-dns.repo \
